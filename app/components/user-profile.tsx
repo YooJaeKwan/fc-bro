@@ -27,7 +27,8 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
     subPosition2: userInfo?.subPositions?.[1] || "",
     region: userInfo?.region || "",
     city: userInfo?.city || "",
-    preferredFoot: userInfo?.preferredFoot || ""
+    preferredFoot: userInfo?.preferredFoot || "",
+    jerseyNumber: userInfo?.jerseyNumber ? userInfo.jerseyNumber.toString() : ""
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -118,6 +119,11 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
       newErrors.city = "구/시를 선택해주세요."
     }
 
+    // 등번호 검증 (선택사항)
+    if (formData.jerseyNumber && (!/^\d+$/.test(formData.jerseyNumber) || Number(formData.jerseyNumber) < 1 || Number(formData.jerseyNumber) > 99)) {
+      newErrors.jerseyNumber = "등번호는 1-99 사이의 숫자여야 합니다."
+    }
+
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -144,6 +150,12 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
     handleInputChange('phoneNumber', numbersOnly)
   }
 
+  const handleJerseyNumberChange = (value: string) => {
+    // 숫자만 허용하고 2자리 제한 (1-99)
+    const numbersOnly = value.replace(/\D/g, '').slice(0, 2)
+    handleInputChange('jerseyNumber', numbersOnly)
+  }
+
   const handleSave = async () => {
     if (!validateForm()) {
       return
@@ -160,7 +172,8 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
         subPositions: [formData.subPosition1, formData.subPosition2].filter(pos => pos !== ""),
         region: formData.region,
         city: formData.city,
-        preferredFoot: formData.preferredFoot || null
+        preferredFoot: formData.preferredFoot || null,
+        jerseyNumber: formData.jerseyNumber ? Number(formData.jerseyNumber) : null
       }
 
       console.log('정보 수정 요청:', updateData)
@@ -212,7 +225,8 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
       subPosition2: userInfo?.subPositions?.[1] || "",
       region: userInfo?.region || "",
       city: userInfo?.city || "",
-      preferredFoot: userInfo?.preferredFoot || ""
+      preferredFoot: userInfo?.preferredFoot || "",
+      jerseyNumber: userInfo?.jerseyNumber ? userInfo.jerseyNumber.toString() : ""
     })
     setErrors({})
     setIsEditing(false)
@@ -237,13 +251,13 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
               </Avatar>
               <div>
                 <CardTitle className="text-xl">{userInfo?.realName || userInfo?.nickname}</CardTitle>
-                <CardDescription>
+                {/* <CardDescription>
                   {userInfo?.preferredPosition}
                   {userInfo?.subPositions && userInfo.subPositions.length > 0 && 
                     ` (+ ${userInfo.subPositions.join(', ')})`
                   } • {userInfo?.region} {userInfo?.city}
                   {userInfo?.preferredFoot && ` • ${footOptions.find(f => f.value === userInfo.preferredFoot)?.label}`}
-                </CardDescription>
+                </CardDescription> */}
                 <p className="text-sm text-muted-foreground mt-1">
                   가입일: {userInfo?.registeredAt ? new Date(userInfo.registeredAt).toLocaleDateString('ko-KR') : '정보 없음'}
                 </p>
@@ -518,10 +532,29 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
                   ))}
                 </SelectContent>
               </Select>
-              <div className="text-xs text-muted-foreground">
-                팀 편성 시 참고 정보로 활용됩니다.
-              </div>
+            <div className="text-xs text-muted-foreground">
+              팀 편성 시 참고 정보로 활용됩니다.
             </div>
+          </div>
+
+          {/* 등번호 입력 */}
+          <div className="space-y-2">
+            <Label>등번호 (선택사항)</Label>
+            <Input
+              type="text"
+              placeholder=""
+              value={formData.jerseyNumber}
+              onChange={(e) => handleJerseyNumberChange(e.target.value)}
+              className={errors.jerseyNumber ? "border-red-500" : ""}
+              maxLength={2}
+            />
+            {errors.jerseyNumber && (
+              <p className="text-sm text-red-500">{errors.jerseyNumber}</p>
+            )}
+            <div className="text-xs text-muted-foreground">
+              등번호를 입력해주세요.
+            </div>
+          </div>
 
             {/* 저장 버튼 */}
             <div className="flex justify-end space-x-2 pt-4">
@@ -591,6 +624,13 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
                     ? footOptions.find(f => f.value === userInfo.preferredFoot)?.label
                     : '정보 없음'
                   }
+                </p>
+              </div>
+              <Separator />
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-muted-foreground">등번호</Label>
+                <p className="text-base">
+                  {userInfo?.jerseyNumber ? `${userInfo.jerseyNumber}번` : '설정 안함'}
                 </p>
               </div>
             </CardContent>

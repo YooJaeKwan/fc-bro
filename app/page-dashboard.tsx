@@ -97,7 +97,7 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
       setIsDashboardLoading(false)
     }
   }
-  const [activeTab, setActiveTab] = useState("dashboard")
+  const [activeTab, setActiveTab] = useState("schedule")
   const [isManagerMode, setIsManagerMode] = useState(true) // 총무 모드 여부
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
@@ -108,10 +108,10 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
   const [isTeamFormationComplete, setIsTeamFormationComplete] = useState(false)
 
   const tabItems = [
-    { value: "dashboard", label: "대시보드", icon: BarChart3 },
+    { value: "schedule", label: "일정 관리", icon: Calendar },
+    { value: "dashboard", label: "팀 대시보드", icon: BarChart3 },
     { value: "profile", label: "내 정보", icon: User },
     { value: "team", label: "팀원 관리", icon: Users },
-    { value: "schedule", label: "일정 관리", icon: Calendar },
     ...(isManagerMode ? [{ value: "formation", label: "팀 편성", icon: Target }] : []),
     { value: "stats", label: "출석/통계", icon: TrendingUp },
     ...(isManagerMode ? [{ value: "settings", label: "팀 설정", icon: Settings }] : []),
@@ -233,8 +233,9 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
                           {user?.preferredPosition}
                           {user?.subPositions && user.subPositions.length > 0 && 
                             ` (+ ${user.subPositions.join(', ')})`
-                          } • {user?.region} {user?.city}
-                          {user?.preferredFoot && ` • ${user.preferredFoot === 'RIGHT' ? '오른발' : user.preferredFoot === 'LEFT' ? '왼발' : '양발'}`}
+                          }
+                           {/* • {user?.region} {user?.city} */}
+                          {/* {user?.preferredFoot && ` • ${user.preferredFoot === 'RIGHT' ? '오른발' : user.preferredFoot === 'LEFT' ? '왼발' : '양발'}`} */}
                         </p>
                       </div>
                     </div>

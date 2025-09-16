@@ -91,6 +91,8 @@ export async function GET() {
         quarterTime: schedule.quarterTime,
         restTime: schedule.restTime,
         description: schedule.description,
+        opponentTeam: schedule.opponentTeam,
+        trainingContent: schedule.trainingContent,
         status: schedule.status.toLowerCase(), // SCHEDULED -> scheduled
         attendees: allAttendees.map(addTempRating),
         createdBy: {

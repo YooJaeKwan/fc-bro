@@ -26,7 +26,8 @@ export function UserSignup({ kakaoUserInfo, onSignupComplete, onBack }: UserSign
     subPosition2: "",
     region: "",
     city: "",
-    preferredFoot: ""
+    preferredFoot: "",
+    jerseyNumber: ""
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -124,6 +125,11 @@ export function UserSignup({ kakaoUserInfo, onSignupComplete, onBack }: UserSign
       newErrors.city = "구/시를 선택해주세요."
     }
 
+    // 등번호 검증 (선택사항)
+    if (formData.jerseyNumber && (!/^\d+$/.test(formData.jerseyNumber) || Number(formData.jerseyNumber) < 1 || Number(formData.jerseyNumber) > 99)) {
+      newErrors.jerseyNumber = "등번호는 1-99 사이의 숫자여야 합니다."
+    }
+
     // 주발 검증 (선택사항)
     // 주발은 필수가 아니므로 별도 검증 없음
 
@@ -153,6 +159,12 @@ export function UserSignup({ kakaoUserInfo, onSignupComplete, onBack }: UserSign
     handleInputChange('phoneNumber', numbersOnly)
   }
 
+  const handleJerseyNumberChange = (value: string) => {
+    // 숫자만 허용하고 2자리 제한 (1-99)
+    const numbersOnly = value.replace(/\D/g, '').slice(0, 2)
+    handleInputChange('jerseyNumber', numbersOnly)
+  }
+
   // 부포지션 선택에서 이미 선택된 포지션들 제외
   const getAvailableSubPositions = (excludePositions: string[] = []) => {
     return allPositions.filter(pos => !excludePositions.includes(pos.value))
@@ -180,7 +192,8 @@ export function UserSignup({ kakaoUserInfo, onSignupComplete, onBack }: UserSign
         subPositions: [formData.subPosition1, formData.subPosition2].filter(pos => pos !== ""),
         region: formData.region,
         city: formData.city,
-        preferredFoot: formData.preferredFoot || null
+        preferredFoot: formData.preferredFoot || null,
+        jerseyNumber: formData.jerseyNumber ? Number(formData.jerseyNumber) : null
       }
 
       console.log('회원가입 요청 데이터:', signupData)
@@ -475,6 +488,25 @@ export function UserSignup({ kakaoUserInfo, onSignupComplete, onBack }: UserSign
             </Select>
             <div className="text-xs text-muted-foreground">
               팀 편성 시 참고 정보로 활용됩니다.
+            </div>
+          </div>
+
+          {/* 등번호 선택 */}
+          <div className="space-y-2">
+            <Label>등번호 (선택사항)</Label>
+            <Input
+              type="text"
+              placeholder="등번호를 입력하세요"
+              value={formData.jerseyNumber}
+              onChange={(e) => handleJerseyNumberChange(e.target.value)}
+              className={errors.jerseyNumber ? "border-red-500" : ""}
+              maxLength={2}
+            />
+            {errors.jerseyNumber && (
+              <p className="text-sm text-red-500">{errors.jerseyNumber}</p>
+            )}
+            <div className="text-xs text-muted-foreground">
+              등번호를 입력해주세요.
             </div>
           </div>
 

@@ -20,7 +20,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Progress } from "@/components/ui/progress"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { CalendarIcon, Clock, MapPin, Users, Plus, Check, X, AlertCircle, Timer, Coffee, TrendingUp } from "lucide-react"
+import { CalendarIcon, Clock, MapPin, Users, Plus, Check, X, AlertCircle, Timer, Coffee, TrendingUp, Target, Edit } from "lucide-react"
 import { format } from "date-fns"
 import { ko } from "date-fns/locale"
 import { cn } from "@/lib/utils"
@@ -52,11 +52,12 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
   const [isAddingSchedule, setIsAddingSchedule] = useState(false)
+  const [isEditingSchedule, setIsEditingSchedule] = useState(false)
+  const [editingScheduleId, setEditingScheduleId] = useState<string | null>(null)
   const [selectedDate, setSelectedDate] = useState<Date>()
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [newSchedule, setNewSchedule] = useState({
-    title: "",
     type: "internal",
     date: "",
     time: "",
@@ -65,6 +66,9 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
     quarterTime: 20,
     restTime: 10,
     description: "",
+    // 유형별 추가 필드
+    opponentTeam: "", // A매치용 상대팀명
+    trainingContent: "", // 연습용 연습내용
   })
 
   useEffect(() => {
@@ -147,8 +151,22 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
     setIsSubmitting(true)
 
     try {
+      // 유형에 따른 제목 자동 생성
+      let autoTitle = ""
+      switch (newSchedule.type) {
+        case "internal":
+          autoTitle = "자체경기"
+          break
+        case "match":
+          autoTitle = `vs ${newSchedule.opponentTeam}`
+          break
+        case "training":
+          autoTitle = `연습 - ${newSchedule.trainingContent}`
+          break
+      }
+
       const scheduleData = {
-        title: newSchedule.title,
+        title: autoTitle,
         type: newSchedule.type,
         date: newSchedule.date,
         time: newSchedule.time,
@@ -157,6 +175,8 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
         quarterTime: newSchedule.quarterTime,
         restTime: newSchedule.restTime,
         description: newSchedule.description,
+        opponentTeam: newSchedule.opponentTeam || null,
+        trainingContent: newSchedule.trainingContent || null,
         createdBy: currentUser.id
       }
 
@@ -182,19 +202,7 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
       await fetchSchedules()
       
       // 폼 초기화
-      setNewSchedule({
-        title: "",
-        type: "internal",
-        date: "",
-        time: "",
-        gatherTime: "",
-        location: "",
-        quarterTime: 20,
-        restTime: 10,
-        description: "",
-      })
-      setSelectedDate(undefined)
-      setIsAddingSchedule(false)
+      resetScheduleForm()
 
     } catch (error) {
       console.error('일정 등록 오류:', error)
@@ -202,6 +210,102 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  // 일정 수정 폼 열기
+  const handleEditSchedule = (schedule: any) => {
+    setEditingScheduleId(schedule.id)
+    setNewSchedule({
+      type: schedule.type,
+      date: schedule.date,
+      time: schedule.time,
+      gatherTime: schedule.gatherTime,
+      location: schedule.location,
+      quarterTime: schedule.quarterTime,
+      restTime: schedule.restTime,
+      description: schedule.description || "",
+      opponentTeam: schedule.opponentTeam || "",
+      trainingContent: schedule.trainingContent || "",
+    })
+    setSelectedDate(new Date(schedule.date))
+    setIsEditingSchedule(true)
+  }
+
+  // 일정 수정 처리
+  const handleScheduleUpdate = async () => {
+    if (!currentUser?.id || !editingScheduleId) {
+      setError('수정 권한이 없습니다.')
+      return
+    }
+
+    setIsSubmitting(true)
+
+    try {
+      const scheduleData = {
+        scheduleId: editingScheduleId,
+        type: newSchedule.type,
+        date: newSchedule.date,
+        time: newSchedule.time,
+        gatherTime: newSchedule.gatherTime,
+        location: newSchedule.location,
+        quarterTime: newSchedule.quarterTime,
+        restTime: newSchedule.restTime,
+        description: newSchedule.description,
+        opponentTeam: newSchedule.opponentTeam || null,
+        trainingContent: newSchedule.trainingContent || null,
+        userId: currentUser.id
+      }
+
+      console.log('일정 수정 요청 데이터:', scheduleData)
+
+      const response = await fetch('/api/schedule/update', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(scheduleData)
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || '일정 수정 중 오류가 발생했습니다.')
+      }
+
+      console.log('일정 수정 성공:', result.schedule)
+      
+      // 일정 목록 새로고침
+      await fetchSchedules()
+      
+      // 폼 초기화 및 수정 모드 종료
+      resetScheduleForm()
+
+    } catch (error) {
+      console.error('일정 수정 오류:', error)
+      setError(error instanceof Error ? error.message : '일정 수정 중 오류가 발생했습니다.')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  // 폼 초기화
+  const resetScheduleForm = () => {
+    setNewSchedule({
+      type: "internal",
+      date: "",
+      time: "",
+      gatherTime: "",
+      location: "",
+      quarterTime: 20,
+      restTime: 10,
+      description: "",
+      opponentTeam: "",
+      trainingContent: "",
+    })
+    setSelectedDate(undefined)
+    setIsAddingSchedule(false)
+    setIsEditingSchedule(false)
+    setEditingScheduleId(null)
   }
 
   // getTypeColor 함수 업데이트
@@ -254,11 +358,8 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h2 className="text-2xl font-bold">일정 관리</h2>
-            <p className="text-muted-foreground">일정 정보를 불러오는 중...</p>
-          </div>
+        <div className="text-center">
+          <p className="text-muted-foreground">일정 정보를 불러오는 중...</p>
         </div>
         <div className="space-y-4">
           {[...Array(2)].map((_, i) => (
@@ -280,11 +381,8 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
   if (error) {
     return (
       <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h2 className="text-2xl font-bold">일정 관리</h2>
-            <p className="text-muted-foreground">팀 일정을 확인하세요</p>
-          </div>
+        <div className="text-center">
+          <p className="text-muted-foreground">일정 정보 로딩 중 오류가 발생했습니다</p>
         </div>
         <Card>
           <CardContent className="pt-6">
@@ -301,22 +399,12 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
   return (
     <div className="space-y-6">
       {/* 헤더 */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold">일정 관리</h2>
-          <p className="text-muted-foreground">
-            {isManagerMode ? "팀 일정을 등록하고 관리하세요" : "팀 일정을 확인하세요"}
-          </p>
-          <p className="text-sm text-muted-foreground mt-1">
-            총 {schedules.length}개의 일정
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button onClick={fetchSchedules} variant="outline">
-            새로고침
-          </Button>
-          {isManagerMode && (
-          <Dialog open={isAddingSchedule} onOpenChange={setIsAddingSchedule}>
+      <div className="flex justify-end items-center">
+        {isManagerMode && (
+          <Dialog open={isAddingSchedule || isEditingSchedule} onOpenChange={(open) => {
+            if (!open) resetScheduleForm()
+            else setIsAddingSchedule(true)
+          }}>
             <DialogTrigger asChild>
               <Button>
                 <Plus className="h-4 w-4 mr-2" />
@@ -325,26 +413,22 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
             </DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>새 일정 추가</DialogTitle>
-                <DialogDescription>새로운 팀 일정을 등록하세요</DialogDescription>
+                <DialogTitle>{isEditingSchedule ? '일정 수정' : '새 일정 추가'}</DialogTitle>
+                <DialogDescription>
+                  {isEditingSchedule ? '일정 정보를 수정하세요' : '새로운 팀 일정을 등록하세요'}
+                </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <Label htmlFor="title">제목 *</Label>
-                  <Input
-                    id="title"
-                    value={newSchedule.title}
-                    onChange={(e) => setNewSchedule({ ...newSchedule, title: e.target.value })}
-                    placeholder="일정 제목을 입력하세요"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="type">유형 *</Label>
-                  {/* 일정 유형 선택 옵션 변경 */}
+                  <Label htmlFor="type">경기 유형 *</Label>
                   <Select
                     value={newSchedule.type}
-                    onValueChange={(value) => setNewSchedule({ ...newSchedule, type: value })}
+                    onValueChange={(value) => setNewSchedule({ 
+                      ...newSchedule, 
+                      type: value,
+                      opponentTeam: "", // 유형 변경 시 관련 필드 초기화
+                      trainingContent: ""
+                    })}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -356,6 +440,31 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                     </SelectContent>
                   </Select>
                 </div>
+
+                {/* 유형별 추가 정보 입력 */}
+                {newSchedule.type === "match" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="opponentTeam">상대팀명 *</Label>
+                    <Input
+                      id="opponentTeam"
+                      value={newSchedule.opponentTeam}
+                      onChange={(e) => setNewSchedule({ ...newSchedule, opponentTeam: e.target.value })}
+                      placeholder="상대팀 이름을 입력하세요 (예: FC 라이트닝)"
+                    />
+                  </div>
+                )}
+
+                {newSchedule.type === "training" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="trainingContent">연습 내용 *</Label>
+                    <Input
+                      id="trainingContent"
+                      value={newSchedule.trainingContent}
+                      onChange={(e) => setNewSchedule({ ...newSchedule, trainingContent: e.target.value })}
+                      placeholder="연습 내용을 입력하세요 (예: 패스 연습, 슈팅 연습)"
+                    />
+                  </div>
+                )}
 
                 {/* 날짜 선택 - Calendar 컴포넌트 사용 (선택 시 자동 닫힘) */}
                 <div className="space-y-2">
@@ -534,6 +643,14 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                   <div className="p-4 bg-blue-50 rounded-lg space-y-2">
                     <h4 className="font-medium text-blue-800">일정 요약</h4>
                     <div className="text-sm text-blue-700 space-y-1">
+                      <div className="flex items-center gap-2">
+                        <Target className="h-4 w-4" />
+                        <span className="font-medium">
+                          {newSchedule.type === "internal" ? "자체경기" :
+                           newSchedule.type === "match" ? `vs ${newSchedule.opponentTeam || "상대팀"}` :
+                           `연습 - ${newSchedule.trainingContent || "연습내용"}`}
+                        </span>
+                      </div>
                       {selectedDate && (
                         <div className="flex items-center gap-2">
                           <CalendarIcon className="h-4 w-4" />
@@ -563,12 +680,19 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                 )}
               </div>
               <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setIsAddingSchedule(false)}>
+                <Button variant="outline" onClick={resetScheduleForm}>
                   취소
                 </Button>
                 <Button
-                  onClick={handleScheduleSubmit}
-                  disabled={!newSchedule.title || !selectedDate || !newSchedule.time || !newSchedule.location || isSubmitting}
+                  onClick={isEditingSchedule ? handleScheduleUpdate : handleScheduleSubmit}
+                  disabled={
+                    !selectedDate || 
+                    !newSchedule.time || 
+                    !newSchedule.location || 
+                    (newSchedule.type === "match" && !newSchedule.opponentTeam) ||
+                    (newSchedule.type === "training" && !newSchedule.trainingContent) ||
+                    isSubmitting
+                  }
                 >
                   {isSubmitting ? (
                     <div className="flex items-center space-x-2">
@@ -576,14 +700,13 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                       <span>등록 중...</span>
                     </div>
                   ) : (
-                    '등록'
+                    isEditingSchedule ? '수정' : '등록'
                   )}
                 </Button>
               </div>
             </DialogContent>
           </Dialog>
           )}
-        </div>
       </div>
 
       {/* 일정 목록 */}
@@ -610,17 +733,22 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
             <Card key={schedule.id} className="hover:shadow-lg transition-shadow">
               <CardHeader className="pb-3">
                 <div className="space-y-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <CardTitle className="text-base sm:text-lg leading-tight">{schedule.title}</CardTitle>
-                    <div className="flex flex-col sm:flex-row gap-1 sm:gap-2 flex-shrink-0">
-                      <Badge className={getTypeColor(schedule.type)} variant="secondary">
-                        {schedule.type === "internal" ? "자체경기" : schedule.type === "match" ? "A매치" : "연습"}
-                      </Badge>
-                      <Badge className={getStatusColor(schedule.status)} variant="outline">
-                        {schedule.status === "scheduled" ? "예정" : "완료"}
-                      </Badge>
+                    <div className="flex items-start justify-between gap-2">
+                      <CardTitle className="text-base sm:text-lg leading-tight">{schedule.title}</CardTitle>
+                      <div className="flex flex-col sm:flex-row gap-1 sm:gap-2 flex-shrink-0">
+                        <Badge className={getTypeColor(schedule.type)} variant="secondary">
+                          {schedule.type === "internal" ? "자체경기" : schedule.type === "match" ? "A매치" : "연습"}
+                        </Badge>
+                        <Badge className={getStatusColor(schedule.status)} variant="outline">
+                          {schedule.status === "scheduled" ? "예정" : "완료"}
+                        </Badge>
+                        {isManagerMode && schedule.status === "scheduled" && (
+                          <Button variant="ghost" size="sm" className="h-6 px-2" onClick={() => handleEditSchedule(schedule)}>
+                            <Edit className="h-3 w-3" />
+                          </Button>
+                        )}
+                      </div>
                     </div>
-                  </div>
 
                   {/* 모바일에서는 세로 스택, 데스크톱에서는 그리드 */}
                   <div className="space-y-2 sm:space-y-1">

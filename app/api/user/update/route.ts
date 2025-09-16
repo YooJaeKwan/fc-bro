@@ -14,7 +14,8 @@ export async function PUT(request: NextRequest) {
       subPositions = [],
       region,
       city,
-      preferredFoot = null
+      preferredFoot = null,
+      jerseyNumber = null
     } = body
 
     // 필수 필드 검증
@@ -95,6 +96,7 @@ export async function PUT(request: NextRequest) {
         region,
         city,
         preferredFoot,
+        jerseyNumber: jerseyNumber ? Number(jerseyNumber) : null,
         updatedAt: new Date()
       }
     })
@@ -116,6 +118,7 @@ export async function PUT(request: NextRequest) {
         region: updatedUser.region,
         city: updatedUser.city,
         preferredFoot: updatedUser.preferredFoot,
+        jerseyNumber: updatedUser.jerseyNumber,
         profileImage: updatedUser.image,
         registeredAt: updatedUser.createdAt.toISOString(),
         updatedAt: updatedUser.updatedAt.toISOString()

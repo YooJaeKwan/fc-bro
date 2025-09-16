@@ -92,10 +92,10 @@ export function TeamManagement({ isManagerMode }: TeamManagementProps) {
   // 포지션 탭 구성
   const positionTabs = [
     { value: "all", label: "전체", icon: Users, count: teamMembers.length },
-    { value: "공격수", label: "FW", icon: Target, count: getPositionCount("공격수") },
-    { value: "미드필더", label: "MF", icon: BarChart3, count: getPositionCount("미드필더") },
-    { value: "수비수", label: "DF", icon: Shield, count: getPositionCount("수비수") },
-    { value: "골키퍼", label: "GK", icon: Award, count: getPositionCount("골키퍼") }
+    { value: "공격수", label: "공격수", icon: Target, count: getPositionCount("공격수") },
+    { value: "미드필더", label: "미드필더", icon: BarChart3, count: getPositionCount("미드필더") },
+    { value: "수비수", label: "수비수", icon: Shield, count: getPositionCount("수비수") },
+    { value: "골키퍼", label: "골키퍼", icon: Award, count: getPositionCount("골키퍼") }
   ]
 
   // 로딩 상태 표시
@@ -128,12 +128,12 @@ export function TeamManagement({ isManagerMode }: TeamManagementProps) {
   return (
     <div className="space-y-6">
       {/* 헤더 */}
-      {/* <div className="flex justify-end items-center">
+      <div className="flex justify-end items-center">
         <Button onClick={fetchTeamMembers} variant="outline">
           <TrendingUp className="h-4 w-4 mr-2" />
           새로고침
         </Button>
-      </div> */}
+      </div>
 
       {/* 포지션별 탭 */}
       <Tabs value={activePositionTab} onValueChange={setActivePositionTab} className="space-y-4">
@@ -142,8 +142,8 @@ export function TeamManagement({ isManagerMode }: TeamManagementProps) {
             const Icon = tab.icon
             return (
               <TabsTrigger key={tab.value} value={tab.value} className="flex items-center gap-1">
-                <Icon className="h-4 w-4 hidden sm:inline" />
-                <span className="text-sm">{tab.label}</span>
+                <Icon className="h-4 w-4" />
+                <span className="hidden sm:inline">{tab.label}</span>
                 <span className="text-xs">({tab.count})</span>
               </TabsTrigger>
             )
@@ -163,11 +163,11 @@ export function TeamManagement({ isManagerMode }: TeamManagementProps) {
                             <AvatarImage src={member.profileImage || "/placeholder.svg"} />
                             <AvatarFallback>{member.name[0]}</AvatarFallback>
                           </Avatar>
-                          {/* {member.jerseyNumber && (
+                          {member.jerseyNumber && (
                             <div className="absolute -bottom-1 -right-1 bg-blue-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
                               {member.jerseyNumber}
                             </div>
-                          )} */}
+                          )}
                         </div>
                         <div className="min-w-0 flex-1">
                           <CardTitle className="text-base sm:text-lg truncate flex items-center gap-2">

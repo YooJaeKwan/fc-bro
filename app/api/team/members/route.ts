@@ -18,6 +18,7 @@ export async function GET() {
         region: true,
         city: true,
         preferredFoot: true,
+        jerseyNumber: true,
         image: true,
         createdAt: true
       },
@@ -87,6 +88,7 @@ export async function GET() {
         region: member.region || '정보 없음',
         city: member.city || '정보 없음',
         preferredFoot: member.preferredFoot,
+        jerseyNumber: member.jerseyNumber,
         profileImage: member.image,
         joinDate: member.createdAt.toLocaleDateString('ko-KR'),
         attendanceRate: Math.floor(Math.random() * 30) + 70, // 70-100% 랜덤

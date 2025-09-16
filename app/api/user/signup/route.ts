@@ -16,7 +16,8 @@ export async function POST(request: NextRequest) {
       subPositions = [],
       region,
       city,
-      preferredFoot = null
+      preferredFoot = null,
+      jerseyNumber = null
     } = body
 
     // 필수 필드 검증
@@ -98,6 +99,7 @@ export async function POST(request: NextRequest) {
         region,
         city,
         preferredFoot,
+        jerseyNumber: jerseyNumber ? Number(jerseyNumber) : null,
         createdAt: new Date(),
         updatedAt: new Date()
       }
@@ -121,6 +123,7 @@ export async function POST(request: NextRequest) {
         region: newUser.region,
         city: newUser.city,
         preferredFoot: newUser.preferredFoot,
+        jerseyNumber: newUser.jerseyNumber,
         profileImage: newUser.image,
         registeredAt: createdAt.toISOString()
       }

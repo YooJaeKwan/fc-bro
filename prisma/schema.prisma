@@ -24,6 +24,7 @@ model User {
   city          String?
   birthYear     String?
   preferredFoot String?
+  jerseyNumber  Int?      // 등번호
   mainPosition     String?
   preferredPosition String?
   subPositions     String[]
@@ -145,20 +146,22 @@ model Notification {
 }
 
 model Schedule {
-  id           String    @id @default(cuid())
-  title        String
-  type         String    // internal, match, training
-  matchDate    DateTime
-  startTime    String    // "19:00"
-  gatherTime   String    // "18:30"
-  location     String
-  quarterTime  Int       @default(20)
-  restTime     Int       @default(10)
-  description  String?
-  status       String    @default("SCHEDULED") // SCHEDULED, COMPLETED, CANCELLED
-  createdBy    String
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id              String    @id @default(cuid())
+  title           String    // 자동 생성되는 제목
+  type            String    // internal, match, training
+  matchDate       DateTime
+  startTime       String    // "19:00"
+  gatherTime      String    // "18:30"
+  location        String
+  quarterTime     Int       @default(20)
+  restTime        Int       @default(10)
+  description     String?
+  opponentTeam    String?   // A매치용 상대팀명
+  trainingContent String?   // 연습용 연습내용
+  status          String    @default("SCHEDULED") // SCHEDULED, COMPLETED, CANCELLED
+  createdBy       String
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   creator      User      @relation("ScheduleCreator", fields: [createdBy], references: [id])
   attendances  ScheduleAttendance[]

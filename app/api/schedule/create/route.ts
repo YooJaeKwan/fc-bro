@@ -16,13 +16,30 @@ export async function POST(request: NextRequest) {
       quarterTime = 20,
       restTime = 10,
       description = "",
+      opponentTeam = null,
+      trainingContent = null,
       createdBy
     } = body
 
-    // 필수 필드 검증
-    if (!title || !type || !date || !time || !gatherTime || !location || !createdBy) {
+    // 필수 필드 검증 (title 제거)
+    if (!type || !date || !time || !gatherTime || !location || !createdBy) {
       return NextResponse.json(
         { error: '필수 정보가 누락되었습니다.' },
+        { status: 400 }
+      )
+    }
+
+    // 유형별 추가 필드 검증
+    if (type === "match" && !opponentTeam) {
+      return NextResponse.json(
+        { error: 'A매치의 경우 상대팀명이 필요합니다.' },
+        { status: 400 }
+      )
+    }
+
+    if (type === "training" && !trainingContent) {
+      return NextResponse.json(
+        { error: '연습의 경우 연습 내용이 필요합니다.' },
         { status: 400 }
       )
     }
@@ -59,10 +76,24 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // 유형에 따른 제목 자동 생성
+    let autoTitle = ""
+    switch (type) {
+      case "internal":
+        autoTitle = "자체경기"
+        break
+      case "match":
+        autoTitle = `vs ${opponentTeam}`
+        break
+      case "training":
+        autoTitle = `연습 - ${trainingContent}`
+        break
+    }
+
     // 새 일정 생성
     const newSchedule = await prisma.schedule.create({
       data: {
-        title: title.trim(),
+        title: autoTitle,
         type,
         matchDate: matchDateTime,
         startTime: time,
@@ -71,6 +102,8 @@ export async function POST(request: NextRequest) {
         quarterTime: Number(quarterTime),
         restTime: Number(restTime),
         description: description.trim() || null,
+        opponentTeam: opponentTeam?.trim() || null,
+        trainingContent: trainingContent?.trim() || null,
         createdBy,
         status: "SCHEDULED"
       },
@@ -101,6 +134,8 @@ export async function POST(request: NextRequest) {
         quarterTime: newSchedule.quarterTime,
         restTime: newSchedule.restTime,
         description: newSchedule.description,
+        opponentTeam: newSchedule.opponentTeam,
+        trainingContent: newSchedule.trainingContent,
         status: newSchedule.status,
         createdBy: {
           id: newSchedule.creator.id,
