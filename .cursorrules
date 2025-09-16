@@ -1,0 +1,23 @@
+# Cursor Rules for Soccer Team Platform
+
+## 환경 설정
+- Windows 환경임을 항상 고려할 것
+- PowerShell 명령어를 사용할 것 (Linux/Mac 명령어 사용 금지)
+- 서버는 사용자가 요청하지 않은 이상 마음대로 시작하지 말 것
+
+## 개발 가이드라인
+- 항상 한국어로 응답할 것
+- TypeScript와 Next.js를 기본으로 사용
+- Tailwind CSS와 shadcn/ui 컴포넌트 사용
+- 카카오 로그인 통합 시 안정성과 사용자 경험 우선
+
+## 코드 작성 규칙
+- 컴포넌트명은 PascalCase 사용
+- 파일명은 kebab-case 사용
+- 환경 변수는 .env.local에 저장
+- 클라이언트 사이드 환경 변수는 NEXT_PUBLIC_ 접두어 필수
+
+## 파일 관리
+- 불필요한 파일은 즉시 삭제
+- 코드 중복 최소화
+- 모듈화된 구조 유지

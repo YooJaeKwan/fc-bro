@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(openssl rand:*)",
+      "Bash(npm install:*)",
+      "Bash(npx prisma:*)",
+      "Bash(PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION=\"yes\" npx prisma migrate reset --force)",
+      "Bash(npm run build:*)",
+      "Bash(npm run dev:*)",
+      "Bash(taskkill:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(del \".env.local\")"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

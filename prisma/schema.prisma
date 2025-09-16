@@ -1,0 +1,179 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String?   @unique
+  name          String?
+  image         String?
+  provider      String
+  providerId    String
+
+  // 추가 회원 정보
+  kakaoId       String?   @unique
+  nickname      String?
+  realName      String?
+  phoneNumber   String?
+  region        String?
+  city          String?
+  birthYear     String?
+  preferredFoot String?
+  mainPosition     String?
+  preferredPosition String?
+  subPositions     String[]
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  teams         TeamMember[]
+  createdTeams  Team[]
+  matches       MatchPlayer[]
+  posts           Post[]
+  comments        Comment[]
+  notifications   Notification[]
+  createdSchedules Schedule[]     @relation("ScheduleCreator")
+  scheduleAttendances ScheduleAttendance[]
+
+  @@unique([provider, providerId])
+}
+
+model Team {
+  id          String       @id @default(cuid())
+  name        String
+  description String?
+  logo        String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  creatorId   String
+  creator     User         @relation(fields: [creatorId], references: [id])
+
+  members     TeamMember[]
+  homeMatches Match[]      @relation("HomeTeam")
+  awayMatches Match[]      @relation("AwayTeam")
+  posts       Post[]
+}
+
+model TeamMember {
+  id        String   @id @default(cuid())
+  userId    String
+  teamId    String
+  role      String   @default("MEMBER") // ADMIN, MEMBER
+  joinedAt  DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
+  team      Team     @relation(fields: [teamId], references: [id])
+
+  @@unique([userId, teamId])
+}
+
+model Match {
+  id           String        @id @default(cuid())
+  homeTeamId   String
+  awayTeamId   String?
+  matchDate    DateTime
+  location     String
+  homeScore    Int?
+  awayScore    Int?
+  status       String        @default("SCHEDULED") // SCHEDULED, ONGOING, COMPLETED, CANCELLED
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  homeTeam     Team          @relation("HomeTeam", fields: [homeTeamId], references: [id])
+  awayTeam     Team?         @relation("AwayTeam", fields: [awayTeamId], references: [id])
+  players      MatchPlayer[]
+}
+
+model MatchPlayer {
+  id          String   @id @default(cuid())
+  matchId     String
+  userId      String
+  teamId      String
+  position    String?
+  goals       Int      @default(0)
+  assists     Int      @default(0)
+  attendance  String   @default("PENDING") // CONFIRMED, DECLINED, PENDING
+
+  match       Match    @relation(fields: [matchId], references: [id])
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@unique([matchId, userId])
+}
+
+model Post {
+  id          String    @id @default(cuid())
+  title       String
+  content     String
+  type        String    // NOTICE, DISCUSSION, PHOTO
+  authorId    String
+  teamId      String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  author      User      @relation(fields: [authorId], references: [id])
+  team        Team      @relation(fields: [teamId], references: [id])
+  comments    Comment[]
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  content   String
+  postId    String
+  authorId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  post      Post     @relation(fields: [postId], references: [id])
+  author    User     @relation(fields: [authorId], references: [id])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String   // MATCH_REMINDER, TEAM_INVITE, POST_COMMENT
+  title     String
+  content   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model Schedule {
+  id           String    @id @default(cuid())
+  title        String
+  type         String    // internal, match, training
+  matchDate    DateTime
+  startTime    String    // "19:00"
+  gatherTime   String    // "18:30"
+  location     String
+  quarterTime  Int       @default(20)
+  restTime     Int       @default(10)
+  description  String?
+  status       String    @default("SCHEDULED") // SCHEDULED, COMPLETED, CANCELLED
+  createdBy    String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  creator      User      @relation("ScheduleCreator", fields: [createdBy], references: [id])
+  attendances  ScheduleAttendance[]
+}
+
+model ScheduleAttendance {
+  id         String   @id @default(cuid())
+  scheduleId String
+  userId     String
+  status     String   @default("PENDING") // PENDING, ATTENDING, NOT_ATTENDING
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  schedule   Schedule @relation(fields: [scheduleId], references: [id])
+  user       User     @relation(fields: [userId], references: [id])
+
+  @@unique([scheduleId, userId])
+}
