@@ -48,6 +48,7 @@ model User {
   createdSchedules Schedule[]     @relation("ScheduleCreator")
   scheduleAttendances ScheduleAttendance[]
   playerStats      SchedulePlayerStat[]
+  invitedGuests    ScheduleAttendance[] @relation("InvitedGuests")
 
   @@unique([provider, providerId])
 }
@@ -133,17 +134,20 @@ model Schedule {
   opponentTeam    String?   // A매치용 상대팀명
   trainingContent String?   // 연습용 연습내용
   status          String    @default("SCHEDULED") // SCHEDULED, ONGOING, COMPLETED, CANCELLED
-  
+
   // 경기 결과 관련 필드 (Match 테이블 기능 통합)
   ourScore        Int?      // 우리팀 점수
   opponentScore   Int?      // 상대팀 점수
   mvpUserId       String?   // MVP 선정
   matchSummary    String?   // 경기 요약/후기
-  
+
   // 팀편성 결과 저장
   teamFormation   Json?     // 팀편성 결과 (노랑팀/파랑팀 정보)
   formationDate   DateTime? // 팀편성 생성 일시
-  
+
+  // 게스트 허용 여부
+  allowGuests     Boolean   @default(false)
+
   createdBy       String
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
@@ -156,15 +160,25 @@ model Schedule {
 model ScheduleAttendance {
   id         String   @id @default(cuid())
   scheduleId String
-  userId     String
+  userId     String?  // 게스트의 경우 null일 수 있음
   status     String   @default("PENDING") // PENDING, ATTENDING, NOT_ATTENDING
+
+  // 게스트 관련 필드
+  isGuest    Boolean  @default(false)
+  guestName  String?  // 게스트 이름
+  guestLevel Int?     // 게스트 레벨
+  guestId    String?  // 게스트 고유 ID
+  invitedByUserId String? // 초대한 사용자 ID
+
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
   schedule   Schedule @relation(fields: [scheduleId], references: [id])
-  user       User     @relation(fields: [userId], references: [id])
+  user       User?    @relation(fields: [userId], references: [id])
+  invitedBy  User?    @relation("InvitedGuests", fields: [invitedByUserId], references: [id])
 
   @@unique([scheduleId, userId])
+  @@unique([scheduleId, guestId])
 }
 
 model SchedulePlayerStat {

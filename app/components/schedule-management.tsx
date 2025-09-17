@@ -20,7 +20,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Progress } from "@/components/ui/progress"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Calendar as CalendarIcon, Clock, MapPin, Users, Plus, Edit, Trash2, Timer, Coffee, Target } from "lucide-react"
+import { Calendar as CalendarIcon, Clock, MapPin, Users, Plus, Edit, Trash2, Timer, Coffee, Target, UserPlus } from "lucide-react"
 import { format } from "date-fns"
 import { ko } from "date-fns/locale"
 import { cn } from "@/lib/utils"
@@ -446,33 +446,49 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
     return quarters
   }
 
-  // 자동 팀편성 알고리즘 (대시보드와 동일)
+  // 자동 팀편성 알고리즘 (게스트 포함, 레벨 기반 균형)
   const autoFormTeams = (schedule: any) => {
-    const attendingPlayers = schedule.attendees.filter((attendee: any) => 
+    const attendingPlayers = schedule.attendees.filter((attendee: any) =>
       attendee.status === 'attending' || attendee.status === 'attended'
     )
-    
+
     if (attendingPlayers.length < 6) {
       return { yellowTeam: [], blueTeam: [], message: '팀편성에는 최소 6명이 필요합니다.' }
     }
 
-    const players = [...attendingPlayers]
-    const playersPerTeam = Math.floor(players.length / 2)
-    const hasExtraPlayer = players.length % 2 === 1
+    // 레벨별로 선수들을 그룹화
+    const playersByLevel = attendingPlayers.reduce((acc: any, player: any) => {
+      const level = player.level || 7 // 기본 레벨 아마추어3
+      if (!acc[level]) acc[level] = []
+      acc[level].push(player)
+      return acc
+    }, {})
+
+    // 레벨별로 정렬 (높은 레벨부터)
+    const sortedLevels = Object.keys(playersByLevel).sort((a, b) => Number(b) - Number(a))
 
     const yellowTeam = []
     const blueTeam = []
 
-    players.forEach((player, index) => {
-      const yellowMaxSize = hasExtraPlayer ? playersPerTeam + 1 : playersPerTeam
-      
-      if (index % 2 === 0 && yellowTeam.length < yellowMaxSize) {
-        yellowTeam.push(player)
-      } else if (blueTeam.length < playersPerTeam) {
-        blueTeam.push(player)
-      } else if (yellowTeam.length < yellowMaxSize) {
-        yellowTeam.push(player)
-      }
+    // 각 레벨 그룹에서 번갈아가며 팀에 배치
+    sortedLevels.forEach(level => {
+      const playersInLevel = playersByLevel[level]
+
+      // 레벨 내에서 랜덤하게 섞기
+      const shuffled = playersInLevel.sort(() => Math.random() - 0.5)
+
+      shuffled.forEach((player: any, index: number) => {
+        // 현재 팀 인원수 확인
+        const yellowCount = yellowTeam.length
+        const blueCount = blueTeam.length
+
+        // 인원이 적은 팀에 우선 배치
+        if (yellowCount <= blueCount) {
+          yellowTeam.push(player)
+        } else {
+          blueTeam.push(player)
+        }
+      })
     })
 
     const result = {
@@ -883,11 +899,16 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                   </h3>
                 </div>
                 
-                <div className="flex items-center justify-center">                    
+                <div className="flex items-center justify-center">
                     <div className="flex items-center gap-2">
                         <Badge className={getTypeColor(nextUpcomingSchedule.type)} variant="secondary">
                         {nextUpcomingSchedule.type === "internal" ? "자체경기" : nextUpcomingSchedule.type === "match" ? "A매치" : "연습"}
                         </Badge>
+                        {nextUpcomingSchedule.allowGuests && nextUpcomingSchedule.type === "internal" && (
+                          <Badge className="bg-yellow-100 text-yellow-800" variant="secondary">
+                            게스트허용
+                          </Badge>
+                        )}
                         {isManagerMode && (
                         <>
                             <Button 
@@ -994,11 +1015,12 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                 {/* 액션 버튼들 */}
                 <div className="flex gap-2 pt-2">
                   <div className="flex-1">
-                    <AttendanceVoting 
+                    <AttendanceVoting
                       schedule={nextUpcomingSchedule}
                       currentUser={currentUser}
                       isManagerMode={isManagerMode}
                       onAttendanceUpdate={fetchSchedules}
+                      allowGuests={nextUpcomingSchedule.allowGuests}
                     />
                   </div>
                   {(() => {
@@ -1055,10 +1077,40 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                         size="sm"
                         disabled={isFormingTeams || isSavingFormation}
                       >
-                        {isFormingTeams ? "편성 중..." : isSavingFormation ? "저장 중..." : "팀편성하기"}
+                        {isFormingTeams ? "편성 중..." : isSavingFormation ? "저장 중..." : "팀편성"}
                       </Button>
                     )
                   })()}
+
+                  {/* 게스트 허용 버튼 (총무 전용) */}
+                  {isManagerMode && nextUpcomingSchedule.type === "internal" && (
+                    <Button
+                      onClick={async () => {
+                        try {
+                          const response = await fetch('/api/schedule/toggle-guests', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              scheduleId: nextUpcomingSchedule.id,
+                              userId: currentUser?.id,
+                              allowGuests: !nextUpcomingSchedule.allowGuests
+                            })
+                          })
+
+                          if (response.ok) {
+                            fetchSchedules() // 일정 목록 다시 불러오기
+                          }
+                        } catch (error) {
+                          console.error('게스트 허용 상태 변경 중 오류:', error)
+                        }
+                      }}
+                      variant={nextUpcomingSchedule.allowGuests ? "destructive" : "outline"}
+                      size="sm"
+                      className={nextUpcomingSchedule.allowGuests ? "ml-0" : "ml-0 bg-yellow-400"}
+                    >
+                      {nextUpcomingSchedule.allowGuests ? "게스트 중단" : "게스트 허용"}
+                    </Button>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -1352,11 +1404,12 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                     {/* 참석 투표 */}
                     {schedule.status === "scheduled" && (
                       <div className="space-y-3 pt-2">
-                        <AttendanceVoting 
+                        <AttendanceVoting
                           schedule={schedule}
                           currentUser={currentUser}
                           isManagerMode={isManagerMode}
                           onAttendanceUpdate={fetchSchedules}
+                          allowGuests={schedule.allowGuests}
                         />
                         
                       </div>

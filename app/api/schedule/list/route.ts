@@ -63,29 +63,49 @@ export async function GET() {
     // 클라이언트에 전송할 데이터 구성
     const formattedSchedules = schedules.map(schedule => {
       // 참석자 정보 구성 (실제 투표한 사용자만)
-      const attendees = schedule.attendances.map(attendance => ({
-        name: attendance.user.realName || attendance.user.nickname || '이름 없음',
-        status: attendance.status.toLowerCase(),
-        position: attendance.user.preferredPosition || 'MC',
-        subPositions: attendance.user.subPositions || [],
-        userId: attendance.user.id
-      }))
+      const attendees = schedule.attendances.map(attendance => {
+        // 게스트인 경우
+        if (attendance.isGuest) {
+          return {
+            name: attendance.guestName || '게스트',
+            status: attendance.status.toLowerCase(),
+            position: 'GUEST',
+            subPositions: [],
+            userId: attendance.guestId || attendance.userId,
+            isGuest: true
+          }
+        }
+        // 일반 사용자인 경우
+        return {
+          name: attendance.user?.realName || attendance.user?.nickname || '이름 없음',
+          status: attendance.status.toLowerCase(),
+          position: attendance.user?.preferredPosition || 'MC',
+          subPositions: attendance.user?.subPositions || [],
+          userId: attendance.user?.id || attendance.userId,
+          isGuest: false
+        }
+      })
 
-      // 모든 팀원과 투표 데이터 병합
+      // 모든 팀원과 투표 데이터 병합 (게스트 포함)
       const allAttendees = allUsers.map(user => {
-        const existingAttendance = attendees.find(a => a.userId === user.id)
+        const existingAttendance = attendees.find(a => a.userId === user.id && !a.isGuest)
         if (existingAttendance) {
           return existingAttendance
         }
-        
+
         return {
           name: user.realName || user.nickname || '이름 없음',
           status: 'pending',
           position: user.preferredPosition || 'MC',
           subPositions: user.subPositions || [],
-          userId: user.id
+          userId: user.id,
+          isGuest: false
         }
       })
+
+      // 게스트를 allAttendees에 추가
+      const guestAttendees = attendees.filter((a: any) => a.isGuest)
+      const finalAttendees = [...allAttendees, ...guestAttendees]
 
       return {
         id: schedule.id,
@@ -105,9 +125,10 @@ export async function GET() {
         opponentTeam: schedule.opponentTeam,
         trainingContent: schedule.trainingContent,
         status: schedule.status.toLowerCase(), // SCHEDULED -> scheduled
-        attendees: allAttendees.map(addTempRating),
+        attendees: finalAttendees.map(addTempRating),
         teamFormation: schedule.teamFormation, // 팀편성 결과 포함
         formationDate: schedule.formationDate?.toISOString() || null,
+        allowGuests: schedule.allowGuests || false, // 게스트 허용 상태
         createdBy: {
           id: schedule.creator.id,
           name: schedule.creator.realName || schedule.creator.nickname

@@ -121,7 +121,7 @@ export async function GET(request: NextRequest) {
 
     console.log('참석자 목록 조회:', scheduleId)
 
-    // 해당 일정의 참석자 목록 조회
+    // 해당 일정의 참석자 목록 조회 (게스트 포함)
     const attendances = await prisma.scheduleAttendance.findMany({
       where: { scheduleId },
       include: {
@@ -134,6 +134,13 @@ export async function GET(request: NextRequest) {
             subPositions: true,
             level: true,
             image: true
+          }
+        },
+        invitedBy: {
+          select: {
+            id: true,
+            realName: true,
+            nickname: true
           }
         }
       },
@@ -156,9 +163,9 @@ export async function GET(request: NextRequest) {
     })
 
     // 참석 투표 데이터와 전체 사용자 데이터 병합
-    const attendeeList = allUsers.map(user => {
-      const attendance = attendances.find(att => att.userId === user.id)
-      
+    const regularAttendees = allUsers.map(user => {
+      const attendance = attendances.find(att => att.userId === user.id && !att.isGuest)
+
       // 임시 능력치 생성 (포지션 기반)
       const generateTempRating = (position: string) => {
         const baseRating = Math.random() * 2 + 6 // 6.0-8.0
@@ -174,9 +181,29 @@ export async function GET(request: NextRequest) {
         rating: generateTempRating(user.preferredPosition || 'MC'),
         level: user.level || 1,
         profileImage: user.image,
-        updatedAt: attendance?.updatedAt.toISOString() || null
+        updatedAt: attendance?.updatedAt.toISOString() || null,
+        isGuest: false
       }
     })
+
+    // 게스트 참석자 추가
+    const guestAttendees = attendances
+      .filter(att => att.isGuest)
+      .map(att => ({
+        userId: att.guestId || att.userId,  // guestId를 우선 사용
+        name: att.guestName || '게스트',
+        invitedBy: att.invitedBy?.realName || att.invitedBy?.nickname || '알 수 없음',
+        position: 'GUEST',
+        subPositions: [],
+        status: att.status.toLowerCase(),
+        rating: 5.0, // 게스트 기본 능력치
+        level: att.guestLevel || 7, // 기본 레벨 아마추어3
+        profileImage: null,
+        updatedAt: att.updatedAt.toISOString(),
+        isGuest: true
+      }))
+
+    const attendeeList = [...regularAttendees, ...guestAttendees]
 
     console.log(`참석자 목록 조회 완료: ${attendeeList.length}명`)
 

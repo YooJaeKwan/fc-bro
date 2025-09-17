@@ -1,0 +1,100 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json()
+    const { scheduleId, guestName, guestLevel, invitedByUserId } = body
+
+    // 필수 필드 확인
+    if (!scheduleId || !guestName || !guestLevel || !invitedByUserId) {
+      return NextResponse.json(
+        { error: '필수 정보가 누락되었습니다.' },
+        { status: 400 }
+      )
+    }
+
+    // 초대한 사용자 확인
+    const inviter = await prisma.user.findUnique({
+      where: { id: invitedByUserId }
+    })
+
+    if (!inviter) {
+      return NextResponse.json(
+        { error: '초대자 정보를 찾을 수 없습니다.' },
+        { status: 404 }
+      )
+    }
+
+    // 게스트를 attendance에 추가 (게스트용 임시 ID 사용)
+    const guestId = `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+
+    // ScheduleAttendance 테이블에 게스트 정보 저장
+    const attendance = await prisma.scheduleAttendance.create({
+      data: {
+        scheduleId,
+        guestId,  // userId 대신 guestId 사용
+        status: 'ATTENDING',
+        guestName,
+        guestLevel,
+        invitedByUserId,
+        isGuest: true
+      }
+    })
+
+    console.log('게스트 등록 성공:', { guestName, invitedBy: inviter.realName })
+
+    return NextResponse.json({
+      success: true,
+      guest: {
+        userId: guestId,  // 프론트엔드에서 사용할 ID
+        name: guestName,
+        level: guestLevel,
+        invitedBy: inviter.realName || inviter.nickname,
+        isGuest: true,
+        status: 'attending'
+      }
+    })
+
+  } catch (error) {
+    console.error('게스트 등록 중 오류:', error)
+    return NextResponse.json(
+      { error: '게스트 등록 중 오류가 발생했습니다.' },
+      { status: 500 }
+    )
+  }
+}
+
+// 게스트 삭제
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const scheduleId = searchParams.get('scheduleId')
+    const guestId = searchParams.get('guestId')
+
+    if (!scheduleId || !guestId) {
+      return NextResponse.json(
+        { error: '필수 정보가 누락되었습니다.' },
+        { status: 400 }
+      )
+    }
+
+    await prisma.scheduleAttendance.delete({
+      where: {
+        scheduleId_guestId: {
+          scheduleId,
+          guestId
+        }
+      }
+    })
+
+    return NextResponse.json({ success: true })
+
+  } catch (error) {
+    console.error('게스트 삭제 중 오류:', error)
+    return NextResponse.json(
+      { error: '게스트 삭제 중 오류가 발생했습니다.' },
+      { status: 500 }
+    )
+  }
+}

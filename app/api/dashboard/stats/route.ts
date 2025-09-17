@@ -118,14 +118,30 @@ export async function GET() {
       const totalInvited = upcomingSchedule.attendances.length
 
       // 참석자 세부 정보 구성
-      const attendeesList = upcomingSchedule.attendances.map(attendance => ({
-        userId: attendance.user.realName || attendance.user.nickname ? attendance.userId : attendance.userId,
-        name: attendance.user.realName || attendance.user.nickname || '이름 없음',
-        position: attendance.user.preferredPosition || 'MC',
-        subPositions: attendance.user.subPositions || [],
-        status: attendance.status.toLowerCase(),
-        level: attendance.user.level || 1
-      }))
+      const attendeesList = upcomingSchedule.attendances.map(attendance => {
+        // 게스트인 경우
+        if (attendance.isGuest) {
+          return {
+            userId: attendance.guestId || attendance.userId,
+            name: attendance.guestName || '게스트',
+            position: 'GUEST',
+            subPositions: [],
+            status: attendance.status.toLowerCase(),
+            level: attendance.guestLevel || 7,
+            isGuest: true
+          }
+        }
+        // 일반 사용자인 경우
+        return {
+          userId: attendance.userId,
+          name: attendance.user?.realName || attendance.user?.nickname || '이름 없음',
+          position: attendance.user?.preferredPosition || 'MC',
+          subPositions: attendance.user?.subPositions || [],
+          status: attendance.status.toLowerCase(),
+          level: attendance.user?.level || 1,
+          isGuest: false
+        }
+      })
 
       upcomingMatchInfo = {
         id: upcomingSchedule.id,
