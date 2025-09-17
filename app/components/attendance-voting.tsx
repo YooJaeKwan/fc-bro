@@ -97,6 +97,18 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
       // 참석자 목록 새로고침
       await fetchAttendees()
       
+      // 참석 현황 변경 시 팀편성 결과 초기화
+      try {
+        const resetResponse = await fetch(`/api/schedule/formation?scheduleId=${schedule.id}`, {
+          method: 'DELETE'
+        })
+        if (resetResponse.ok) {
+          console.log('팀편성 결과 초기화 완료 (참석 현황 변경)')
+        }
+      } catch (error) {
+        console.error('팀편성 초기화 오류:', error)
+      }
+      
       // 상위 컴포넌트에 알림 (일정 목록 새로고침용)
       onAttendanceUpdate?.()
 
@@ -143,6 +155,41 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
     }
   }
 
+  // 포지션별 색상 분류
+  const getPositionColor = (position: string) => {
+    switch (position) {
+      // 골키퍼 - 노란색
+      case "GK":
+        return "bg-yellow-100 text-yellow-800 border-yellow-300"
+      
+      // 수비수 - 파란색  
+      case "DC":
+      case "DR": 
+      case "DL":
+      case "DRL":
+      case "DRLC":
+        return "bg-blue-100 text-blue-800 border-blue-300"
+      
+      // 미드필더 - 초록색
+      case "MC":
+      case "AMC":
+      case "DM":
+        return "bg-green-100 text-green-800 border-green-300"
+      
+      // 공격수 - 빨간색
+      case "ST":
+      case "CF":
+      case "SS":
+      case "LWF":
+      case "RWF":
+        return "bg-red-100 text-red-800 border-red-300"
+      
+      // 기타 - 회색
+      default:
+        return "bg-gray-100 text-gray-800 border-gray-300"
+    }
+  }
+
   // 현재 사용자의 투표 상태 확인
   const currentUserAttendance = attendees.find(a => a.userId === currentUser?.id)
   const currentUserStatus = currentUserAttendance?.status || 'pending'
@@ -169,9 +216,8 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
           </div>
         )}
 
-        {/* 내 투표 상태 (선수 모드) */}
-        {!isManagerMode && (
-          <Card>
+        {/* 내 투표 상태 (모든 사용자) */}
+        <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-lg">내 참석 여부</CardTitle>
             </CardHeader>
@@ -181,6 +227,9 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
                   {getStatusIcon(currentUserStatus)}
                   <span className="ml-2">{getStatusLabel(currentUserStatus)}</span>
                 </Badge>
+                {currentUserStatus !== 'pending' && (
+                  <span className="text-xs text-muted-foreground">(재투표 가능)</span>
+                )}
               </div>
               
               <div className="flex gap-2 justify-center">
@@ -191,7 +240,7 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
                   className="flex-1"
                 >
                   <Check className="h-4 w-4 mr-2" />
-                  참석
+                  {currentUserStatus === 'attending' ? '참석 (선택됨)' : '참석'}
                 </Button>
                 <Button
                   onClick={() => handleAttendanceVote('not_attending')}
@@ -200,7 +249,7 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
                   className="flex-1"
                 >
                   <X className="h-4 w-4 mr-2" />
-                  불참
+                  {currentUserStatus === 'not_attending' ? '불참 (선택됨)' : '불참'}
                 </Button>
               </div>
 
@@ -209,9 +258,14 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
                   투표 처리 중...
                 </div>
               )}
+              
+              {currentUserStatus !== 'pending' && (
+                <div className="text-center text-xs text-blue-600 bg-blue-50 p-2 rounded">
+                  언제든지 투표를 변경할 수 있습니다
+                </div>
+              )}
             </CardContent>
-          </Card>
-        )}
+        </Card>
 
         <Separator />
 
@@ -264,54 +318,58 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
                 </div>
               )}
 
-              {/* 참석자 목록 */}
-              <div className="space-y-3">
-                {['attending', 'pending', 'not_attending'].map(statusFilter => {
-                  const filteredAttendees = attendees.filter(a => a.status === statusFilter)
-                  
-                  if (filteredAttendees.length === 0) return null
-
-                  return (
-                    <div key={statusFilter}>
-                      <h4 className="font-medium text-sm mb-2 flex items-center gap-2">
-                        {getStatusIcon(statusFilter)}
-                        {getStatusLabel(statusFilter)} ({filteredAttendees.length}명)
-                      </h4>
-                      <div className="space-y-2">
-                        {filteredAttendees.map((attendee) => (
-                          <div key={attendee.userId} className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg">
-                            <Avatar className="h-8 w-8">
-                              <AvatarImage src={attendee.profileImage || "/placeholder.svg"} />
-                              <AvatarFallback className="text-xs">{attendee.name[0]}</AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm font-medium truncate">{attendee.name}</span>
-                                <Badge className={`${getPositionColor(attendee.position)} text-xs`} variant="outline">
-                                  {attendee.position}
-                                </Badge>
-                                {isManagerMode && (
-                                  <span className="text-xs text-muted-foreground">
-                                    ⭐ {attendee.rating}
-                                  </span>
-                                )}
-                              </div>
-                              {/* {attendee.updatedAt && (
-                                <div className="text-xs text-muted-foreground">
-                                  {new Date(attendee.updatedAt).toLocaleString('ko-KR')}
-                                </div>
-                              )} */}
-                            </div>
-                            <Badge className={getStatusColor(attendee.status)} variant="secondary">
-                              {getStatusIcon(attendee.status)}
-                              <span className="ml-1">{getStatusLabel(attendee.status)}</span>
-                            </Badge>
+              {/* 참석자 목록 (투표 시간 순서대로 정렬) */}
+              <div className="space-y-2">
+                <h4 className="font-medium text-sm flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  전체 참석자 ({attendees.length}명)
+                  <span className="text-xs text-muted-foreground ml-2">최신 투표순</span>
+                </h4>
+                <div className="space-y-2">
+                  {attendees
+                    .sort((a, b) => {
+                      // 투표한 사람들은 투표 시간순으로, 미투표자는 마지막에
+                      if (!a.updatedAt && !b.updatedAt) return 0
+                      if (!a.updatedAt) return 1
+                      if (!b.updatedAt) return -1
+                      return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime() // 최신순
+                    })
+                    .map((attendee) => (
+                    <div key={attendee.userId} className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={attendee.profileImage || "/placeholder.svg"} />
+                        <AvatarFallback className="text-xs">{attendee.name[0]}</AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium truncate">{attendee.name}</span>
+                          <Badge className={`${getPositionColor(attendee.position)} text-xs`} variant="outline">
+                            {attendee.position}
+                          </Badge>
+                          {isManagerMode && (
+                            <span className="text-xs text-muted-foreground">
+                              ⭐ {attendee.rating}
+                            </span>
+                          )}
+                        </div>
+                        {attendee.updatedAt && (
+                          <div className="text-xs text-muted-foreground">
+                            투표: {new Date(attendee.updatedAt).toLocaleString('ko-KR', {
+                              month: 'short',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
                           </div>
-                        ))}
+                        )}
                       </div>
+                      <Badge className={getStatusColor(attendee.status)} variant="secondary">
+                        {getStatusIcon(attendee.status)}
+                        <span className="ml-1">{getStatusLabel(attendee.status)}</span>
+                      </Badge>
                     </div>
-                  )
-                })}
+                  ))}
+                </div>
               </div>
             </>
           )}

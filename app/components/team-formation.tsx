@@ -144,7 +144,6 @@ export function TeamFormation({ setTeamA, setTeamB, setBench, setIsFormationComp
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold">팀 편성</h2>
-          <p className="text-muted-foreground">참석자를 기반으로 균형잡힌 팀을 구성하세요</p>
         </div>
         <div className="flex items-center gap-4">
           <Button onClick={autoFormTeams} disabled={isFormationComplete}>
@@ -168,22 +167,18 @@ export function TeamFormation({ setTeamA, setTeamB, setBench, setIsFormationComp
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">1</div>
               <span className="font-medium">동일한 인원수로 분배</span>
-              <span className="text-muted-foreground">- 가장 중요</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center text-xs font-bold">2</div>
               <span className="font-medium">대분류 포지션 균형</span>
-              <span className="text-muted-foreground">- 골키퍼, 수비수, 미드필더, 공격수</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 bg-orange-500 text-white rounded-full flex items-center justify-center text-xs font-bold">3</div>
               <span className="font-medium">세부 포지션 고려</span>
-              <span className="text-muted-foreground">- CB, LB, RB 등</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 bg-purple-500 text-white rounded-full flex items-center justify-center text-xs font-bold">4</div>
               <span className="font-medium">실력 균형</span>
-              <span className="text-muted-foreground">- 종합 점수 비슷하게</span>
             </div>
           </div>
         </CardContent>

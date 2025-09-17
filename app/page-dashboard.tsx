@@ -453,7 +453,10 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
                           <div className="flex items-center gap-2">
                             <Users className="h-4 w-4" />
                             <Badge variant="outline" className="font-medium">
-                              {dashboardData.upcomingMatch.attendees}/{dashboardData.upcomingMatch.total}명
+                              {Array.isArray(dashboardData.upcomingMatch.attendees) 
+                                ? dashboardData.upcomingMatch.attendees.filter(a => a.status === 'attending').length 
+                                : dashboardData.upcomingMatch.attendees
+                              }/{dashboardData.upcomingMatch.total}명
                             </Badge>
                             <span className="text-xs text-muted-foreground">
                               ({dashboardData.upcomingMatch.attendanceRate}%)
@@ -461,7 +464,10 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
                           </div>
                         </div>
                         <Progress
-                          value={dashboardData.upcomingMatch.attendanceRate}
+                          value={Array.isArray(dashboardData.upcomingMatch.attendees) 
+                            ? Math.round((dashboardData.upcomingMatch.attendees.filter(a => a.status === 'attending').length / dashboardData.upcomingMatch.attendees.length) * 100)
+                            : dashboardData.upcomingMatch.attendanceRate
+                          }
                           className="h-2"
                         />
                       </div>
@@ -480,7 +486,11 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
                         schedule={dashboardData.upcomingMatch}
                         currentUser={user}
                         isManagerMode={isManagerMode}
-                        onAttendanceUpdate={fetchDashboardData}
+                        onAttendanceUpdate={() => {
+                          fetchDashboardData()
+                          // 참석 현황 변경 시 대시보드 팀편성 결과도 초기화
+                          setDashboardFormationResults(null)
+                        }}
                       />
                     )}
                   </div>
@@ -490,56 +500,87 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
                     return isManagerMode && daysLeft <= 2 && daysLeft >= 0 && (
                       <Button 
                         onClick={async () => {
-                          setIsDashboardFormingTeams(true)
-                          try {
-                            // 팀편성 로직 (schedule-management와 동일)
-                            const attendingPlayers = dashboardData.upcomingMatch.attendees?.filter((attendee: any) => 
-                              attendee.status === 'attending' || attendee.status === 'attended'
-                            ) || []
-                            
-                            if (attendingPlayers.length < 6) {
-                              setDashboardFormationResults({ 
-                                yellowTeam: [], 
-                                blueTeam: [], 
-                                message: '팀편성에는 최소 6명이 필요합니다.',
-                                scheduleId: dashboardData.upcomingMatch.id 
-                              })
-                              return
-                            }
-
-                            // 간단한 팀편성 로직 (자세한 로직은 schedule-management에서 재사용)
-                            const players = [...attendingPlayers]
-                            const playersPerTeam = Math.floor(players.length / 2)
-                            
-                            const yellowTeam = []
-                            const blueTeam = []
-                            
-                            players.forEach((player, index) => {
-                              if (index % 2 === 0 && yellowTeam.length < playersPerTeam) {
-                                yellowTeam.push(player)
-                              } else if (blueTeam.length < playersPerTeam) {
-                                blueTeam.push(player)
-                              }
+                        setIsDashboardFormingTeams(true)
+                        try {
+                          // 팀편성 로직 (schedule-management와 동일)
+                          const attendingPlayers = dashboardData.upcomingMatch.attendees?.filter((attendee: any) => 
+                            attendee.status === 'attending' || attendee.status === 'attended'
+                          ) || []
+                          
+                          if (attendingPlayers.length < 6) {
+                            setDashboardFormationResults({
+                              yellowTeam: [],
+                              blueTeam: [],
+                              message: '팀편성에는 최소 6명이 필요합니다.',
+                              scheduleId: dashboardData.upcomingMatch.id
                             })
-
-                            const result = {
-                              yellowTeam,
-                              blueTeam,
-                              yellowAverage: yellowTeam.reduce((sum, p) => sum + (p.level || 1), 0) / yellowTeam.length,
-                              blueAverage: blueTeam.reduce((sum, p) => sum + (p.level || 1), 0) / blueTeam.length
-                            }
-                            
-                            setDashboardFormationResults({ 
-                              ...result, 
-                              scheduleId: dashboardData.upcomingMatch.id,
-                              levelDifference: Math.abs(result.yellowAverage - result.blueAverage).toFixed(1)
-                            })
-                            
-                          } catch (error) {
-                            console.error('대시보드 팀편성 오류:', error)
-                          } finally {
-                            setIsDashboardFormingTeams(false)
+                            return
                           }
+
+                          // 간단한 팀편성 로직 (자세한 로직은 schedule-management에서 재사용)
+                          const players = [...attendingPlayers]
+                          const playersPerTeam = Math.floor(players.length / 2)
+                          const hasExtraPlayer = players.length % 2 === 1 // 홀수 인원 체크
+
+                          const yellowTeam = []
+                          const blueTeam = []
+
+                          players.forEach((player, index) => {
+                            // 홀수 인원일 때 노랑팀이 1명 더 많을 수 있도록 허용
+                            const yellowMaxSize = hasExtraPlayer ? playersPerTeam + 1 : playersPerTeam
+                            
+                            if (index % 2 === 0 && yellowTeam.length < yellowMaxSize) {
+                              yellowTeam.push(player)
+                            } else if (blueTeam.length < playersPerTeam) {
+                              blueTeam.push(player)
+                            } else if (yellowTeam.length < yellowMaxSize) {
+                              yellowTeam.push(player)
+                            }
+                          })
+
+                          const result = {
+                            yellowTeam,
+                            blueTeam,
+                            yellowAverage: yellowTeam.reduce((sum, p) => sum + (p.level || 1), 0) / yellowTeam.length,
+                            blueAverage: blueTeam.reduce((sum, p) => sum + (p.level || 1), 0) / blueTeam.length,
+                            levelDifference: Math.abs(yellowTeam.reduce((sum, p) => sum + (p.level || 1), 0) / yellowTeam.length - blueTeam.reduce((sum, p) => sum + (p.level || 1), 0) / blueTeam.length).toFixed(1)
+                          }
+
+                          // 대시보드에서도 팀편성 저장
+                          const saveResponse = await fetch('/api/schedule/formation', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              scheduleId: dashboardData.upcomingMatch.id,
+                              yellowTeam: result.yellowTeam,
+                              blueTeam: result.blueTeam,
+                              yellowAverage: result.yellowAverage,
+                              blueAverage: result.blueAverage,
+                              levelDifference: result.levelDifference
+                            })
+                          })
+
+                          if (saveResponse.ok) {
+                            setDashboardFormationResults({
+                              ...result,
+                              scheduleId: dashboardData.upcomingMatch.id
+                            })
+                            fetchDashboardData() // 대시보드 데이터 새로고침
+                          } else {
+                            console.error('대시보드 팀편성 저장 실패')
+                            setDashboardFormationResults({
+                              yellowTeam: [],
+                              blueTeam: [],
+                              message: '팀편성 저장에 실패했습니다.',
+                              scheduleId: dashboardData.upcomingMatch.id
+                            })
+                          }
+
+                        } catch (error) {
+                          console.error('대시보드 팀편성 오류:', error)
+                        } finally {
+                          setIsDashboardFormingTeams(false)
+                        }
                         }}
                         className="bg-green-600 hover:bg-green-700"
                         size="sm"
@@ -557,58 +598,76 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
               {dashboardFormationResults && dashboardFormationResults.scheduleId === dashboardData?.upcomingMatch?.id && (
                 <Card className="border-l-4 border-l-green-500">
                   <CardContent className="space-y-4 p-6">
-                    <div className="text-center">
-                      <h3 className="text-lg font-bold text-gray-900 mb-2">팀편성 결과</h3>
-                      {dashboardFormationResults.message ? (
-                        <p className="text-sm text-red-600">{dashboardFormationResults.message}</p>
-                      ) : (
-                        <p className="text-sm text-muted-foreground">
-                          레벨 차이: {dashboardFormationResults.levelDifference}점
-                        </p>
-                      )}
-                    </div>
+             <div className="text-center">
+               <h3 className="text-lg font-bold text-gray-900 mb-4">팀편성 결과</h3>
+               {dashboardFormationResults.message && (
+                 <p className="text-sm text-red-600">{dashboardFormationResults.message}</p>
+               )}
+             </div>
 
                     {!dashboardFormationResults.message && (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {/* 노랑팀 */}
                         <div className="space-y-3">
-                          <div className="flex items-center gap-2">
-                            <div className="w-4 h-4 bg-yellow-500 rounded-full"></div>
-                            <h4 className="font-medium text-base">노랑팀 ({dashboardFormationResults.yellowTeam.length}명)</h4>
-                            <div className="flex items-center gap-1">
-                              <span className="text-sm font-medium">평균 {dashboardFormationResults.yellowAverage}점</span>
-                            </div>
-                          </div>
+                   <div className="flex items-center gap-2">
+                     <div className="w-4 h-4 bg-yellow-500 rounded-full"></div>
+                     <h4 className="font-medium text-base">노랑팀 ({dashboardFormationResults.yellowTeam.length}명)</h4>
+                   </div>
                           <div className="space-y-2">
-                            {dashboardFormationResults.yellowTeam.map((player: any) => (
+                            {dashboardFormationResults.yellowTeam
+                              .sort((a: any, b: any) => {
+                                const getPositionOrder = (pos: string) => {
+                                  if (pos === 'GK') return 1
+                                  if (['DC', 'DR', 'DL', 'DRL', 'DRLC'].includes(pos)) return 2
+                                  if (['MC', 'AMC', 'DM'].includes(pos)) return 3
+                                  if (['ST', 'CF', 'SS', 'LWF', 'RWF'].includes(pos)) return 4
+                                  return 5
+                                }
+                                return getPositionOrder(a.position) - getPositionOrder(b.position)
+                              })
+                              .map((player: any) => (
                               <div key={player.userId || player.id} className="flex items-center gap-2 text-sm p-2 bg-yellow-50 rounded-lg">
                                 <Avatar className="h-6 w-6">
+                                  {player.profileImage || player.image ? (
+                                    <img 
+                                      src={player.profileImage || player.image} 
+                                      alt={player.name}
+                                      className="h-full w-full object-cover rounded-full"
+                                      onError={(e) => {
+                                        e.currentTarget.style.display = 'none';
+                                        e.currentTarget.nextElementSibling.style.display = 'flex';
+                                      }}
+                                    />
+                                  ) : null}
                                   <AvatarFallback className="text-xs">{player.name[0]}</AvatarFallback>
                                 </Avatar>
-                                <div className="flex-1">
+                                <div className="flex-1 flex items-center gap-2">
                                   <span className="font-medium">{player.name}</span>
-                                  <div className="flex items-center gap-1 mt-1">
-                                    <Badge className={getPositionColor(player.position)} variant="outline" size="sm">
-                                      {player.position}
-                                    </Badge>
-                                    {player.subPositions && player.subPositions.length > 0 && (
-                                      <span className="text-xs text-muted-foreground">
-                                        + {player.subPositions.join(', ')}
-                                      </span>
-                                    )}
-                                  </div>
+                                  <Badge className={(() => {
+                                    if (player.position === 'GK') return "bg-yellow-100 text-yellow-800 border-yellow-300"
+                                    if (['DC', 'DR', 'DL', 'DRL', 'DRLC'].includes(player.position)) return "bg-blue-100 text-blue-800 border-blue-300"
+                                    if (['MC', 'AMC', 'DM'].includes(player.position)) return "bg-green-100 text-green-800 border-green-300"
+                                    if (['ST', 'CF', 'SS', 'LWF', 'RWF'].includes(player.position)) return "bg-red-100 text-red-800 border-red-300"
+                                    return "bg-gray-100 text-gray-800 border-gray-300"
+                                  })()} variant="outline" size="sm">
+                                    {player.position}
+                                  </Badge>
+                                  {player.subPositions && player.subPositions.length > 0 && (
+                                    <span className="text-xs text-muted-foreground">
+                                      {player.subPositions.join(', ')}
+                                    </span>
+                                  )}
                                 </div>
-                                <span className="text-xs text-muted-foreground">
+                                <Badge variant="secondary" className="text-xs">
                                   {(() => {
                                     if (!player.level || player.level < 1 || player.level > 13) return '루키'
-                                    // 간단한 레벨 표시 (level-system.ts 없이)
                                     if (player.level === 1) return '루키'
                                     if (player.level <= 4) return `B${player.level - 1}`
                                     if (player.level <= 9) return `A${player.level - 4}`
                                     if (player.level <= 12) return `SP${player.level - 9}`
                                     return '프로'
                                   })()}
-                                </span>
+                                </Badge>
                               </div>
                             ))}
                           </div>
@@ -616,33 +675,56 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
 
                         {/* 파랑팀 */}
                         <div className="space-y-3">
-                          <div className="flex items-center gap-2">
-                            <div className="w-4 h-4 bg-blue-500 rounded-full"></div>
-                            <h4 className="font-medium text-base">파랑팀 ({dashboardFormationResults.blueTeam.length}명)</h4>
-                            <div className="flex items-center gap-1">
-                              <span className="text-sm font-medium">평균 {dashboardFormationResults.blueAverage}점</span>
-                            </div>
-                          </div>
+                   <div className="flex items-center gap-2">
+                     <div className="w-4 h-4 bg-blue-500 rounded-full"></div>
+                     <h4 className="font-medium text-base">파랑팀 ({dashboardFormationResults.blueTeam.length}명)</h4>
+                   </div>
                           <div className="space-y-2">
-                            {dashboardFormationResults.blueTeam.map((player: any) => (
+                            {dashboardFormationResults.blueTeam
+                              .sort((a: any, b: any) => {
+                                const getPositionOrder = (pos: string) => {
+                                  if (pos === 'GK') return 1
+                                  if (['DC', 'DR', 'DL', 'DRL', 'DRLC'].includes(pos)) return 2
+                                  if (['MC', 'AMC', 'DM'].includes(pos)) return 3
+                                  if (['ST', 'CF', 'SS', 'LWF', 'RWF'].includes(pos)) return 4
+                                  return 5
+                                }
+                                return getPositionOrder(a.position) - getPositionOrder(b.position)
+                              })
+                              .map((player: any) => (
                               <div key={player.userId || player.id} className="flex items-center gap-2 text-sm p-2 bg-blue-50 rounded-lg">
                                 <Avatar className="h-6 w-6">
+                                  {player.profileImage || player.image ? (
+                                    <img 
+                                      src={player.profileImage || player.image} 
+                                      alt={player.name}
+                                      className="h-full w-full object-cover rounded-full"
+                                      onError={(e) => {
+                                        e.currentTarget.style.display = 'none';
+                                        e.currentTarget.nextElementSibling.style.display = 'flex';
+                                      }}
+                                    />
+                                  ) : null}
                                   <AvatarFallback className="text-xs">{player.name[0]}</AvatarFallback>
                                 </Avatar>
-                                <div className="flex-1">
+                                <div className="flex-1 flex items-center gap-2">
                                   <span className="font-medium">{player.name}</span>
-                                  <div className="flex items-center gap-1 mt-1">
-                                    <Badge className={getPositionColor(player.position)} variant="outline" size="sm">
-                                      {player.position}
-                                    </Badge>
-                                    {player.subPositions && player.subPositions.length > 0 && (
-                                      <span className="text-xs text-muted-foreground">
-                                        + {player.subPositions.join(', ')}
-                                      </span>
-                                    )}
-                                  </div>
+                                  <Badge className={(() => {
+                                    if (player.position === 'GK') return "bg-yellow-100 text-yellow-800 border-yellow-300"
+                                    if (['DC', 'DR', 'DL', 'DRL', 'DRLC'].includes(player.position)) return "bg-blue-100 text-blue-800 border-blue-300"
+                                    if (['MC', 'AMC', 'DM'].includes(player.position)) return "bg-green-100 text-green-800 border-green-300"
+                                    if (['ST', 'CF', 'SS', 'LWF', 'RWF'].includes(player.position)) return "bg-red-100 text-red-800 border-red-300"
+                                    return "bg-gray-100 text-gray-800 border-gray-300"
+                                  })()} variant="outline" size="sm">
+                                    {player.position}
+                                  </Badge>
+                                  {player.subPositions && player.subPositions.length > 0 && (
+                                    <span className="text-xs text-muted-foreground">
+                                      + {player.subPositions.join(', ')}
+                                    </span>
+                                  )}
                                 </div>
-                                <span className="text-xs text-muted-foreground">
+                                <Badge variant="secondary" className="text-xs">
                                   {(() => {
                                     if (!player.level || player.level < 1 || player.level > 13) return '루키'
                                     if (player.level === 1) return '루키'
@@ -651,11 +733,39 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
                                     if (player.level <= 12) return `SP${player.level - 9}`
                                     return '프로'
                                   })()}
-                                </span>
+                                </Badge>
                               </div>
                             ))}
                           </div>
                         </div>
+                      </div>
+                    )}
+
+                    {/* 대시보드 팀편성 초기화 버튼 (총무 전용) */}
+                    {!dashboardFormationResults.message && isManagerMode && (
+                      <div className="text-center pt-2">
+                        <Button
+                          onClick={async () => {
+                            if (!dashboardData?.upcomingMatch?.id) return
+                            try {
+                              const response = await fetch(`/api/schedule/formation?scheduleId=${dashboardData.upcomingMatch.id}`, {
+                                method: 'DELETE'
+                              })
+                              if (response.ok) {
+                                setDashboardFormationResults(null)
+                                fetchDashboardData()
+                              } else {
+                                console.error('대시보드 팀편성 초기화 실패')
+                              }
+                            } catch (error) {
+                              console.error('대시보드 팀편성 초기화 중 오류:', error)
+                            }
+                          }}
+                          variant="outline"
+                          size="sm"
+                        >
+                          팀편성 초기화
+                        </Button>
                       </div>
                     )}
                   </CardContent>

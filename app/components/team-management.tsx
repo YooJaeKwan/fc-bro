@@ -211,31 +211,24 @@ export function TeamManagement({ isManagerMode }: TeamManagementProps) {
                             <DialogTitle>{member.name} 상세 정보</DialogTitle>
                           </DialogHeader>
                           <div className="space-y-5">
+                            {/* 기본 정보 */}
                             <div className="grid grid-cols-2 gap-4">
                               <div className="space-y-2">
                                 <Label>이름</Label>
-                                <Input defaultValue={member.name} disabled />
+                                <Input defaultValue={member.realName || member.nickname} disabled />
                               </div>
                               <div className="space-y-2">
-                                <Label>연락처</Label>
-                                <Input defaultValue={member.phone} disabled />
+                                <Label>전화번호</Label>
+                                <Input defaultValue={member.phoneNumber} disabled />
                               </div>
                             </div>
-                            <div className="space-y-2">
-                              <Label>거주지역</Label>
-                              <Input defaultValue={`${member.region} ${member.city}`} disabled />
-                            </div>
-                            {member.jerseyNumber && (
-                              <div className="space-y-2">
-                                <Label>등번호</Label>
-                                <Input defaultValue={`${member.jerseyNumber}번`} disabled />
-                              </div>
-                            )}
+                            
+                            {/* 포지션 */}
                             <div className="space-y-2">
                               <Label>포지션</Label>
                               <div className="flex flex-wrap gap-2">
-                                <Badge className={getPositionColor(member.mainPosition)}>
-                                  {member.mainPosition}
+                                <Badge className={getPositionColor(member.preferredPosition)} variant="default">
+                                  {member.preferredPosition}
                                 </Badge>
                                 {member.subPositions && member.subPositions.length > 0 && (
                                   member.subPositions.map((pos: string) => (
@@ -244,10 +237,35 @@ export function TeamManagement({ isManagerMode }: TeamManagementProps) {
                                 )}
                               </div>
                             </div>
-                            {isManagerMode && (
+                            
+                            {/* 지역 */}
+                            <div className="space-y-2">
+                              <Label>거주 지역</Label>
+                              <Input defaultValue={`${member.region} ${member.city}`} disabled />
+                            </div>
+                            
+                            {/* 주발 */}
+                            {member.preferredFoot && (
                               <div className="space-y-2">
+                                <Label>주발</Label>
+                                <Input defaultValue={member.preferredFoot === 'right' ? '오른발' : member.preferredFoot === 'left' ? '왼발' : '양발'} disabled />
+                              </div>
+                            )}
+                            
+                            {/* 등번호 */}
+                            {member.jerseyNumber && (
+                              <div className="space-y-2">
+                                <Label>등번호</Label>
+                                <Input defaultValue={`${member.jerseyNumber}번`} disabled />
+                              </div>
+                            )}
+                            
+                            {/* 레벨 (총무 전용, 가장 아래에 표시) */}
+                            {isManagerMode && (
+                              <div className="space-y-2 pt-4 border-t">
                                 <Label className="flex items-center gap-2">
-                                  선수 레벨
+                                  <Target className="h-4 w-4" />
+                                  선수 레벨 (총무 전용)
                                 </Label>
                                 <div className="space-y-3">
                                   <div className="flex items-center gap-2">
@@ -301,14 +319,6 @@ export function TeamManagement({ isManagerMode }: TeamManagementProps) {
                                               headers: { 'Content-Type': 'application/json' },
                                               body: JSON.stringify({
                                                 userId: member.id,
-                                                realName: member.realName,
-                                                phoneNumber: member.phoneNumber,
-                                                preferredPosition: member.preferredPosition,
-                                                subPositions: member.subPositions || [],
-                                                region: member.region,
-                                                city: member.city,
-                                                preferredFoot: member.preferredFoot,
-                                                jerseyNumber: member.jerseyNumber,
                                                 level: tempLevel
                                               })
                                             })
