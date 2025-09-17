@@ -1,0 +1,7 @@
+{
+  "buildCommand": "pnpm run build",
+  "installCommand": "pnpm install",
+  "env": {
+    "PRISMA_GENERATE_DATAPROXY": "true"
+  }
+}
