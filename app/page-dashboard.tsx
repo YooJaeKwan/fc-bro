@@ -65,9 +65,16 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
   const handleUserUpdate = (updatedUser: any) => {
     console.log('사용자 정보 업데이트:', updatedUser)
     setUser(updatedUser)
+    // role이 변경되었을 때 관리자 모드도 업데이트
+    setIsManagerMode(updatedUser?.role === 'admin')
     // 상위 컴포넌트에도 알림
     onUserUpdate?.(updatedUser)
   }
+
+  // 사용자 role 변경 시 관리자 모드 업데이트
+  useEffect(() => {
+    setIsManagerMode(user?.role === 'admin')
+  }, [user?.role])
 
   // 대시보드 데이터 로드
   useEffect(() => {
@@ -98,7 +105,8 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
     }
   }
   const [activeTab, setActiveTab] = useState("schedule")
-  const [isManagerMode, setIsManagerMode] = useState(true) // 총무 모드 여부
+  // 사용자 role 기반으로 관리자 모드 결정 (DB에서 admin 권한 확인)
+  const [isManagerMode, setIsManagerMode] = useState(user?.role === 'admin')
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   // 팀 편성 결과를 저장할 상태
@@ -176,26 +184,12 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
                   </p>
                 </div>
               </div>
-              <div className="flex items-center space-x-3">
-                <div className="flex items-center gap-2">
-                  <User className="h-4 w-4" />
-                  <Label htmlFor="mode-switch" className="text-sm">
-                    선수
-                  </Label>
-                </div>
-                <Switch id="mode-switch" checked={isManagerMode} onCheckedChange={setIsManagerMode} />
-                <div className="flex items-center gap-2">
-                  <Shield className="h-4 w-4" />
-                  <Label htmlFor="mode-switch" className="text-sm">
-                    총무
-                  </Label>
-                </div>
-              </div>
+              {/* Role 기반 권한 표시 */}
               <Badge
                 variant="outline"
-                className={isManagerMode ? "bg-green-50 text-green-700" : "bg-blue-50 text-blue-700"}
+                className={user?.role === 'admin' ? "bg-green-50 text-green-700" : "bg-blue-50 text-blue-700"}
               >
-                {isManagerMode ? "총무 모드" : "선수 모드"}
+                {user?.role === 'admin' ? "총무" : "선수"}
               </Badge>
               <Button variant="ghost" size="sm" onClick={() => window.location.reload()}>
                 <LogOut className="h-4 w-4" />
@@ -206,9 +200,9 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
             <div className="lg:hidden flex items-center space-x-2">
               <Badge
                 variant="outline"
-                className={`text-xs ${isManagerMode ? "bg-green-50 text-green-700" : "bg-blue-50 text-blue-700"}`}
+                className={`text-xs ${user?.role === 'admin' ? "bg-green-50 text-green-700" : "bg-blue-50 text-blue-700"}`}
               >
-                {isManagerMode ? "총무" : "선수"}
+                {user?.role === 'admin' ? "총무" : "선수"}
               </Badge>
               <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
                 <SheetTrigger asChild>
@@ -240,20 +234,26 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
                       </div>
                     </div>
 
-                    {/* Mode Switch in Mobile */}
+                    {/* Role 기반 권한 표시 */}
                     <div className="space-y-4">
-                      <h3 className="font-semibold">모드 설정</h3>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <User className="h-4 w-4" />
-                          <span className="text-sm">선수 모드</span>
-                        </div>
-                        <Switch checked={isManagerMode} onCheckedChange={setIsManagerMode} />
-                        <div className="flex items-center gap-2">
-                          <Shield className="h-4 w-4" />
-                          <span className="text-sm">총무 모드</span>
-                        </div>
+                      <h3 className="font-semibold">권한 정보</h3>
+                      <div className="flex items-center justify-center">
+                        <Badge
+                          variant="outline"
+                          className={user?.role === 'admin' ? "bg-green-50 text-green-700" : "bg-blue-50 text-blue-700"}
+                        >
+                          {user?.role === 'admin' ? (
+                            <><Shield className="h-4 w-4 mr-2" />총무</>
+                          ) : (
+                            <><User className="h-4 w-4 mr-2" />선수</>
+                          )}
+                        </Badge>
                       </div>
+                      {user?.role !== 'admin' && (
+                        <p className="text-xs text-muted-foreground text-center">
+                          총무 권한이 필요한 기능은 표시되지 않습니다.
+                        </p>
+                      )}
                     </div>
 
                     {/* Navigation Menu */}

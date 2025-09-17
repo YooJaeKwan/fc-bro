@@ -32,6 +32,7 @@ export async function POST(request: NextRequest) {
         city: true,
         preferredFoot: true,
         jerseyNumber: true,
+        role: true,
         image: true,
         createdAt: true
       }
@@ -54,6 +55,7 @@ export async function POST(request: NextRequest) {
           city: existingUser.city,
           preferredFoot: existingUser.preferredFoot,
           jerseyNumber: existingUser.jerseyNumber,
+          role: existingUser.role,
           profileImage: existingUser.image,
           registeredAt: existingUser.createdAt.toISOString()
         }

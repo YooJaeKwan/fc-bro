@@ -28,6 +28,7 @@ model User {
   mainPosition     String?
   preferredPosition String?
   subPositions     String[]
+  role             String    @default("member") // member, admin
 
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
