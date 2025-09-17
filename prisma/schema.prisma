@@ -167,6 +167,7 @@ model ScheduleAttendance {
   isGuest    Boolean  @default(false)
   guestName  String?  // 게스트 이름
   guestLevel Int?     // 게스트 레벨
+  guestPosition String? // 게스트 포지션
   guestId    String?  // 게스트 고유 ID
   invitedByUserId String? // 초대한 사용자 ID
 

@@ -69,7 +69,7 @@ export async function GET() {
           return {
             name: attendance.guestName || '게스트',
             status: attendance.status.toLowerCase(),
-            position: 'GUEST',
+            position: attendance.guestPosition || 'MC',
             subPositions: [],
             userId: attendance.guestId || attendance.userId,
             isGuest: true

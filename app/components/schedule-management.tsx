@@ -1159,25 +1159,36 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                       })
                       .map((player: any) => (
                       <div key={player.userId || player.id} className="flex items-center gap-2 text-sm p-2 bg-yellow-50 rounded-lg">
-                        <Avatar className="h-6 w-6">
-                          {player.profileImage || player.image ? (
-                            <img 
-                              src={player.profileImage || player.image} 
-                              alt={player.name}
-                              className="h-full w-full object-cover rounded-full"
-                              onError={(e) => {
-                                e.currentTarget.style.display = 'none';
-                                e.currentTarget.nextElementSibling.style.display = 'flex';
-                              }}
-                            />
-                          ) : null}
-                          <AvatarFallback className="text-xs">{player.name[0]}</AvatarFallback>
-                        </Avatar>
+                        {player.isGuest ? (
+                          <div className="h-6 w-6 bg-gray-200 rounded-full flex items-center justify-center">
+                            <span className="text-xs font-bold text-gray-600">G</span>
+                          </div>
+                        ) : (
+                          <Avatar className="h-6 w-6">
+                            {player.profileImage || player.image ? (
+                              <img
+                                src={player.profileImage || player.image}
+                                alt={player.name}
+                                className="h-full w-full object-cover rounded-full"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none';
+                                  e.currentTarget.nextElementSibling.style.display = 'flex';
+                                }}
+                              />
+                            ) : null}
+                            <AvatarFallback className="text-xs">{player.name[0]}</AvatarFallback>
+                          </Avatar>
+                        )}
                         <div className="flex-1 flex items-center gap-2">
                           <span className="font-medium">{player.name}</span>
                           <Badge className={getPositionColor(player.position)} variant="outline" size="sm">
                             {player.position}
                           </Badge>
+                          {player.isGuest && (
+                            <Badge className="bg-gray-100 text-gray-800 border-gray-300" variant="outline" size="sm">
+                              GUEST
+                            </Badge>
+                          )}
                           {player.subPositions && player.subPositions.length > 0 && (
                             <span className="text-xs text-muted-foreground">
                               + {player.subPositions.join(', ')}
@@ -1186,11 +1197,12 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                         </div>
                         <Badge variant="secondary" className="text-xs">
                           {(() => {
-                            if (!player.level || player.level < 1 || player.level > 13) return '루키'
-                            if (player.level === 1) return '루키'
-                            if (player.level <= 4) return `B${player.level - 1}`
-                            if (player.level <= 9) return `A${player.level - 4}`
-                            if (player.level <= 12) return `SP${player.level - 9}`
+                            const level = player.level
+                            if (!level || level < 1 || level > 13) return '루키'
+                            if (level === 1) return '루키'
+                            if (level <= 4) return `비기너${level - 1}`
+                            if (level <= 9) return `아마${level - 4}`
+                            if (level <= 12) return `세미프로${level - 9}`
                             return '프로'
                           })()}
                         </Badge>
@@ -1227,25 +1239,36 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                       })
                       .map((player: any) => (
                       <div key={player.userId || player.id} className="flex items-center gap-2 text-sm p-2 bg-blue-50 rounded-lg">
-                        <Avatar className="h-6 w-6">
-                          {player.profileImage || player.image ? (
-                            <img 
-                              src={player.profileImage || player.image} 
-                              alt={player.name}
-                              className="h-full w-full object-cover rounded-full"
-                              onError={(e) => {
-                                e.currentTarget.style.display = 'none';
-                                e.currentTarget.nextElementSibling.style.display = 'flex';
-                              }}
-                            />
-                          ) : null}
-                          <AvatarFallback className="text-xs">{player.name[0]}</AvatarFallback>
-                        </Avatar>
+                        {player.isGuest ? (
+                          <div className="h-6 w-6 bg-gray-200 rounded-full flex items-center justify-center">
+                            <span className="text-xs font-bold text-gray-600">G</span>
+                          </div>
+                        ) : (
+                          <Avatar className="h-6 w-6">
+                            {player.profileImage || player.image ? (
+                              <img
+                                src={player.profileImage || player.image}
+                                alt={player.name}
+                                className="h-full w-full object-cover rounded-full"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none';
+                                  e.currentTarget.nextElementSibling.style.display = 'flex';
+                                }}
+                              />
+                            ) : null}
+                            <AvatarFallback className="text-xs">{player.name[0]}</AvatarFallback>
+                          </Avatar>
+                        )}
                         <div className="flex-1 flex items-center gap-2">
                           <span className="font-medium">{player.name}</span>
                           <Badge className={getPositionColor(player.position)} variant="outline" size="sm">
                             {player.position}
                           </Badge>
+                          {player.isGuest && (
+                            <Badge className="bg-gray-100 text-gray-800 border-gray-300" variant="outline" size="sm">
+                              GUEST
+                            </Badge>
+                          )}
                           {player.subPositions && player.subPositions.length > 0 && (
                             <span className="text-xs text-muted-foreground">
                               + {player.subPositions.join(', ')}
@@ -1254,11 +1277,12 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                         </div>
                         <Badge variant="secondary" className="text-xs">
                           {(() => {
-                            if (!player.level || player.level < 1 || player.level > 13) return '루키'
-                            if (player.level === 1) return '루키'
-                            if (player.level <= 4) return `B${player.level - 1}`
-                            if (player.level <= 9) return `A${player.level - 4}`
-                            if (player.level <= 12) return `SP${player.level - 9}`
+                            const level = player.level
+                            if (!level || level < 1 || level > 13) return '루키'
+                            if (level === 1) return '루키'
+                            if (level <= 4) return `비기너${level - 1}`
+                            if (level <= 9) return `아마${level - 4}`
+                            if (level <= 12) return `세미프로${level - 9}`
                             return '프로'
                           })()}
                         </Badge>

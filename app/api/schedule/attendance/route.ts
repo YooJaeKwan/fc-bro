@@ -193,7 +193,7 @@ export async function GET(request: NextRequest) {
         userId: att.guestId || att.userId,  // guestId를 우선 사용
         name: att.guestName || '게스트',
         invitedBy: att.invitedBy?.realName || att.invitedBy?.nickname || '알 수 없음',
-        position: 'GUEST',
+        position: att.guestPosition || 'MC',  // 게스트 포지션
         subPositions: [],
         status: att.status.toLowerCase(),
         rating: 5.0, // 게스트 기본 능력치

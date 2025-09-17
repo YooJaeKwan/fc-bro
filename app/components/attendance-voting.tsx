@@ -38,6 +38,7 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
   const [showGuestDialog, setShowGuestDialog] = useState(false)
   const [guestName, setGuestName] = useState("")
   const [guestLevel, setGuestLevel] = useState<number>(7) // 기본값 아마추어3
+  const [guestPosition, setGuestPosition] = useState<string>("MC") // 기본값 미드필더
   const [guests, setGuests] = useState<any[]>([])
 
   useEffect(() => {
@@ -268,7 +269,7 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
                   <Button
                     onClick={() => setShowGuestDialog(true)}
                     variant="outline"
-                    className="w-full"
+                    className="w-full bg-yellow-400"
                   >
                     <UserPlus className="h-4 w-4 mr-2" />
                     게스트 초대
@@ -380,12 +381,10 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
                                 <span className="text-sm font-medium truncate">
                                   {attendee.isGuest ? `${attendee.name} (초대: ${attendee.invitedBy})` : attendee.name}
                                 </span>
-                                {!attendee.isGuest && (
-                                  <Badge className={`${getPositionColor(attendee.position)} text-xs`} variant="outline">
-                                    {attendee.position}
-                                  </Badge>
-                                )}
-                                {(attendee.level || attendee.isGuest) && (
+                                <Badge className={`${getPositionColor(attendee.position)} text-xs`} variant="outline">
+                                  {attendee.position}
+                                </Badge>
+                                {/* {(attendee.level || attendee.isGuest) && (
                                   <Badge
                                     variant="secondary"
                                     className={`text-xs px-1.5 py-0 ${(() => {
@@ -399,7 +398,7 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
                                   >
                                     {getLevelShortLabel(attendee.level)}
                                   </Badge>
-                                )}
+                                )} */}
                               </div>
                               {/* {attendee.updatedAt && (
                                 <div className="text-xs text-muted-foreground">
@@ -449,6 +448,34 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
             </div>
 
             <div className="space-y-2">
+              <Label>게스트 포지션</Label>
+              <Select
+                value={guestPosition}
+                onValueChange={(value) => setGuestPosition(value)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="GK">GK (골키퍼)</SelectItem>
+                  <SelectItem value="DC">DC (중앙 수비수)</SelectItem>
+                  <SelectItem value="DR">DR (오른쪽 풀백)</SelectItem>
+                  <SelectItem value="DL">DL (왼쪽 풀백)</SelectItem>
+                  <SelectItem value="DRL">DRL (양쪽 풀백)</SelectItem>
+                  <SelectItem value="DRLC">DRLC (멀티 수비수)</SelectItem>
+                  <SelectItem value="MC">MC (중앙 미드필더)</SelectItem>
+                  <SelectItem value="AMC">AMC (공격형 미드필더)</SelectItem>
+                  <SelectItem value="DM">DM (수비형 미드필더)</SelectItem>
+                  <SelectItem value="ST">ST (스트라이커)</SelectItem>
+                  <SelectItem value="CF">CF (중앙 공격수)</SelectItem>
+                  <SelectItem value="SS">SS (세컨드 스트라이커)</SelectItem>
+                  <SelectItem value="LWF">LWF (왼쪽 윙어)</SelectItem>
+                  <SelectItem value="RWF">RWF (오른쪽 윙어)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
               <Label>게스트 레벨</Label>
               <Select
                 value={guestLevel.toString()}
@@ -474,6 +501,7 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
                   setShowGuestDialog(false)
                   setGuestName("")
                   setGuestLevel(7)
+                  setGuestPosition("MC")
                 }}
               >
                 취소
@@ -494,6 +522,7 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
                         scheduleId: schedule.id,
                         guestName: guestName.trim(),
                         guestLevel: guestLevel,
+                        guestPosition: guestPosition,
                         invitedByUserId: currentUser.id
                       })
                     })
@@ -507,6 +536,7 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
                       setShowGuestDialog(false)
                       setGuestName("")
                       setGuestLevel(7)
+                      setGuestPosition("MC")
                     } else {
                       const error = await response.json()
                       alert(error.error || '게스트 초대 중 오류가 발생했습니다.')

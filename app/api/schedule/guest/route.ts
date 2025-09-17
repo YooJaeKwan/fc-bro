@@ -4,10 +4,10 @@ import { prisma } from '@/lib/prisma'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { scheduleId, guestName, guestLevel, invitedByUserId } = body
+    const { scheduleId, guestName, guestLevel, guestPosition, invitedByUserId } = body
 
     // 필수 필드 확인
-    if (!scheduleId || !guestName || !guestLevel || !invitedByUserId) {
+    if (!scheduleId || !guestName || !guestLevel || !guestPosition || !invitedByUserId) {
       return NextResponse.json(
         { error: '필수 정보가 누락되었습니다.' },
         { status: 400 }
@@ -37,6 +37,7 @@ export async function POST(request: NextRequest) {
         status: 'ATTENDING',
         guestName,
         guestLevel,
+        guestPosition,
         invitedByUserId,
         isGuest: true
       }
@@ -50,6 +51,7 @@ export async function POST(request: NextRequest) {
         userId: guestId,  // 프론트엔드에서 사용할 ID
         name: guestName,
         level: guestLevel,
+        position: guestPosition,
         invitedBy: inviter.realName || inviter.nickname,
         isGuest: true,
         status: 'attending'
