@@ -53,11 +53,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 한국시간대(Asia/Seoul) 기준으로 DateTime 생성
-    const kstDateTime = new Date(`${date}T${time}:00+09:00`)
+    // 과거 날짜 검증 (한국시간 기준)
+    const [year, month, day] = date.split('-')
+    const [hour, minute] = time.split(':')
+    const inputDateTime = new Date(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute))
     
-    // 과거 날짜 검증
-    if (kstDateTime < new Date()) {
+    if (inputDateTime < new Date()) {
       return NextResponse.json(
         { error: '과거 날짜로는 일정을 등록할 수 없습니다.' },
         { status: 400 }
@@ -84,7 +85,7 @@ export async function POST(request: NextRequest) {
       data: {
         title: autoTitle,
         type,
-        matchDate: kstDateTime,
+        matchDate: kstDateTime, // DateTime으로 저장
         startTime: time,
         gatherTime,
         location: location.trim(),

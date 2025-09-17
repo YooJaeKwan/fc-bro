@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Progress } from "@/components/ui/progress"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Edit, Star, MapPin, Phone, Calendar, TrendingUp, Eye, Target, BarChart3, Shield, Award, Users } from 'lucide-react'
+import { Edit, Star, MapPin, Phone, Calendar, TrendingUp, Eye, Target, BarChart3, Shield, Award, Users, User, AlertCircle, UserMinus, UserX, Power } from 'lucide-react'
 import { LEVEL_OPTIONS, LEVEL_CATEGORIES, getLevelLabel, getLevelShortLabel, getLevelColor } from '@/lib/level-system'
 
 // 포지션별 한국어 매핑
@@ -32,6 +32,24 @@ const positionMapping: Record<string, string> = {
   "RWF": "공격수"
 }
 
+// 포지션 풀네임 매핑
+const positionFullNames: Record<string, string> = {
+  "GK": "GK (골키퍼)",
+  "DC": "DC (센터백)",
+  "DR": "DR (우측풀백)", 
+  "DL": "DL (좌측풀백)",
+  "DRL": "DRL (우좌측풀백)",
+  "DRLC": "DRLC (풀백/센터백)",
+  "MC": "MC (중앙미드필더)",
+  "AMC": "AMC (공격형미드필더)",
+  "DM": "DM (수비형미드필더)", 
+  "ST": "ST (스트라이커)",
+  "CF": "CF (센터포워드)",
+  "SS": "SS (세컨드스트라이커)",
+  "LWF": "LWF (좌측윙포워드)",
+  "RWF": "RWF (우측윙포워드)"
+}
+
 interface TeamManagementProps {
   isManagerMode: boolean
 }
@@ -45,15 +63,25 @@ export function TeamManagement({ isManagerMode }: TeamManagementProps) {
   const [tempLevel, setTempLevel] = useState<number>(1)
   const [isSaving, setIsSaving] = useState(false)
   const [saveMessage, setSaveMessage] = useState("")
+  const [showInactive, setShowInactive] = useState(false)
 
   useEffect(() => {
-    fetchTeamMembers()
-  }, [])
+    fetchTeamMembers(showInactive)
+  }, [showInactive])
 
-  const fetchTeamMembers = async () => {
+  const fetchTeamMembers = async (includeInactive = false) => {
     try {
       setIsLoading(true)
-      const response = await fetch('/api/team/members')
+      // 현재 사용자 정보 가져오기 (역할 확인용)
+      const currentUser = JSON.parse(sessionStorage.getItem('user') || '{}')
+      const requesterId = currentUser.id || ''
+      
+      const queryParams = new URLSearchParams({
+        requesterId,
+        includeInactive: includeInactive.toString()
+      })
+      
+      const response = await fetch(`/api/team/members?${queryParams}`)
       const result = await response.json()
 
       if (!response.ok) {
@@ -85,7 +113,7 @@ export function TeamManagement({ isManagerMode }: TeamManagementProps) {
     if (positionType === "all") return teamMembers
     
     return teamMembers.filter(member => {
-      const memberPositionType = positionMapping[member.mainPosition] || member.mainPosition
+      const memberPositionType = positionMapping[member.mainPosition || member.preferredPosition] || (member.mainPosition || member.preferredPosition)
       return memberPositionType === positionType
     })
   }
@@ -134,12 +162,31 @@ export function TeamManagement({ isManagerMode }: TeamManagementProps) {
   return (
     <div className="space-y-6">
       {/* 헤더 */}
-      {/* <div className="flex justify-end items-center">
-        <Button onClick={fetchTeamMembers} variant="outline">
+      {isManagerMode && (
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <Users className="h-5 w-5 text-blue-500" />
+            <h2 className="text-lg font-semibold">팀 멤버</h2>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Button
+                variant={showInactive ? "default" : "outline"}
+                size="sm"
+                onClick={() => setShowInactive(!showInactive)}
+                className="h-8"
+              >
+                <Eye className="h-3 w-3 mr-1" />
+                {showInactive ? "숨기기" : "비활성화 명단 보기"}
+              </Button>
+            </div>
+            {/* <Button onClick={() => fetchTeamMembers(showInactive)} variant="outline" size="sm">
           <TrendingUp className="h-4 w-4 mr-2" />
           새로고침
-        </Button>
-      </div> */}
+            </Button> */}
+          </div>
+        </div>
+      )}
 
       {/* 포지션별 탭 */}
       <Tabs value={activePositionTab} onValueChange={setActivePositionTab} className="space-y-4">
@@ -160,7 +207,7 @@ export function TeamManagement({ isManagerMode }: TeamManagementProps) {
           <TabsContent key={tab.value} value={tab.value}>
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
               {getFilteredMembers(tab.value).map((member) => (
-                <Card key={member.id} className="hover:shadow-lg transition-shadow">
+                <Card key={member.id} className={`hover:shadow-lg transition-shadow ${!member.isActive ? 'opacity-60 border-dashed border-gray-300' : ''}`}>
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
@@ -169,231 +216,537 @@ export function TeamManagement({ isManagerMode }: TeamManagementProps) {
                             <AvatarImage src={member.profileImage || "/placeholder.svg"} />
                             <AvatarFallback>{member.name[0]}</AvatarFallback>
                           </Avatar>
-                          {/* {member.jerseyNumber && (
+                          {member.jerseyNumber && (
                             <div className="absolute -bottom-1 -right-1 bg-blue-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
                               {member.jerseyNumber}
                             </div>
-                          )} */}
+                          )}
                         </div>
                         <div className="min-w-0 flex-1">
                           <CardTitle className="text-base sm:text-lg truncate flex items-center gap-2">
-                            {member.name}
-                            {member.jerseyNumber && (
-                              <span className="text-sm font-normal text-muted-foreground">#{member.jerseyNumber}</span>
-                            )}
-                          </CardTitle>
-                          <div className="flex items-center gap-2 mt-1 flex-wrap">
-                            <Badge className={getPositionColor(member.mainPosition)} variant="secondary">
-                              {member.mainPosition}
+                            <span className="font-bold text-gray-900">{member.name}</span>
+                            <Badge className={getPositionColor(member.mainPosition || member.preferredPosition)} variant="secondary" size="sm">
+                              {member.mainPosition || member.preferredPosition}
                             </Badge>
-                            {member.subPositions && member.subPositions.length > 0 && (
-                              <span className="text-xs text-muted-foreground">
-                                + {member.subPositions.join(', ')}
-                              </span>
-                            )}
-                            {isManagerMode && (
-                              <div className="flex items-center gap-1">
-                                <Target className="h-3 w-3 text-blue-500" />
-                                <span className="text-sm font-medium">{getLevelShortLabel(member.level)}</span>
-                              </div>
-                            )}
+                          </CardTitle>
+                          
                           </div>
                         </div>
-                      </div>
+                      <div className="flex items-center gap-1">
+                        {/* 상세보기/수정 버튼 */}
                       <Dialog>
                         <DialogTrigger asChild>
                           <Button variant="ghost" size="sm" className="flex-shrink-0">
                             {isManagerMode ? <Edit className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                           </Button>
                         </DialogTrigger>
-                        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                          <DialogHeader>
-                            <DialogTitle>{member.name} 상세 정보</DialogTitle>
+                          <DialogContent className="max-w-3xl max-h-[95vh] overflow-y-auto">
+                          <DialogHeader className="pb-6">
+                            <div className="flex items-center gap-4">
+                              <Avatar className="h-16 w-16">
+                                {member.image ? (
+                                  <img src={member.image} alt={member.name} className="h-full w-full object-cover" />
+                                ) : (
+                                  <AvatarFallback className="text-2xl font-bold bg-blue-100 text-blue-600">
+                                    {member.name[0]}
+                                  </AvatarFallback>
+                                )}
+                              </Avatar>
+                              <div className="flex-1">
+                                <DialogTitle className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                                  {member.name}
+                                  {!member.isActive && (
+                                    <Badge variant="destructive" className="text-xs">비활성</Badge>
+                                  )}
+                                </DialogTitle>
+                                {/* <p className="text-muted-foreground mt-1">선수 상세 정보</p> */}
+                              </div>
+                              {isManagerMode && (
+                                <div className="flex items-center gap-2">
+                                  {/* <div className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded">
+                                    <Target className="h-4 w-4 text-blue-500" />
+                                    <span className="text-sm font-medium text-blue-600">
+                                      {member.level ? getLevelShortLabel(member.level) : '레벨 정보 없음'}
+                                    </span>
+                                  </div> */}
+                                  
+                                  {/* 비활성화/활성화 버튼 */}
+                                  <Button
+                                    variant={member.isActive ? "outline" : "default"}
+                                    size="sm"
+                                    className={member.isActive ? 'text-orange-600 border-orange-200 hover:bg-orange-50' : 'bg-green-600 hover:bg-green-700'}
+                                    onClick={async () => {
+                                      try {
+                                        const currentUser = JSON.parse(sessionStorage.getItem('user') || '{}')
+                                        const endpoint = member.isActive ? '/api/user/deactivate' : '/api/user/deactivate'
+                                        const method = member.isActive ? 'PUT' : 'POST'
+                                        
+                                        const response = await fetch(endpoint, {
+                                          method,
+                                          headers: { 'Content-Type': 'application/json' },
+                                          body: JSON.stringify({
+                                            targetUserId: member.id,
+                                            adminUserId: currentUser.id
+                                          })
+                                        })
+                                        
+                                        if (response.ok) {
+                                          const updatedData = await response.json()
+                                          // 현재 멤버 상태 즉시 업데이트
+                                          if (updatedData.user) {
+                                            setTeamMembers(prevMembers =>
+                                              prevMembers.map(m =>
+                                                m.id === member.id
+                                                  ? { ...m, isActive: updatedData.user.isActive }
+                                                  : m
+                                              )
+                                            )
+                                          }
+                                          alert(member.isActive ? '선수가 비활성화되었습니다.' : '선수가 활성화되었습니다.')
+                                        } else {
+                                          const error = await response.json()
+                                          alert(error.error || '상태 변경에 실패했습니다.')
+                                        }
+                                      } catch (error) {
+                                        console.error('상태 변경 중 오류:', error)
+                                        alert('상태 변경 중 오류가 발생했습니다.')
+                                      }
+                                    }}
+                                  >
+                                    {member.isActive ? (
+                                      <>
+                                        <UserMinus className="h-4 w-4 mr-1" />
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Power className="h-4 w-4 mr-1" />
+                                        활성화
+                                      </>
+                                    )}
+                                  </Button>
+                                  
+                                  {/* 삭제 버튼 */}
+                                  <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    onClick={async () => {
+                                      const confirmed = confirm(`${member.name} 선수를 완전히 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없으며, 해당 선수의 모든 데이터가 삭제됩니다.`)
+                                      if (!confirmed) return
+                                      
+                                      try {
+                                        const currentUser = JSON.parse(sessionStorage.getItem('user') || '{}')
+                                        const response = await fetch('/api/user/delete', {
+                                          method: 'DELETE',
+                                          headers: { 'Content-Type': 'application/json' },
+                                          body: JSON.stringify({
+                                            targetUserId: member.id,
+                                            adminUserId: currentUser.id,
+                                            confirmDelete: true
+                                          })
+                                        })
+                                        
+                                        if (response.ok) {
+                                          // 삭제된 멤버를 목록에서 즉시 제거
+                                          setTeamMembers(prevMembers =>
+                                            prevMembers.filter(m => m.id !== member.id)
+                                          )
+                                          alert('선수가 성공적으로 삭제되었습니다.')
+                                        } else {
+                                          const error = await response.json()
+                                          alert(error.error || '삭제에 실패했습니다.')
+                                        }
+                                      } catch (error) {
+                                        console.error('삭제 중 오류:', error)
+                                        alert('삭제 중 오류가 발생했습니다.')
+                                      }
+                                    }}
+                                  >
+                                    <UserX className="h-4 w-4 mr-1" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
                           </DialogHeader>
-                          <div className="space-y-5">
-                            {/* 기본 정보 */}
+                          
+                          <div className="space-y-6">
+                            {/* 기본 정보 카드 */}
+                            <Card className="border-l-4 border-l-blue-500">
+                              <CardHeader className="pb-3">
+                                <CardTitle className="text-sm flex items-center gap-2">
+                                  <User className="h-4 w-4 text-blue-500" />
+                                  기본 정보
+                                </CardTitle>
+                              </CardHeader>
+                              <CardContent className="space-y-4">
+                                <div className="space-y-2">
+                                  <Label className="text-xs font-medium text-gray-700">이름</Label>
+                                  <div className="p-2 bg-gray-50 rounded-lg border">
+                                    <span className="text-sm">{member.name}</span>
+                                  </div>
+                                </div>
+                                
                             <div className="grid grid-cols-2 gap-4">
                               <div className="space-y-2">
-                                <Label>이름</Label>
-                                <Input defaultValue={member.realName || member.nickname} disabled />
-                              </div>
-                              <div className="space-y-2">
-                                <Label>전화번호</Label>
-                                <Input defaultValue={member.phoneNumber} disabled />
+                                    <Label className="text-xs font-medium text-gray-700">전화번호</Label>
+                                    <div className="p-2 bg-gray-50 rounded-lg border flex items-center gap-2">
+                                      <span className="text-sm">{member.phone}</span>
                               </div>
                             </div>
-                            
-                            {/* 포지션 */}
                             <div className="space-y-2">
-                              <Label>포지션</Label>
-                              <div className="flex flex-wrap gap-2">
-                                <Badge className={getPositionColor(member.preferredPosition)} variant="default">
-                                  {member.preferredPosition}
-                                </Badge>
-                                {member.subPositions && member.subPositions.length > 0 && (
-                                  member.subPositions.map((pos: string) => (
-                                    <Badge key={pos} variant="outline">{pos}</Badge>
-                                  ))
-                                )}
-                              </div>
+                                    <Label className="text-xs font-medium text-gray-700">거주지역</Label>
+                                    <div className="p-2 bg-gray-50 rounded-lg border flex items-center gap-2">
+                                      <MapPin className="h-3 w-3 text-muted-foreground" />
+                                      <span className="text-sm">{member.region} {member.city}</span>
+                                    </div>
                             </div>
-                            
-                            {/* 지역 */}
+                              </div>
+                                
+                                <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                              <Label>거주 지역</Label>
-                              <Input defaultValue={`${member.region} ${member.city}`} disabled />
+                                    <Label className="text-xs font-medium text-gray-700">주발</Label>
+                                    <div className="p-2 bg-gray-50 rounded-lg border">
+                                      <span className="text-sm">
+                                        {member.preferredFoot === 'RIGHT' ? '오른발' : 
+                                         member.preferredFoot === 'LEFT' ? '왼발' : 
+                                         member.preferredFoot === 'BOTH' ? '양발' : '정보 없음'}
+                                      </span>
+                              </div>
                             </div>
-                            
-                            {/* 주발 */}
-                            {member.preferredFoot && (
+                                  
                               <div className="space-y-2">
-                                <Label>주발</Label>
-                                <Input defaultValue={member.preferredFoot === 'right' ? '오른발' : member.preferredFoot === 'left' ? '왼발' : '양발'} disabled />
-                              </div>
-                            )}
-                            
-                            {/* 등번호 */}
-                            {member.jerseyNumber && (
-                              <div className="space-y-2">
-                                <Label>등번호</Label>
-                                <Input defaultValue={`${member.jerseyNumber}번`} disabled />
-                              </div>
-                            )}
-                            
-                            {/* 레벨 (총무 전용, 가장 아래에 표시) */}
-                            {isManagerMode && (
-                              <div className="space-y-2 pt-4 border-t">
-                                <Label className="flex items-center gap-2">
-                                  <Target className="h-4 w-4" />
-                                  선수 레벨 (총무 전용)
-                                </Label>
-                                <div className="space-y-3">
-                                  <div className="flex items-center gap-2">
-                                    <Select
-                                      value={editingMember?.id === member.id ? tempLevel.toString() : (member.level?.toString() || "1")}
-                                      onValueChange={(value) => {
-                                        setEditingMember(member)
-                                        setTempLevel(parseInt(value))
-                                        setSaveMessage("")
-                                      }}
-                                    >
-                                      <SelectTrigger className="w-32">
-                                        <SelectValue />
-                                      </SelectTrigger>
-                                      <SelectContent className="max-h-60">
-                                        {LEVEL_CATEGORIES.map((category) => (
-                                          <div key={category.name}>
-                                            <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
-                                              {category.name}
-                                            </div>
-                                            {category.levels.map((levelValue) => (
-                                              <SelectItem key={levelValue} value={levelValue.toString()}>
-                                                <div className="flex items-center gap-2">
-                                                  <span className={`px-2 py-1 rounded text-xs ${category.color}`}>
-                                                    {getLevelShortLabel(levelValue)}
-                                                  </span>
-                                                </div>
-                                              </SelectItem>
-                                            ))}
-                                          </div>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
-                                    <span className="text-xs text-muted-foreground">
-                                      현재: {getLevelLabel(editingMember?.id === member.id ? tempLevel : member.level)}
+                                    <Label className="text-xs font-medium text-gray-700">등번호</Label>
+                                    <div className="p-2 bg-gray-50 rounded-lg border flex items-center gap-2">
+                                      <span className="text-sm">
+                                        {member.jerseyNumber ? `${member.jerseyNumber}번` : '미배정'}
                                     </span>
                                   </div>
+                                </div>
+                              </div>
+                                
+                                <div className="space-y-2">
+                                  <Label className="text-xs font-medium text-gray-700">가입일</Label>
+                                  <div className="p-2 bg-gray-50 rounded-lg border flex items-center gap-2">
+                                    <Calendar className="h-3 w-3 text-muted-foreground" />
+                                    <span className="text-sm">{member.joinDate}</span>
+                                  </div>
+                                </div>
+                                
+                              </CardContent>
+                            </Card>
+                            
+                            {/* 포지션 정보 카드 */}
+                            <Card className="border-l-4 border-l-green-500">
+                              <CardHeader className="pb-3">
+                                <CardTitle className="text-sm flex items-center gap-2">
+                                  <Shield className="h-4 w-4 text-green-500" />
+                                  포지션 정보
+                                </CardTitle>
+                              </CardHeader>
+                              <CardContent>
+                                <div className="space-y-3">
+                                  <div>
+                                    <Label className="text-xs font-medium text-gray-700 mb-2 block">주포지션</Label>
+                                    <Badge className={`${getPositionColor(member.mainPosition || member.preferredPosition)} text-xs px-2 py-1`} variant="default">
+                                      {positionFullNames[member.mainPosition || member.preferredPosition] || (member.mainPosition || member.preferredPosition)}
+                                    </Badge>
+                                  </div>
                                   
-                                  {/* 레벨 저장 버튼 */}
-                                  {editingMember?.id === member.id && (
-                                    <div className="flex items-center gap-2">
-                                      <Button
-                                        size="sm"
-                                        onClick={async () => {
-                                          setIsSaving(true)
-                                          setSaveMessage("")
-                                          
-                                          try {
-                                            const response = await fetch('/api/user/update', {
-                                              method: 'PUT',
-                                              headers: { 'Content-Type': 'application/json' },
-                                              body: JSON.stringify({
-                                                userId: member.id,
-                                                level: tempLevel
-                                              })
-                                            })
-                                            
-                                            if (response.ok) {
-                                              setSaveMessage("레벨이 성공적으로 저장되었습니다!")
-                                              setEditingMember(null)
-                                              // 팀원 목록 새로고침
-                                              fetchTeamMembers()
-                                            } else {
-                                              setSaveMessage("레벨 저장에 실패했습니다.")
-                                            }
-                                          } catch (error) {
-                                            console.error('레벨 수정 오류:', error)
-                                            setSaveMessage("레벨 저장 중 오류가 발생했습니다.")
-                                          } finally {
-                                            setIsSaving(false)
-                                          }
-                                        }}
-                                        disabled={isSaving}
-                                        className="bg-green-600 hover:bg-green-700"
-                                      >
-                                        {isSaving ? "저장 중..." : "레벨 저장"}
-                                      </Button>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => {
-                                          setEditingMember(null)
-                                          setTempLevel(member.level || 1)
-                                          setSaveMessage("")
-                                        }}
-                                      >
-                                        취소
-                                      </Button>
-                                    </div>
-                                  )}
-                                  
-                                  {/* 저장 메시지 */}
-                                  {saveMessage && editingMember?.id === member.id && (
-                                    <div className={`text-xs ${saveMessage.includes('성공') ? 'text-green-600' : 'text-red-600'}`}>
-                                      {saveMessage}
+                                  {member.subPositions && member.subPositions.length > 0 && (
+                                    <div>
+                                      <Label className="text-xs font-medium text-gray-700 mb-2 block">부포지션</Label>
+                                      <div className="flex flex-wrap gap-1">
+                                        {member.subPositions.map((pos: string) => (
+                                          <Badge key={pos} variant="outline" className="text-xs px-1.5 py-0.5">
+                                            {positionFullNames[pos] || pos}
+                                          </Badge>
+                                        ))}
+                                      </div>
                                     </div>
                                   )}
                                 </div>
-                              </div>
+                              </CardContent>
+                            </Card>
+                            
+                            {/* 레벨 관리 카드 (총무 전용) */}
+                            {isManagerMode && (
+                              <Card className="border-l-4 border-l-purple-500">
+                                <CardHeader className="pb-3">
+                                  <CardTitle className="text-sm flex items-center gap-2">
+                                    <Target className="h-4 w-4 text-purple-500" />
+                                    선수 레벨 관리
+                                    <Badge variant="secondary" className="text-xs">총무 전용</Badge>
+                                  </CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                  <div className="flex items-center justify-between p-4 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border">
+                                    <div className="space-y-1">
+                                      <div className="flex items-center gap-2">
+                                        <Badge className="text-sm px-2 py-1 bg-purple-100 text-purple-800 border-purple-300">
+                                          {getLevelLabel(editingMember?.id === member.id ? tempLevel : member.level)}
+                                        </Badge>
+                                      </div>
+                                    </div>
+                                    
+                                    {editingMember?.id !== member.id && (
+                                      <Button
+                                        onClick={() => {
+                                          setEditingMember(member)
+                                          setTempLevel(member.level || 1)
+                                          setSaveMessage("")
+                                        }}
+                                        variant="outline"
+                                        size="sm"
+                                        className="bg-white hover:bg-gray-50"
+                                      >
+                                        레벨 수정
+                                      </Button>
+                                    )}
+                                  </div>
+
+                                  {editingMember?.id === member.id && (
+                                    <div className="space-y-4 p-4 bg-white rounded-lg border-2 border-purple-200">
+                                      <div className="space-y-3">
+                                        <Select
+                                          value={tempLevel.toString()}
+                                          onValueChange={(value) => {
+                                            setTempLevel(parseInt(value))
+                                            setSaveMessage("")
+                                          }}
+                                        >
+                                          <SelectTrigger className="w-full">
+                                            <SelectValue />
+                                          </SelectTrigger>
+                                          <SelectContent className="max-h-60">
+                                            {LEVEL_CATEGORIES.map((category) => (
+                                              <div key={category.name}>
+                                                <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground bg-gray-50">
+                                                  {category.name}
+                                                </div>
+                                                {category.levels.map((levelValue) => (
+                                                  <SelectItem key={levelValue} value={levelValue.toString()}>
+                                                    <div className="flex items-center gap-3 py-1">
+                                                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${category.color}`}>
+                                                        {getLevelShortLabel(levelValue)}
+                                                      </span>
+                                                      <span className="text-sm">
+                                                        {getLevelLabel(levelValue)}
+                                                      </span>
+                                                    </div>
+                                                  </SelectItem>
+                                                ))}
+                                              </div>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                        
+                                        <div className="flex items-center gap-3 pt-2">
+                                          <Button
+                                            onClick={async () => {
+                                              setIsSaving(true)
+                                              setSaveMessage("")
+                                              try {
+                                                const response = await fetch('/api/user/update', {
+                                                  method: 'PUT',
+                                                  headers: { 'Content-Type': 'application/json' },
+                                                  body: JSON.stringify({
+                                                    userId: member.id,
+                                                    level: tempLevel
+                                                  })
+                                                })
+                                                if (response.ok) {
+                                                  const updatedData = await response.json()
+                                                  setSaveMessage("레벨이 성공적으로 저장되었습니다!")
+                                                  
+                                                  // 현재 멤버 정보 즉시 업데이트
+                                                  if (updatedData.user) {
+                                                    const updatedMember = {
+                                                      ...member,
+                                                      level: updatedData.user.level
+                                                    }
+                                                    // teamMembers state에서 해당 멤버 업데이트
+                                                    setTeamMembers(prevMembers => 
+                                                      prevMembers.map(m => 
+                                                        m.id === member.id 
+                                                          ? { ...m, level: updatedData.user.level }
+                                                          : m
+                                                      )
+                                                    )
+                                                  }
+                                                  
+                                                  // UI 정리
+                                                  setTimeout(() => {
+                                                    setEditingMember(null)
+                                                    setSaveMessage("")
+                                                  }, 1500)
+                                                } else {
+                                                  setSaveMessage("레벨 저장에 실패했습니다.")
+                                                }
+                                              } catch (error) {
+                                                console.error('레벨 수정 오류:', error)
+                                                setSaveMessage("레벨 저장 중 오류가 발생했습니다.")
+                                              } finally {
+                                                setIsSaving(false)
+                                              }
+                                            }}
+                                            disabled={isSaving}
+                                            className="bg-green-600 hover:bg-green-700 flex-1"
+                                            size="sm"
+                                          >
+                                            {isSaving ? (
+                                              <div className="flex items-center gap-2">
+                                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                                                <span>저장 중...</span>
+                                              </div>
+                                            ) : (
+                                              <div className="flex items-center gap-2">
+                                                <span>레벨 저장</span>
+                                              </div>
+                                            )}
+                                          </Button>
+                                          <Button
+                                            variant="outline"
+                                            onClick={() => {
+                                              setEditingMember(null)
+                                              setTempLevel(member.level || 1)
+                                              setSaveMessage("")
+                                            }}
+                                            size="sm"
+                                            className="flex-1"
+                                          >
+                                            취소
+                                          </Button>
+                                        </div>
+                                        
+                                        {saveMessage && (
+                                          <div className={`p-3 rounded-lg border-l-4 ${
+                                            saveMessage.includes('성공') 
+                                              ? 'bg-green-50 border-l-green-400 text-green-700' 
+                                              : 'bg-red-50 border-l-red-400 text-red-700'
+                                          }`}>
+                                            <div className="flex items-center gap-2">
+                                              {saveMessage.includes('성공') ? (
+                                                <Target className="h-4 w-4 text-green-600" />
+                                              ) : (
+                                                <AlertCircle className="h-4 w-4 text-red-600" />
+                                              )}
+                                              <span className="text-sm font-medium">{saveMessage}</span>
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+                                </CardContent>
+                              </Card>
                             )}
+                            {/* 출석 통계 카드 */}
+                            <Card className="border-l-4 border-l-orange-500">
+                              <CardHeader className="pb-3">
+                                <CardTitle className="text-sm flex items-center gap-2">
+                                  <BarChart3 className="h-4 w-4 text-orange-500" />
+                                  출석 통계
+                                </CardTitle>
+                              </CardHeader>
+                              <CardContent>
+                                <div className="space-y-3">
+                                  <div className="flex items-center justify-between">
+                                    <Label className="text-xs font-medium text-gray-700">전체 출석률</Label>
+                                    <div className="flex items-center gap-2">
+                                      <Badge variant="outline" className="text-sm px-2 py-1 font-bold">
+                                        {member.attendanceRate}%
+                                      </Badge>
+                                    </div>
+                                  </div>
                             <div className="space-y-2">
-                              <Label>출석률</Label>
-                              <div className="flex items-center justify-between">
-                                <span className="text-sm">{member.attendanceRate}%</span>
-                                <Progress value={member.attendanceRate} className="h-2 flex-1 ml-4" />
+                                    <Progress 
+                                      value={member.attendanceRate} 
+                                      className="h-3 bg-gray-200" 
+                                    />
+                                    <div className="flex justify-between text-xs text-muted-foreground">
+                                      <span>0%</span>
+                                      <span>50%</span>
+                                      <span>100%</span>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-4 pt-2">
+                                    <div className="flex items-center gap-2">
+                                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                                      <span className="text-xs text-muted-foreground">
+                                        {member.attendanceRate >= 80 ? '우수' : 
+                                         member.attendanceRate >= 60 ? '양호' : '개선 필요'}
+                                      </span>
                               </div>
                             </div>
+                                </div>
+                              </CardContent>
+                            </Card>
                           </div>
                         </DialogContent>
                       </Dialog>
+                      </div>
                     </div>
                   </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <CardContent className="pt-3 pb-3 px-4 space-y-3">
+                    {/* 부포지션, 레벨, 주발 정보 그리드 */}
+                    <div className={`grid ${isManagerMode ? 'grid-cols-3' : 'grid-cols-2'} gap-x-3 gap-y-2 text-xs`}>
+                      {/* 부포지션 */}
+                      <div>
+                        <span className="text-muted-foreground block mb-1">부포지션</span>
+                        <div className="text-sm text-gray-900 font-medium">
+                          {member.subPositions && member.subPositions.length > 0 
+                            ? member.subPositions.join(', ')
+                            : '없음'
+                          }
+                        </div>
+                      </div>
+                      
+                      {/* 레벨 (총무만) */}
+                      {isManagerMode && (
+                        <div>
+                          <span className="text-muted-foreground block mb-1">레벨</span>
+                          <Badge 
+                            variant="secondary" 
+                            size="sm"
+                            className={`${(() => {
+                              const level = member.level || 1
+                              if (level === 1) return 'bg-gray-100 text-gray-700'
+                              if (level <= 4) return 'bg-green-100 text-green-700'
+                              if (level <= 9) return 'bg-blue-100 text-blue-700'
+                              if (level <= 12) return 'bg-purple-100 text-purple-700'
+                              return 'bg-yellow-100 text-yellow-700'
+                            })()}`}
+                          >
+                            {getLevelLabel(member.level)}
+                          </Badge>
+                        </div>
+                      )}
+                      
+                      {/* 주발 */}
+                      <div>
+                        <span className="text-muted-foreground block mb-1">주발</span>
+                        <Badge variant="outline" size="sm" className="bg-orange-50 text-orange-700 border-orange-200">
+                          {member.preferredFoot === 'RIGHT' ? '오른발' : 
+                           member.preferredFoot === 'LEFT' ? '왼발' : 
+                           member.preferredFoot === 'BOTH' ? '양발' : '정보없음'}
+                        </Badge>
+                      </div>
+                    </div>
+
+                    {/* 전화번호 */}
+                    {/* <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Phone className="h-3 w-3 flex-shrink-0" />
                         <span className="truncate">{member.phone}</span>
-                      </div>
+                    </div> */}
+
+                    {/* 지역 */}
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <MapPin className="h-3 w-3 flex-shrink-0" />
                         <span className="truncate">{member.region} {member.city}</span>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Calendar className="h-3 w-3" />
-                      <span>가입일: {member.joinDate}</span>
-                    </div>
-                    <div className="flex items-center justify-between pt-2">
+
+
+                    {/* 출석률 */}
+                    <div className="flex items-center justify-between pt-1">
                       <span className="text-sm text-muted-foreground">출석률</span>
                       <span className="text-sm font-medium">{member.attendanceRate}%</span>
                     </div>

@@ -1,12 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     console.log('팀원 목록 조회 요청')
 
+    // URL에서 쿼리 파라미터 추출
+    const { searchParams } = new URL(request.url)
+    const includeInactive = searchParams.get('includeInactive') === 'true'
+    const requesterId = searchParams.get('requesterId')
+
+    // 요청자의 역할 확인
+    let isAdmin = false
+    if (requesterId) {
+      const requester = await prisma.user.findUnique({
+        where: { id: requesterId },
+        select: { role: true }
+      })
+      isAdmin = requester?.role === 'ADMIN'
+    }
+
+    // 활성 상태 필터링 조건 설정
+    let whereClause: any = {
+      // 기본 정보가 입력된 사용자만 조회
+      realName: { not: null },
+      phoneNumber: { not: null },
+      preferredPosition: { not: null }
+    }
+
+    // 일반 사용자거나 총무가 비활성화 사용자를 포함하지 않는 경우
+    if (!isAdmin || !includeInactive) {
+      whereClause.isActive = true
+    }
+
     // 모든 사용자 조회 (실제로는 특정 팀의 멤버만 조회해야 하지만 현재는 전체 사용자)
     const teamMembers = await prisma.user.findMany({
+      where: whereClause,
       select: {
         id: true,
         kakaoId: true,
@@ -20,6 +49,9 @@ export async function GET() {
         preferredFoot: true,
         jerseyNumber: true,
         image: true,
+        level: true, // 레벨 정보 추가
+        role: true,  // 역할 정보 추가
+        isActive: true, // 활성 상태 추가
         createdAt: true
       },
       orderBy: {
@@ -89,6 +121,9 @@ export async function GET() {
         city: member.city || '정보 없음',
         preferredFoot: member.preferredFoot,
         jerseyNumber: member.jerseyNumber,
+        level: member.level || 1,
+        role: member.role || 'MEMBER',
+        isActive: member.isActive,
         profileImage: member.image,
         joinDate: member.createdAt.toLocaleDateString('ko-KR'),
         attendanceRate: Math.floor(Math.random() * 30) + 70, // 70-100% 랜덤

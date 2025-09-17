@@ -251,10 +251,10 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
             </Avatar>
             <div>
               <h3 className="text-xl font-semibold">{userInfo?.realName || userInfo?.nickname}</h3>
-              <p className="text-sm text-muted-foreground">#{userInfo?.jerseyNumber || '미지정'}</p>
+              {/* <p className="text-sm text-muted-foreground">#{userInfo?.jerseyNumber || '미지정'}</p>
               <p className="text-sm text-muted-foreground">
                 {userInfo?.region} {userInfo?.city}
-              </p>
+              </p> */}
               <p className="text-xs text-muted-foreground mt-1">
                 가입일: {userInfo?.registeredAt ? new Date(userInfo.registeredAt).toLocaleDateString('ko-KR') : '정보 없음'}
               </p>
@@ -601,40 +601,42 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-muted-foreground">실명</Label>
+                <Label className="text-sm font-medium text-muted-foreground">이름</Label>
                 <p className="text-base">{userInfo?.realName || '정보 없음'}</p>
               </div>
               <Separator />
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-muted-foreground">연락처</Label>
-                <p className="text-base">{userInfo?.phoneNumber || '정보 없음'}</p>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-muted-foreground">연락처</Label>
+                  <p className="text-base">{userInfo?.phoneNumber || '정보 없음'}</p>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-muted-foreground">거주지역</Label>
+                  <p className="text-base">
+                    {userInfo?.region && userInfo?.city 
+                      ? `${provinceOptions.find(p => p.value === userInfo.region)?.label} ${userInfo.city}`
+                      : '정보 없음'
+                    }
+                  </p>
+                </div>
               </div>
               <Separator />
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-muted-foreground">거주지역</Label>
-                <p className="text-base">
-                  {userInfo?.region && userInfo?.city 
-                    ? `${provinceOptions.find(p => p.value === userInfo.region)?.label} ${userInfo.city}`
-                    : '정보 없음'
-                  }
-                </p>
-              </div>
-              <Separator />
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-muted-foreground">주발</Label>
-                <p className="text-base">
-                  {userInfo?.preferredFoot 
-                    ? footOptions.find(f => f.value === userInfo.preferredFoot)?.label
-                    : '정보 없음'
-                  }
-                </p>
-              </div>
-              <Separator />
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-muted-foreground">등번호</Label>
-                <p className="text-base">
-                  {userInfo?.jerseyNumber ? `${userInfo.jerseyNumber}번` : '설정 안함'}
-                </p>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-muted-foreground">주발</Label>
+                  <p className="text-base">
+                    {userInfo?.preferredFoot 
+                      ? footOptions.find(f => f.value === userInfo.preferredFoot)?.label
+                      : '정보 없음'
+                    }
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-muted-foreground">등번호</Label>
+                  <p className="text-base">
+                    {userInfo?.jerseyNumber ? `${userInfo.jerseyNumber}번` : '설정 안함'}
+                  </p>
+                </div>
               </div>
             </CardContent>
           </Card>

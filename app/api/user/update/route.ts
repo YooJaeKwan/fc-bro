@@ -110,7 +110,8 @@ export async function PUT(request: NextRequest) {
 
     // 레벨만 업데이트하는 경우
     if (isLevelOnlyUpdate) {
-      // 레벨만 포함
+      // 레벨 업데이트에는 추가 데이터 불필요
+      console.log('레벨만 업데이트:', level)
     } else {
       // 전체 정보 업데이트
       updateData.realName = realName.trim()
@@ -127,6 +128,7 @@ export async function PUT(request: NextRequest) {
     if (level !== null && level !== undefined) {
       if (typeof level === 'number' && level >= 1 && level <= 13) {
         updateData.level = level
+        console.log('레벨 업데이트 데이터에 추가:', level)
       } else {
         return NextResponse.json(
           { error: '레벨은 1-13 사이의 숫자여야 합니다.' },

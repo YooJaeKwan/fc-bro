@@ -299,8 +299,19 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
       trainingContent: schedule.trainingContent || "",
     })
     // 한국시간으로 저장된 날짜를 그대로 Calendar에 설정
-    const [year, month, day] = schedule.date.split('-')
-    setSelectedDate(new Date(Number(year), Number(month) - 1, Number(day)))
+    try {
+      const [year, month, day] = schedule.date.split('-')
+      const dateObj = new Date(Number(year), Number(month) - 1, Number(day))
+      if (!isNaN(dateObj.getTime())) {
+        setSelectedDate(dateObj)
+      } else {
+        console.error('유효하지 않은 날짜:', schedule.date)
+        setSelectedDate(undefined)
+      }
+    } catch (error) {
+      console.error('날짜 파싱 오류:', schedule.date, error)
+      setSelectedDate(undefined)
+    }
     setIsEditingSchedule(true)
   }
 
@@ -366,6 +377,7 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
     setIsAddingSchedule(false)
     setIsEditingSchedule(false)
     setEditingScheduleId(null)
+    setError("") // 에러도 초기화
   }
 
   // 다음 일정 찾기 (가장 가까운 미래 일정)
@@ -578,9 +590,16 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                         )}
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {selectedDate
-                          ? format(selectedDate, "yyyy년 MM월 dd일 (EEE)", { locale: ko })
-                          : "날짜를 선택하세요"}
+                        {(() => {
+                          try {
+                            return selectedDate && !isNaN(selectedDate.getTime())
+                              ? format(selectedDate, "yyyy년 MM월 dd일 (EEE)", { locale: ko })
+                              : "날짜를 선택하세요"
+                          } catch (error) {
+                            console.error('날짜 포맷 오류:', error)
+                            return "날짜를 선택하세요"
+                          }
+                        })()}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
@@ -742,7 +761,7 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                   />
                 </div>
 
-                {(selectedDate || newSchedule.time || newSchedule.location) && (
+                {(selectedDate && !isNaN(selectedDate.getTime()) || newSchedule.time || newSchedule.location) && (
                   <div className="p-4 bg-blue-50 rounded-lg space-y-2">
                     <h4 className="font-medium text-blue-800">일정 요약</h4>
                     <div className="text-sm text-blue-700 space-y-1">
@@ -754,12 +773,19 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                            `연습 - ${newSchedule.trainingContent || "연습내용"}`}
                         </span>
                       </div>
-                      {selectedDate && (
-                        <div className="flex items-center gap-2">
-                          <CalendarIcon className="h-4 w-4" />
-                          {format(selectedDate, "yyyy년 MM월 dd일 (EEE)", { locale: ko })}
-                        </div>
-                      )}
+                      {(() => {
+                        try {
+                          return selectedDate && !isNaN(selectedDate.getTime()) && (
+                            <div className="flex items-center gap-2">
+                              <CalendarIcon className="h-4 w-4" />
+                              {format(selectedDate, "yyyy년 MM월 dd일 (EEE)", { locale: ko })}
+                            </div>
+                          )
+                        } catch (error) {
+                          console.error('날짜 포맷 오류:', error)
+                          return null
+                        }
+                      })()}
                       {newSchedule.time && (
                         <div className="flex items-center gap-2">
                           <Clock className="h-4 w-4" />
@@ -790,6 +816,7 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                   onClick={isEditingSchedule ? handleScheduleUpdate : handleScheduleSubmit}
                   disabled={
                     !selectedDate || 
+                    isNaN(selectedDate.getTime()) ||
                     !newSchedule.time || 
                     !newSchedule.location || 
                     (newSchedule.type === "match" && !newSchedule.opponentTeam) ||

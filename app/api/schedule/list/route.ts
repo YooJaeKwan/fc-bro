@@ -91,7 +91,11 @@ export async function GET() {
         id: schedule.id,
         title: schedule.title,
         type: schedule.type,
-        date: schedule.matchDate.toISOString().split('T')[0],
+        date: (() => {
+          // 한국시간으로 저장된 DateTime을 한국시간 기준 날짜 문자열로 변환
+          const kstDate = new Date(schedule.matchDate.getTime() + (9 * 60 * 60 * 1000))
+          return kstDate.toISOString().split('T')[0]
+        })(),
         time: schedule.startTime,
         gatherTime: schedule.gatherTime,
         location: schedule.location,

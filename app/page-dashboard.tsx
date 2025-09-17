@@ -30,9 +30,6 @@ import {
 } from "lucide-react"
 import { TeamManagement } from "./components/team-management"
 import { ScheduleManagement } from "./components/schedule-management"
-import { TeamFormation } from "./components/team-formation"
-import { AttendanceStats } from "./components/attendance-stats"
-import { TeamSettings } from "./components/team-settings"
 import { UserProfile } from "./components/user-profile"
 import { AttendanceVoting } from "./components/attendance-voting"
 // import { useSession, signOut } from "next-auth/react" // NextAuth 제거됨
@@ -125,20 +122,12 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
   const [isManagerMode, setIsManagerMode] = useState(user?.role === 'ADMIN')
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
-  // 팀 편성 결과를 저장할 상태
-  const [formedTeamA, setFormedTeamA] = useState<any[]>([])
-  const [formedTeamB, setFormedTeamB] = useState<any[]>([])
-  const [formedBench, setFormedBench] = useState<any[]>([])
-  const [isTeamFormationComplete, setIsTeamFormationComplete] = useState(false)
 
   const tabItems = [
     { value: "schedule", label: "일정 관리", icon: Calendar },
     { value: "dashboard", label: "팀 대시보드", icon: BarChart3 },
     { value: "profile", label: "내 정보", icon: User },
-    { value: "team", label: "팀원 관리", icon: Users },
-    ...(isManagerMode ? [{ value: "formation", label: "팀 편성", icon: Target }] : []),
-    { value: "stats", label: "출석/통계", icon: TrendingUp },
-    ...(isManagerMode ? [{ value: "settings", label: "팀 설정", icon: Settings }] : []),
+    { value: "team", label: "팀 멤버", icon: Users },
   ]
 
   const getPositionColor = (position: string) => {
@@ -176,11 +165,6 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
     }
   }
 
-  const calculateTeamLevel = (team: any[]) => {
-    if (team.length === 0) return 0
-    const total = team.reduce((sum, player) => sum + (player.level || 1), 0)
-    return Math.round(total / team.length * 10) / 10 // 소수점 1자리
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
@@ -333,7 +317,7 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           {/* Desktop Tabs */}
           <div className="hidden lg:block">
-            <TabsList className="grid w-full grid-cols-6 lg:w-auto">
+            <TabsList className="grid w-full grid-cols-4 lg:w-auto">
               {tabItems.map((item) => {
                 const Icon = item.icon
                 return (
@@ -523,89 +507,6 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
               </>
             )}
 
-            {/* 편성된 팀 표시 (대시보드) */}
-            {isTeamFormationComplete && (formedTeamA.length > 0 || formedTeamB.length > 0) && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <Target className="h-5 w-5" />
-                    최근 편성된 팀
-                  </CardTitle>
-                  <CardDescription>가장 최근에 편성된 팀 정보입니다.</CardDescription>
-                </CardHeader>
-                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Team A Summary */}
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 bg-blue-500 rounded-full"></div>
-                      <h4 className="font-medium text-base">Team A ({formedTeamA.length}명)</h4>
-                      <div className="flex items-center gap-1">
-                        <Star className="h-3 w-3 text-yellow-500" />
-                        <span className="text-sm font-medium">{calculateTeamLevel(formedTeamA)}점</span>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      {formedTeamA.map((player) => (
-                        <div key={player.id} className="flex items-center gap-2 text-sm">
-                          <Avatar className="h-6 w-6">
-                            <AvatarFallback className="text-xs">{player.name[0]}</AvatarFallback>
-                          </Avatar>
-                          <span className="font-medium">{player.name}</span>
-                          <Badge className={getPositionColor(player.mainPosition)} variant="outline" size="sm">
-                            {player.mainPosition}
-                          </Badge>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Team B Summary */}
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 bg-red-500 rounded-full"></div>
-                      <h4 className="font-medium text-base">Team B ({formedTeamB.length}명)</h4>
-                      <div className="flex items-center gap-1">
-                        <Star className="h-3 w-3 text-yellow-500" />
-                        <span className="text-sm font-medium">{calculateTeamLevel(formedTeamB)}점</span>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      {formedTeamB.map((player) => (
-                        <div key={player.id} className="flex items-center gap-2 text-sm">
-                          <Avatar className="h-6 w-6">
-                            <AvatarFallback className="text-xs">{player.name[0]}</AvatarFallback>
-                          </Avatar>
-                          <span className="font-medium">{player.name}</span>
-                          <Badge className={getPositionColor(player.mainPosition)} variant="outline" size="sm">
-                            {player.mainPosition}
-                          </Badge>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Bench Summary */}
-                  {formedBench.length > 0 && (
-                    <div className="md:col-span-2 space-y-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-4 h-4 bg-gray-400 rounded-full"></div>
-                        <h4 className="font-medium text-base">벤치 ({formedBench.length}명)</h4>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {formedBench.map((player) => (
-                          <Badge key={player.id} variant="secondary" className="flex items-center gap-1">
-                            <Avatar className="h-5 w-5">
-                              <AvatarFallback className="text-xs">{player.name[0]}</AvatarFallback>
-                            </Avatar>
-                            {player.name}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
 
             {/* 최근 활동 */}
             <Card>
@@ -629,7 +530,7 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
                   </div>
                 ) : dashboardData?.recentActivities?.length > 0 ? (
                   <div className="space-y-3 sm:space-y-4">
-                    {dashboardData.recentActivities.map((activity, index) => (
+                    {dashboardData.recentActivities.map((activity: any, index: number) => (
                       <div key={index} className={`flex items-start gap-3 sm:gap-4 p-3 rounded-lg ${
                         activity.color === 'blue' ? 'bg-blue-50' :
                         activity.color === 'orange' ? 'bg-orange-50' :
@@ -678,34 +579,9 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
             <ScheduleManagement 
               isManagerMode={isManagerMode} 
               currentUser={user}
-              onSwitchToFormation={() => setActiveTab("formation")}
             />
           </TabsContent>
 
-          {isManagerMode && (
-            <TabsContent value="formation">
-              <TeamFormation
-                setTeamA={setFormedTeamA}
-                setTeamB={setFormedTeamB}
-                setBench={setFormedBench}
-                setIsFormationComplete={setIsTeamFormationComplete}
-                teamA={formedTeamA}
-                teamB={formedTeamB}
-                bench={formedBench}
-                isFormationComplete={isTeamFormationComplete}
-              />
-            </TabsContent>
-          )}
-
-          <TabsContent value="stats">
-            <AttendanceStats isManagerMode={isManagerMode} />
-          </TabsContent>
-
-          {isManagerMode && (
-            <TabsContent value="settings">
-              <TeamSettings />
-            </TabsContent>
-          )}
         </Tabs>
       </div>
     </div>
