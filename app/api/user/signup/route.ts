@@ -120,7 +120,8 @@ export async function POST(request: NextRequest) {
         city,
         preferredFoot,
         jerseyNumber: jerseyNumber ? Number(jerseyNumber) : null,
-        role: 'member', // 기본적으로 member role 부여
+        role: 'MEMBER', // 기본적으로 MEMBER role 부여
+        level: 1, // 기본 레벨 1
         createdAt: new Date(),
         updatedAt: new Date()
       }
@@ -147,6 +148,7 @@ export async function POST(request: NextRequest) {
         preferredFoot: newUser.preferredFoot,
         jerseyNumber: newUser.jerseyNumber,
         role: newUser.role,
+        level: newUser.level,
         profileImage: newUser.image,
         registeredAt: createdAt.toISOString()
       }

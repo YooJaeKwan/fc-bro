@@ -10,7 +10,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Progress } from "@/components/ui/progress"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Edit, Star, MapPin, Phone, Calendar, TrendingUp, Eye, Target, BarChart3, Shield, Award, Users } from 'lucide-react'
+import { LEVEL_OPTIONS, LEVEL_CATEGORIES, getLevelLabel, getLevelShortLabel, getLevelColor } from '@/lib/level-system'
 
 // 포지션별 한국어 매핑
 const positionMapping: Record<string, string> = {
@@ -39,6 +41,10 @@ export function TeamManagement({ isManagerMode }: TeamManagementProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
   const [activePositionTab, setActivePositionTab] = useState("all")
+  const [editingMember, setEditingMember] = useState<any>(null)
+  const [tempLevel, setTempLevel] = useState<number>(1)
+  const [isSaving, setIsSaving] = useState(false)
+  const [saveMessage, setSaveMessage] = useState("")
 
   useEffect(() => {
     fetchTeamMembers()
@@ -187,8 +193,8 @@ export function TeamManagement({ isManagerMode }: TeamManagementProps) {
                             )}
                             {isManagerMode && (
                               <div className="flex items-center gap-1">
-                                <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                                <span className="text-sm font-medium">{member.overallRating}</span>
+                                <Target className="h-3 w-3 text-blue-500" />
+                                <span className="text-sm font-medium">{getLevelShortLabel(member.level)}</span>
                               </div>
                             )}
                           </div>
@@ -240,14 +246,114 @@ export function TeamManagement({ isManagerMode }: TeamManagementProps) {
                             </div>
                             {isManagerMode && (
                               <div className="space-y-2">
-                                <Label>능력치</Label>
-                                <div className="p-3 bg-blue-50 rounded-lg">
-                                  <div className="flex items-center justify-between">
-                                    <span className="font-medium">종합 점수</span>
-                                    <span className="text-lg font-bold text-blue-600">
-                                      {member.overallRating}/10
+                                <Label className="flex items-center gap-2">
+                                  <Target className="h-4 w-4" />
+                                  선수 레벨 (총무 전용)
+                                </Label>
+                                <div className="space-y-3">
+                                  <div className="flex items-center gap-2">
+                                    <Select
+                                      value={editingMember?.id === member.id ? tempLevel.toString() : (member.level?.toString() || "1")}
+                                      onValueChange={(value) => {
+                                        setEditingMember(member)
+                                        setTempLevel(parseInt(value))
+                                        setSaveMessage("")
+                                      }}
+                                    >
+                                      <SelectTrigger className="w-32">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent className="max-h-60">
+                                        {LEVEL_CATEGORIES.map((category) => (
+                                          <div key={category.name}>
+                                            <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                                              {category.name}
+                                            </div>
+                                            {category.levels.map((levelValue) => (
+                                              <SelectItem key={levelValue} value={levelValue.toString()}>
+                                                <div className="flex items-center gap-2">
+                                                  <span className={`px-2 py-1 rounded text-xs ${category.color}`}>
+                                                    {getLevelShortLabel(levelValue)}
+                                                  </span>
+                                                </div>
+                                              </SelectItem>
+                                            ))}
+                                          </div>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                    <span className="text-xs text-muted-foreground">
+                                      현재: {getLevelLabel(editingMember?.id === member.id ? tempLevel : member.level)}
                                     </span>
                                   </div>
+                                  
+                                  {/* 레벨 저장 버튼 */}
+                                  {editingMember?.id === member.id && (
+                                    <div className="flex items-center gap-2">
+                                      <Button
+                                        size="sm"
+                                        onClick={async () => {
+                                          setIsSaving(true)
+                                          setSaveMessage("")
+                                          
+                                          try {
+                                            const response = await fetch('/api/user/update', {
+                                              method: 'PUT',
+                                              headers: { 'Content-Type': 'application/json' },
+                                              body: JSON.stringify({
+                                                userId: member.id,
+                                                realName: member.realName,
+                                                phoneNumber: member.phoneNumber,
+                                                preferredPosition: member.preferredPosition,
+                                                subPositions: member.subPositions || [],
+                                                region: member.region,
+                                                city: member.city,
+                                                preferredFoot: member.preferredFoot,
+                                                jerseyNumber: member.jerseyNumber,
+                                                level: tempLevel
+                                              })
+                                            })
+                                            
+                                            if (response.ok) {
+                                              setSaveMessage("레벨이 성공적으로 저장되었습니다!")
+                                              setEditingMember(null)
+                                              // 팀원 목록 새로고침
+                                              fetchTeamMembers()
+                                            } else {
+                                              setSaveMessage("레벨 저장에 실패했습니다.")
+                                            }
+                                          } catch (error) {
+                                            console.error('레벨 수정 오류:', error)
+                                            setSaveMessage("레벨 저장 중 오류가 발생했습니다.")
+                                          } finally {
+                                            setIsSaving(false)
+                                          }
+                                        }}
+                                        disabled={isSaving}
+                                        className="bg-green-600 hover:bg-green-700"
+                                      >
+                                        {isSaving ? "저장 중..." : "레벨 저장"}
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => {
+                                          setEditingMember(null)
+                                          setTempLevel(member.level || 1)
+                                          setSaveMessage("")
+                                        }}
+                                      >
+                                        취소
+                                      </Button>
+                                    </div>
+                                  )}
+                                  
+                                  {/* 저장 메시지 */}
+                                  {saveMessage && editingMember?.id === member.id && (
+                                    <div className={`text-xs ${saveMessage.includes('성공') ? 'text-green-600' : 'text-red-600'}`}>
+                                      {saveMessage}
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             )}

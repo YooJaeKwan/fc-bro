@@ -321,7 +321,7 @@ export function UserSignup({ kakaoUserInfo, onSignupComplete, onBack }: UserSign
 
           {/* 희망포지션 선택 */}
           <div className="space-y-2">
-            <Label>희망포지션 (주포지션) *</Label>
+            <Label>주포지션 (희망포지션) *</Label>
             <Select
               value={formData.preferredPosition}
               onValueChange={(value) => handleInputChange('preferredPosition', value)}
@@ -352,21 +352,26 @@ export function UserSignup({ kakaoUserInfo, onSignupComplete, onBack }: UserSign
           {/* 부포지션 선택 */}
           <div className="space-y-3">
             {/* <Label>부포지션 (선택사항, 최대 2개)</Label> */}
-            <div className="text-xs text-muted-foreground">
+            {/* <div className="text-xs text-muted-foreground">
               주포지션 외에 소화 가능한 포지션을 선택해주세요.
-            </div>
+            </div> */}
             
             {/* 첫 번째 부포지션 */}
             <div className="space-y-2">
-              <Label>부포지션 1</Label>
+              <Label>부포지션 1 (선택사항)</Label>
               <Select
-                value={formData.subPosition1 || undefined}
-                onValueChange={(value) => handleInputChange('subPosition1', value || "")}
+                value={formData.subPosition1 || "none"}
+                onValueChange={(value) => handleInputChange('subPosition1', value === "none" ? "" : value)}
               >
                 <SelectTrigger className={errors.subPositions ? "border-red-500" : ""}>
-                  <SelectValue placeholder="첫 번째 부포지션 선택 (선택사항)" />
+                  <SelectValue placeholder="첫 번째 부포지션 선택" />
                 </SelectTrigger>
                 <SelectContent>
+                  {/* 선택없음 옵션 */}
+                  <SelectItem value="none">
+                    <span className="text-muted-foreground">선택없음</span>
+                  </SelectItem>
+                  
                   {Object.entries(positionCategories).map(([categoryKey, category]) => (
                     <div key={categoryKey}>
                       <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground">
@@ -387,15 +392,20 @@ export function UserSignup({ kakaoUserInfo, onSignupComplete, onBack }: UserSign
 
             {/* 두 번째 부포지션 */}
             <div className="space-y-2">
-              <Label>부포지션 2</Label>
+              <Label>부포지션 2 (선택사항)</Label>
               <Select
-                value={formData.subPosition2 || undefined}
-                onValueChange={(value) => handleInputChange('subPosition2', value || "")}
+                value={formData.subPosition2 || "none"}
+                onValueChange={(value) => handleInputChange('subPosition2', value === "none" ? "" : value)}
               >
                 <SelectTrigger className={errors.subPositions ? "border-red-500" : ""}>
-                  <SelectValue placeholder="두 번째 부포지션 선택 (선택사항)" />
+                  <SelectValue placeholder="두 번째 부포지션 선택" />
                 </SelectTrigger>
                 <SelectContent>
+                  {/* 선택없음 옵션 */}
+                  <SelectItem value="none">
+                    <span className="text-muted-foreground">선택없음</span>
+                  </SelectItem>
+                  
                   {Object.entries(positionCategories).map(([categoryKey, category]) => (
                     <div key={categoryKey}>
                       <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground">
@@ -441,11 +451,11 @@ export function UserSignup({ kakaoUserInfo, onSignupComplete, onBack }: UserSign
 
           {/* 거주 지역 선택 (2단계) */}
           <div className="space-y-3">
-            <Label>거주 지역 *</Label>
+            {/* <Label>거주 지역 *</Label> */}
             
             {/* 시도 선택 */}
             <div className="space-y-2">
-              <Label>시도</Label>
+              <Label>지역</Label>
               <Select
                 value={formData.region}
                 onValueChange={(value) => {
@@ -472,7 +482,7 @@ export function UserSignup({ kakaoUserInfo, onSignupComplete, onBack }: UserSign
             {/* 구/시 선택 */}
             {formData.region && (
               <div className="space-y-2">
-                <Label>구/시</Label>
+                <Label>시군구</Label>
                 <Select
                   value={formData.city}
                   onValueChange={(value) => handleInputChange('city', value)}
@@ -495,11 +505,11 @@ export function UserSignup({ kakaoUserInfo, onSignupComplete, onBack }: UserSign
             )}
 
             {/* 선택된 지역 표시 */}
-            {formData.region && formData.city && (
+            {/* {formData.region && formData.city && (
               <div className="text-sm text-blue-600">
                 선택된 지역: {provinceOptions.find(p => p.value === formData.region)?.label} {formData.city}
               </div>
-            )}
+            )} */}
           </div>
 
           {/* 주발 선택 */}
@@ -539,9 +549,6 @@ export function UserSignup({ kakaoUserInfo, onSignupComplete, onBack }: UserSign
             {errors.jerseyNumber && (
               <p className="text-sm text-red-500">{errors.jerseyNumber}</p>
             )}
-            <div className="text-xs text-muted-foreground">
-              등번호를 입력해주세요.
-            </div>
           </div>
 
           {/* 버튼 영역 */}

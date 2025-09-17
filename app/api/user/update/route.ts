@@ -15,11 +15,24 @@ export async function PUT(request: NextRequest) {
       region,
       city,
       preferredFoot = null,
-      jerseyNumber = null
+      jerseyNumber = null,
+      level = null // 총무가 레벨 수정 시 포함
     } = body
 
-    // 필수 필드 검증
-    if (!userId || !realName || !phoneNumber || !preferredPosition || !region || !city) {
+    // 사용자 ID는 항상 필수
+    if (!userId) {
+      return NextResponse.json(
+        { error: '사용자 ID가 필요합니다.' }, 
+        { status: 400 }
+      )
+    }
+
+    // 레벨만 업데이트하는 경우와 전체 정보 업데이트를 구분
+    const isLevelOnlyUpdate = level !== null && level !== undefined && 
+      !realName && !phoneNumber && !preferredPosition && !region && !city
+
+    // 전체 정보 업데이트인 경우에만 필수 필드 검증
+    if (!isLevelOnlyUpdate && (!realName || !phoneNumber || !preferredPosition || !region || !city)) {
       return NextResponse.json(
         { error: '필수 정보가 누락되었습니다.' }, 
         { status: 400 }
@@ -38,67 +51,94 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    // 전화번호 형식 검증
-    const phoneRegex = /^010\d{8}$/
-    if (!phoneRegex.test(phoneNumber)) {
-      return NextResponse.json(
-        { error: '올바른 전화번호 형식이 아닙니다.' }, 
-        { status: 400 }
-      )
-    }
-
-    // 다른 사용자의 전화번호와 중복 확인 (본인 제외)
-    const duplicatePhone = await prisma.user.findFirst({
-      where: { 
-        phoneNumber,
-        NOT: { id: userId }
+    // 전화번호 형식 검증 (전체 정보 업데이트인 경우에만)
+    if (!isLevelOnlyUpdate && phoneNumber) {
+      const phoneRegex = /^010\d{8}$/
+      if (!phoneRegex.test(phoneNumber)) {
+        return NextResponse.json(
+          { error: '올바른 전화번호 형식이 아닙니다.' }, 
+          { status: 400 }
+        )
       }
-    })
-
-    if (duplicatePhone) {
-      return NextResponse.json(
-        { error: '이미 사용 중인 전화번호입니다.' }, 
-        { status: 409 }
-      )
     }
 
-    // 부포지션 검증
-    if (!Array.isArray(subPositions)) {
-      return NextResponse.json(
-        { error: '부포지션 데이터 형식이 올바르지 않습니다.' }, 
-        { status: 400 }
-      )
+    // 전체 정보 업데이트인 경우에만 검증 수행
+    if (!isLevelOnlyUpdate) {
+      // 다른 사용자의 전화번호와 중복 확인 (본인 제외)
+      const duplicatePhone = await prisma.user.findFirst({
+        where: { 
+          phoneNumber,
+          NOT: { id: userId }
+        }
+      })
+
+      if (duplicatePhone) {
+        return NextResponse.json(
+          { error: '이미 사용 중인 전화번호입니다.' }, 
+          { status: 409 }
+        )
+      }
+
+      // 부포지션 검증
+      if (!Array.isArray(subPositions)) {
+        return NextResponse.json(
+          { error: '부포지션 데이터 형식이 올바르지 않습니다.' }, 
+          { status: 400 }
+        )
+      }
+
+      if (subPositions.length > 2) {
+        return NextResponse.json(
+          { error: '부포지션은 최대 2개까지 선택 가능합니다.' }, 
+          { status: 400 }
+        )
+      }
+
+      // 부포지션에 희망포지션이 포함되어있는지 확인
+      if (subPositions.includes(preferredPosition)) {
+        return NextResponse.json(
+          { error: '부포지션에는 희망포지션과 다른 포지션을 선택해주세요.' }, 
+          { status: 400 }
+        )
+      }
     }
 
-    if (subPositions.length > 2) {
-      return NextResponse.json(
-        { error: '부포지션은 최대 2개까지 선택 가능합니다.' }, 
-        { status: 400 }
-      )
+    // 업데이트할 데이터 구성
+    const updateData: any = {
+      updatedAt: new Date()
     }
 
-    // 부포지션에 희망포지션이 포함되어있는지 확인
-    if (subPositions.includes(preferredPosition)) {
-      return NextResponse.json(
-        { error: '부포지션에는 희망포지션과 다른 포지션을 선택해주세요.' }, 
-        { status: 400 }
-      )
+    // 레벨만 업데이트하는 경우
+    if (isLevelOnlyUpdate) {
+      // 레벨만 포함
+    } else {
+      // 전체 정보 업데이트
+      updateData.realName = realName.trim()
+      updateData.phoneNumber = phoneNumber
+      updateData.preferredPosition = preferredPosition
+      updateData.subPositions = subPositions
+      updateData.region = region
+      updateData.city = city
+      updateData.preferredFoot = preferredFoot
+      updateData.jerseyNumber = jerseyNumber ? Number(jerseyNumber) : null
+    }
+
+    // 레벨이 제공된 경우에만 업데이트 (총무가 수정할 때)
+    if (level !== null && level !== undefined) {
+      if (typeof level === 'number' && level >= 1 && level <= 13) {
+        updateData.level = level
+      } else {
+        return NextResponse.json(
+          { error: '레벨은 1-13 사이의 숫자여야 합니다.' },
+          { status: 400 }
+        )
+      }
     }
 
     // 사용자 정보 업데이트
     const updatedUser = await prisma.user.update({
       where: { id: userId },
-      data: {
-        realName: realName.trim(),
-        phoneNumber,
-        preferredPosition,
-        subPositions,
-        region,
-        city,
-        preferredFoot,
-        jerseyNumber: jerseyNumber ? Number(jerseyNumber) : null,
-        updatedAt: new Date()
-      }
+      data: updateData
     })
 
     console.log('사용자 정보 수정 완료:', updatedUser.id)
@@ -119,6 +159,8 @@ export async function PUT(request: NextRequest) {
         city: updatedUser.city,
         preferredFoot: updatedUser.preferredFoot,
         jerseyNumber: updatedUser.jerseyNumber,
+        role: updatedUser.role,
+        level: updatedUser.level,
         profileImage: updatedUser.image,
         registeredAt: updatedUser.createdAt.toISOString(),
         updatedAt: updatedUser.updatedAt.toISOString()

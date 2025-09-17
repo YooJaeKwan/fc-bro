@@ -241,47 +241,43 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
       {/* 프로필 헤더 */}
       <Card>
         <CardHeader>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
-            <div className="flex items-center space-x-4">
-              <Avatar className="h-16 w-16">
-                <AvatarImage src={userInfo?.profileImage || "/placeholder.svg"} />
-                <AvatarFallback className="text-lg">
-                  {(userInfo?.realName || userInfo?.nickname)?.[0] || 'U'}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <CardTitle className="text-xl">{userInfo?.realName || userInfo?.nickname}</CardTitle>
-                {/* <CardDescription>
-                  {userInfo?.preferredPosition}
-                  {userInfo?.subPositions && userInfo.subPositions.length > 0 && 
-                    ` (+ ${userInfo.subPositions.join(', ')})`
-                  } • {userInfo?.region} {userInfo?.city}
-                  {userInfo?.preferredFoot && ` • ${footOptions.find(f => f.value === userInfo.preferredFoot)?.label}`}
-                </CardDescription> */}
-                <p className="text-sm text-muted-foreground mt-1">
-                  가입일: {userInfo?.registeredAt ? new Date(userInfo.registeredAt).toLocaleDateString('ko-KR') : '정보 없음'}
-                </p>
-              </div>
+          {/* 프로필 이미지와 기본 정보 */}
+          <div className="flex items-center space-x-4">
+            <Avatar className="h-16 w-16">
+              <AvatarImage src={userInfo?.profileImage || "/placeholder.svg"} />
+              <AvatarFallback className="text-lg">
+                {(userInfo?.realName || userInfo?.nickname)?.[0] || 'U'}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <h3 className="text-xl font-semibold">{userInfo?.realName || userInfo?.nickname}</h3>
+              <p className="text-sm text-muted-foreground">#{userInfo?.jerseyNumber || '미지정'}</p>
+              <p className="text-sm text-muted-foreground">
+                {userInfo?.region} {userInfo?.city}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                가입일: {userInfo?.registeredAt ? new Date(userInfo.registeredAt).toLocaleDateString('ko-KR') : '정보 없음'}
+              </p>
             </div>
-            <Button
-              onClick={isEditing ? handleCancel : handleEdit}
-              variant={isEditing ? "outline" : "default"}
-              className="self-start"
-            >
-              {isEditing ? (
-                <>
-                  <X className="h-4 w-4 mr-2" />
-                  취소
-                </>
-              ) : (
-                <>
-                  <Edit className="h-4 w-4 mr-2" />
-                  정보 수정
-                </>
-              )}
-            </Button>
           </div>
         </CardHeader>
+        
+        {/* 정보 수정 버튼을 Card 하단에 배치 */}
+        {!isEditing && (
+          <CardContent className="pt-0">
+            <div className="flex justify-center">
+              <Button
+                onClick={handleEdit}
+                variant="default"
+                size="sm"
+                className="w-full max-w-xs"
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                정보 수정
+              </Button>
+            </div>
+          </CardContent>
+        )}
       </Card>
 
       {/* 정보 수정 폼 */}
@@ -333,7 +329,7 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
 
             {/* 희망포지션 선택 */}
             <div className="space-y-2">
-              <Label>희망포지션 (주포지션) *</Label>
+              <Label>주포지션 (희망포지션) *</Label>
               <Select
                 value={formData.preferredPosition}
                 onValueChange={(value) => handleInputChange('preferredPosition', value)}
@@ -363,22 +359,27 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
 
             {/* 부포지션 선택 */}
             <div className="space-y-3">
-              <Label>부포지션 (선택사항, 최대 2개)</Label>
+              {/* <Label>부포지션 (선택사항, 최대 2개)</Label>
               <div className="text-xs text-muted-foreground">
                 주포지션 외에 소화 가능한 포지션을 선택해주세요.
-              </div>
+              </div> */}
               
               {/* 첫 번째 부포지션 */}
               <div className="space-y-2">
-                <Label>부포지션 1</Label>
+                <Label>부포지션 1 (선택사항)</Label>
                 <Select
-                  value={formData.subPosition1 || undefined}
-                  onValueChange={(value) => handleInputChange('subPosition1', value || "")}
+                  value={formData.subPosition1 || "none"}
+                  onValueChange={(value) => handleInputChange('subPosition1', value === "none" ? "" : value)}
                 >
                   <SelectTrigger className={errors.subPositions ? "border-red-500" : ""}>
-                    <SelectValue placeholder="첫 번째 부포지션 선택 (선택사항)" />
+                    <SelectValue placeholder="첫 번째 부포지션 선택" />
                   </SelectTrigger>
                   <SelectContent>
+                    {/* 선택없음 옵션 */}
+                    <SelectItem value="none">
+                      <span className="text-muted-foreground">선택없음</span>
+                    </SelectItem>
+                    
                     {Object.entries(positionCategories).map(([categoryKey, category]) => (
                       <div key={categoryKey}>
                         <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground">
@@ -399,15 +400,20 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
 
               {/* 두 번째 부포지션 */}
               <div className="space-y-2">
-                <Label>부포지션 2</Label>
+                <Label>부포지션 2 (선택사항)</Label>
                 <Select
-                  value={formData.subPosition2 || undefined}
-                  onValueChange={(value) => handleInputChange('subPosition2', value || "")}
+                  value={formData.subPosition2 || "none"}
+                  onValueChange={(value) => handleInputChange('subPosition2', value === "none" ? "" : value)}
                 >
                   <SelectTrigger className={errors.subPositions ? "border-red-500" : ""}>
-                    <SelectValue placeholder="두 번째 부포지션 선택 (선택사항)" />
+                    <SelectValue placeholder="두 번째 부포지션 선택" />
                   </SelectTrigger>
                   <SelectContent>
+                    {/* 선택없음 옵션 */}
+                    <SelectItem value="none">
+                      <span className="text-muted-foreground">선택없음</span>
+                    </SelectItem>
+                    
                     {Object.entries(positionCategories).map(([categoryKey, category]) => (
                       <div key={categoryKey}>
                         <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground">
@@ -453,11 +459,11 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
 
             {/* 거주 지역 선택 (2단계) */}
             <div className="space-y-3">
-              <Label>거주 지역 *</Label>
+              {/* <Label>거주 지역 *</Label> */}
               
               {/* 시도 선택 */}
               <div className="space-y-2">
-                <Label>시도</Label>
+                <Label>지역</Label>
                 <Select
                   value={formData.region}
                   onValueChange={(value) => {
@@ -484,7 +490,7 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
               {/* 구/시 선택 */}
               {formData.region && (
                 <div className="space-y-2">
-                  <Label>구/시</Label>
+                  <Label>시군구</Label>
                   <Select
                     value={formData.city}
                     onValueChange={(value) => handleInputChange('city', value)}
@@ -507,11 +513,11 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
               )}
 
               {/* 선택된 지역 표시 */}
-              {formData.region && formData.city && (
+              {/* {formData.region && formData.city && (
                 <div className="text-sm text-blue-600">
                   선택된 지역: {provinceOptions.find(p => p.value === formData.region)?.label} {formData.city}
                 </div>
-              )}
+              )} */}
             </div>
 
             {/* 주발 선택 */}
@@ -551,9 +557,6 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
             {errors.jerseyNumber && (
               <p className="text-sm text-red-500">{errors.jerseyNumber}</p>
             )}
-            <div className="text-xs text-muted-foreground">
-              등번호를 입력해주세요.
-            </div>
           </div>
 
             {/* 저장 버튼 */}
@@ -646,7 +649,7 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-muted-foreground">희망포지션 (주포지션)</Label>
+                <Label className="text-sm font-medium text-muted-foreground">주포지션 (희망포지션)</Label>
                 <div className="flex items-center space-x-2">
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                     {userInfo?.preferredPosition || '정보 없음'}

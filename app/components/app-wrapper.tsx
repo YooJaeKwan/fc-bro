@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { MessageSquare, AlertCircle } from "lucide-react"
+import { AlertCircle } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import Dashboard from "../page-dashboard"
 import { useKakaoLogin } from "./kakao-login"
@@ -156,11 +156,15 @@ export function AppWrapper() {
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-            <MessageSquare className="h-8 w-8 text-green-600" />
+          <div className="mx-auto mb-4 w-16 h-16 rounded-full overflow-hidden bg-white border-2 border-blue-200 flex items-center justify-center">
+            <img 
+              src="/fc-bro-emblem.jpg" 
+              alt="FC BRO Logo" 
+              className="w-full h-full object-cover"
+            />
           </div>
           <CardTitle className="text-2xl">FC BRO</CardTitle>
-          <CardDescription>팀 관리 플랫폼에 오신 것을 환영합니다</CardDescription>
+          {/* <CardDescription>팀 관리 플랫폼에 오신 것을 환영합니다</CardDescription> */}
         </CardHeader>
         <CardContent className="space-y-4">
           {error && (
@@ -178,10 +182,10 @@ export function AppWrapper() {
           >
             {isLoading ? '로그인 중...' : !isKakaoReady ? 'SDK 로딩 중...' : '카카오로 시작하기'}
           </Button>
-          <p className="text-xs text-center text-muted-foreground">
+          {/* <p className="text-xs text-center text-muted-foreground">
             카카오 계정으로 간편하게 로그인하고
             <br />팀 관리 서비스를 이용해보세요
-          </p>
+          </p> */}
         </CardContent>
       </Card>
     </div>

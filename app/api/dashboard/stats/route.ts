@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { format } from 'date-fns'
+import { ko } from 'date-fns/locale'
 
 export async function GET() {
   try {
@@ -127,12 +129,115 @@ export async function GET() {
       }
     }
 
+    // 7. 최근 활동 데이터 생성
+    const recentActivities = []
+
+    // 최근 7일 내 새로 가입한 팀원들
+    const sevenDaysAgo = new Date()
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+
+    const recentUsers = await prisma.user.findMany({
+      where: {
+        createdAt: { gte: sevenDaysAgo }
+      },
+      select: {
+        realName: true,
+        nickname: true,
+        createdAt: true
+      },
+      orderBy: {
+        createdAt: 'desc'
+      },
+      take: 3
+    })
+
+    // 최근 가입자 활동 추가
+    recentUsers.forEach(user => {
+      recentActivities.push({
+        type: 'user_joined',
+        title: '새로운 팀원 등록',
+        description: `${user.realName || user.nickname}님이 팀에 합류했습니다`,
+        timestamp: user.createdAt,
+        badge: '신규',
+        color: 'blue'
+      })
+    })
+
+    // 최근 7일 내 등록된 일정들
+    const recentSchedules = await prisma.schedule.findMany({
+      where: {
+        createdAt: { gte: sevenDaysAgo }
+      },
+      select: {
+        title: true,
+        type: true,
+        location: true,
+        matchDate: true,
+        createdAt: true
+      },
+      orderBy: {
+        createdAt: 'desc'
+      },
+      take: 3
+    })
+
+    // 최근 일정 활동 추가
+    recentSchedules.forEach(schedule => {
+      const scheduleDate = format(schedule.matchDate, 'M월 d일', { locale: ko })
+      recentActivities.push({
+        type: 'schedule_created',
+        title: `${scheduleDate} 일정 등록`,
+        description: schedule.location,
+        timestamp: schedule.createdAt,
+        badge: schedule.type === 'internal' ? '자체경기' : schedule.type === 'match' ? 'A매치' : '연습',
+        color: 'orange'
+      })
+    })
+
+    // 최근 7일 내 완료된 일정들
+    const completedSchedules = await prisma.schedule.findMany({
+      where: {
+        status: 'COMPLETED',
+        updatedAt: { gte: sevenDaysAgo }
+      },
+      select: {
+        title: true,
+        type: true,
+        location: true,
+        matchDate: true,
+        updatedAt: true
+      },
+      orderBy: {
+        updatedAt: 'desc'
+      },
+      take: 2
+    })
+
+    // 완료된 일정 활동 추가
+    completedSchedules.forEach(schedule => {
+      const scheduleDate = format(schedule.matchDate, 'M월 d일', { locale: ko })
+      recentActivities.push({
+        type: 'schedule_completed',
+        title: `${scheduleDate} 일정 완료`,
+        description: schedule.location,
+        timestamp: schedule.updatedAt,
+        badge: '완료',
+        color: 'green'
+      })
+    })
+
+    // 시간순으로 정렬하고 최대 5개까지
+    const sortedActivities = recentActivities
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      .slice(0, 5)
+
     console.log('대시보드 통계 조회 완료:', {
       totalMembers,
       activeMembers: activeMembers.length,
       attendanceRate: totalAttendanceRate,
       upcomingMatch: upcomingMatchInfo?.title || '없음',
-      topPlayers: topAttendancePlayers.length
+      topPlayers: topAttendancePlayers.length,
+      recentActivities: sortedActivities.length
     })
 
     return NextResponse.json({
@@ -150,7 +255,8 @@ export async function GET() {
           attendanceRate: totalAttendanceRate,
           totalSchedules: allSchedules.length
         },
-        topAttendancePlayers
+        topAttendancePlayers,
+        recentActivities: sortedActivities
       }
     })
 

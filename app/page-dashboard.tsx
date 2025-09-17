@@ -66,14 +66,14 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
     console.log('사용자 정보 업데이트:', updatedUser)
     setUser(updatedUser)
     // role이 변경되었을 때 관리자 모드도 업데이트
-    setIsManagerMode(updatedUser?.role === 'admin')
+    setIsManagerMode(updatedUser?.role === 'ADMIN')
     // 상위 컴포넌트에도 알림
     onUserUpdate?.(updatedUser)
   }
 
   // 사용자 role 변경 시 관리자 모드 업데이트
   useEffect(() => {
-    setIsManagerMode(user?.role === 'admin')
+    setIsManagerMode(user?.role === 'ADMIN')
   }, [user?.role])
 
   // 대시보드 데이터 로드
@@ -105,8 +105,8 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
     }
   }
   const [activeTab, setActiveTab] = useState("schedule")
-  // 사용자 role 기반으로 관리자 모드 결정 (DB에서 admin 권한 확인)
-  const [isManagerMode, setIsManagerMode] = useState(user?.role === 'admin')
+  // 사용자 role 기반으로 관리자 모드 결정 (DB에서 ADMIN 권한 확인)
+  const [isManagerMode, setIsManagerMode] = useState(user?.role === 'ADMIN')
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   // 팀 편성 결과를 저장할 상태
@@ -140,10 +140,10 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
     }
   }
 
-  const calculateTeamRating = (team: any[]) => {
+  const calculateTeamLevel = (team: any[]) => {
     if (team.length === 0) return 0
-    const total = team.reduce((sum, player) => sum + player.overallRating, 0)
-    return (total / team.length).toFixed(1)
+    const total = team.reduce((sum, player) => sum + (player.level || 1), 0)
+    return Math.round(total / team.length * 10) / 10 // 소수점 1자리
   }
 
   return (
@@ -187,9 +187,9 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
               {/* Role 기반 권한 표시 */}
               <Badge
                 variant="outline"
-                className={user?.role === 'admin' ? "bg-green-50 text-green-700" : "bg-blue-50 text-blue-700"}
+                className={user?.role === 'ADMIN' ? "bg-green-50 text-green-700" : "bg-blue-50 text-blue-700"}
               >
-                {user?.role === 'admin' ? "총무" : "선수"}
+                {user?.role === 'ADMIN' ? "총무" : "선수"}
               </Badge>
               <Button variant="ghost" size="sm" onClick={() => window.location.reload()}>
                 <LogOut className="h-4 w-4" />
@@ -200,9 +200,9 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
             <div className="lg:hidden flex items-center space-x-2">
               <Badge
                 variant="outline"
-                className={`text-xs ${user?.role === 'admin' ? "bg-green-50 text-green-700" : "bg-blue-50 text-blue-700"}`}
+                className={`text-xs ${user?.role === 'ADMIN' ? "bg-green-50 text-green-700" : "bg-blue-50 text-blue-700"}`}
               >
-                {user?.role === 'admin' ? "총무" : "선수"}
+                {user?.role === 'ADMIN' ? "총무" : "선수"}
               </Badge>
               <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
                 <SheetTrigger asChild>
@@ -240,16 +240,16 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
                       <div className="flex items-center justify-center">
                         <Badge
                           variant="outline"
-                          className={user?.role === 'admin' ? "bg-green-50 text-green-700" : "bg-blue-50 text-blue-700"}
+                          className={user?.role === 'ADMIN' ? "bg-green-50 text-green-700" : "bg-blue-50 text-blue-700"}
                         >
-                          {user?.role === 'admin' ? (
+                          {user?.role === 'ADMIN' ? (
                             <><Shield className="h-4 w-4 mr-2" />총무</>
                           ) : (
                             <><User className="h-4 w-4 mr-2" />선수</>
                           )}
                         </Badge>
                       </div>
-                      {user?.role !== 'admin' && (
+                      {user?.role !== 'ADMIN' && (
                         <p className="text-xs text-muted-foreground text-center">
                           총무 권한이 필요한 기능은 표시되지 않습니다.
                         </p>
@@ -596,7 +596,7 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
                       <h4 className="font-medium text-base">Team A ({formedTeamA.length}명)</h4>
                       <div className="flex items-center gap-1">
                         <Star className="h-3 w-3 text-yellow-500" />
-                        <span className="text-sm font-medium">{calculateTeamRating(formedTeamA)}</span>
+                        <span className="text-sm font-medium">{calculateTeamLevel(formedTeamA)}점</span>
                       </div>
                     </div>
                     <div className="space-y-2">
@@ -621,7 +621,7 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
                       <h4 className="font-medium text-base">Team B ({formedTeamB.length}명)</h4>
                       <div className="flex items-center gap-1">
                         <Star className="h-3 w-3 text-yellow-500" />
-                        <span className="text-sm font-medium">{calculateTeamRating(formedTeamB)}</span>
+                        <span className="text-sm font-medium">{calculateTeamLevel(formedTeamB)}점</span>
                       </div>
                     </div>
                     <div className="space-y-2">
@@ -669,38 +669,54 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
                 <CardDescription>팀의 최근 활동 내역을 확인하세요</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3 sm:space-y-4">
-                  <div className="flex items-start gap-3 sm:gap-4 p-3 bg-blue-50 rounded-lg">
-                    <div className="h-2 w-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium">새로운 팀원 등록</p>
-                      <p className="text-xs text-muted-foreground">정우성님이 팀에 합류했습니다</p>
-                    </div>
-                    <Badge variant="outline" className="flex-shrink-0">
-                      신규
-                    </Badge>
+                {isDashboardLoading ? (
+                  <div className="space-y-3 sm:space-y-4">
+                    {[...Array(3)].map((_, i) => (
+                      <div key={i} className="flex items-start gap-3 sm:gap-4 p-3 bg-gray-50 rounded-lg animate-pulse">
+                        <div className="h-2 w-2 bg-gray-300 rounded-full mt-2 flex-shrink-0"></div>
+                        <div className="flex-1 min-w-0 space-y-2">
+                          <div className="h-4 bg-gray-300 rounded w-3/4"></div>
+                          <div className="h-3 bg-gray-300 rounded w-1/2"></div>
+                        </div>
+                        <div className="h-6 w-12 bg-gray-300 rounded flex-shrink-0"></div>
+                      </div>
+                    ))}
                   </div>
-                  <div className="flex items-start gap-3 sm:gap-4 p-3 bg-orange-50 rounded-lg">
-                    <div className="h-2 w-2 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium">8월 15일 자체경기 일정 등록</p>
-                      <p className="text-xs text-muted-foreground">잠실종합운동장 보조구장</p>
-                    </div>
-                    <Badge variant="outline" className="flex-shrink-0">
-                      일정
-                    </Badge>
+                ) : dashboardData?.recentActivities?.length > 0 ? (
+                  <div className="space-y-3 sm:space-y-4">
+                    {dashboardData.recentActivities.map((activity, index) => (
+                      <div key={index} className={`flex items-start gap-3 sm:gap-4 p-3 rounded-lg ${
+                        activity.color === 'blue' ? 'bg-blue-50' :
+                        activity.color === 'orange' ? 'bg-orange-50' :
+                        activity.color === 'green' ? 'bg-green-50' : 'bg-gray-50'
+                      }`}>
+                        <div className={`h-2 w-2 rounded-full mt-2 flex-shrink-0 ${
+                          activity.color === 'blue' ? 'bg-blue-500' :
+                          activity.color === 'orange' ? 'bg-orange-500' :
+                          activity.color === 'green' ? 'bg-green-500' : 'bg-gray-500'
+                        }`}></div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium">{activity.title}</p>
+                          <p className="text-xs text-muted-foreground">{activity.description}</p>
+                        </div>
+                        <Badge 
+                          variant={activity.color === 'green' ? 'secondary' : 'outline'} 
+                          className="flex-shrink-0"
+                        >
+                          {activity.badge}
+                        </Badge>
+                      </div>
+                    ))}
                   </div>
-                  <div className="flex items-start gap-3 sm:gap-4 p-3 bg-green-50 rounded-lg">
-                    <div className="h-2 w-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium">8월 10일 연습 완료</p>
-                      <p className="text-xs text-muted-foreground">기본기 향상 훈련 세션</p>
+                ) : (
+                  <div className="text-center py-6 text-muted-foreground">
+                    <div className="h-8 w-8 mx-auto mb-2 text-gray-300">
+                      <Calendar className="h-8 w-8" />
                     </div>
-                    <Badge variant="secondary" className="flex-shrink-0">
-                      완료
-                    </Badge>
+                    <p className="text-sm">최근 활동이 없습니다.</p>
+                    <p className="text-xs">팀원이 가입하거나 일정이 등록되면 여기에 표시됩니다.</p>
                   </div>
-                </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

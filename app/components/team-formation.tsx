@@ -6,21 +6,22 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Shuffle, Users, Target, Star, RotateCcw, CheckCircle, AlertCircle } from 'lucide-react'
+import { getLevelShortLabel, calculateAverageLevel } from '@/lib/level-system'
 
-// 참석자 기반 선수 데이터 (대/중분류 포지션 적용)
+// 참석자 기반 선수 데이터 (레벨 시스템 적용)
 const attendingPlayers = [
-  { id: 1, name: "김민수", mainPosition: "공격수", subPositions: ["CF", "LW", "RW"], overallRating: 7.6, attending: true },
-  { id: 2, name: "박준호", mainPosition: "미드필더", subPositions: ["CM", "CAM", "CDM"], overallRating: 7.7, attending: true },
-  { id: 3, name: "이동현", mainPosition: "수비수", subPositions: ["CB", "RB", "LB"], overallRating: 7.0, attending: true },
-  { id: 4, name: "최우진", mainPosition: "골키퍼", subPositions: ["GK"], overallRating: 6.1, attending: true },
-  { id: 5, name: "정우성", mainPosition: "공격수", subPositions: ["CF", "RW"], overallRating: 7.2, attending: true },
-  { id: 6, name: "한지민", mainPosition: "미드필더", subPositions: ["CM", "LM"], overallRating: 6.8, attending: true },
-  { id: 7, name: "송민호", mainPosition: "수비수", subPositions: ["CB", "LB"], overallRating: 6.5, attending: true },
-  { id: 8, name: "김태현", mainPosition: "수비수", subPositions: ["CB", "RB"], overallRating: 6.3, attending: true },
-  { id: 9, name: "이준석", mainPosition: "미드필더", subPositions: ["CDM", "CM"], overallRating: 6.9, attending: true },
-  { id: 10, name: "박성호", mainPosition: "공격수", subPositions: ["ST", "LW"], overallRating: 6.4, attending: true },
-  { id: 11, name: "윤상철", mainPosition: "수비수", subPositions: ["RB", "CB"], overallRating: 6.0, attending: true },
-  { id: 12, name: "조현우", mainPosition: "골키퍼", subPositions: ["GK"], overallRating: 5.8, attending: true }
+  { id: 1, name: "김민수", mainPosition: "공격수", subPositions: ["CF", "LW", "RW"], level: 8, attending: true },
+  { id: 2, name: "박준호", mainPosition: "미드필더", subPositions: ["CM", "CAM", "CDM"], level: 8, attending: true },
+  { id: 3, name: "이동현", mainPosition: "수비수", subPositions: ["CB", "RB", "LB"], level: 7, attending: true },
+  { id: 4, name: "최우진", mainPosition: "골키퍼", subPositions: ["GK"], level: 6, attending: true },
+  { id: 5, name: "정우성", mainPosition: "공격수", subPositions: ["CF", "RW"], level: 7, attending: true },
+  { id: 6, name: "한지민", mainPosition: "미드필더", subPositions: ["CM", "LM"], level: 7, attending: true },
+  { id: 7, name: "송민호", mainPosition: "수비수", subPositions: ["CB", "LB"], level: 7, attending: true },
+  { id: 8, name: "김태현", mainPosition: "수비수", subPositions: ["CB", "RB"], level: 6, attending: true },
+  { id: 9, name: "이준석", mainPosition: "미드필더", subPositions: ["CDM", "CM"], level: 7, attending: true },
+  { id: 10, name: "박성호", mainPosition: "공격수", subPositions: ["ST", "LW"], level: 6, attending: true },
+  { id: 11, name: "윤상철", mainPosition: "수비수", subPositions: ["RB", "CB"], level: 6, attending: true },
+  { id: 12, name: "조현우", mainPosition: "골키퍼", subPositions: ["GK"], level: 6, attending: true }
 ]
 
 interface TeamFormationProps {
@@ -43,12 +44,12 @@ export function TeamFormation({ setTeamA, setTeamB, setBench, setIsFormationComp
     const totalPlayers = players.length
     const playersPerTeam = Math.floor(totalPlayers / 2)
     
-    // 1단계: 포지션별로 그룹화 및 실력순 정렬
+    // 1단계: 포지션별로 그룹화 및 레벨순 정렬
     const playersByPosition = {
-      "골키퍼": players.filter(p => p.mainPosition === "골키퍼").sort((a, b) => b.overallRating - a.overallRating),
-      "수비수": players.filter(p => p.mainPosition === "수비수").sort((a, b) => b.overallRating - a.overallRating),
-      "미드필더": players.filter(p => p.mainPosition === "미드필더").sort((a, b) => b.overallRating - a.overallRating),
-      "공격수": players.filter(p => p.mainPosition === "공격수").sort((a, b) => b.overallRating - a.overallRating)
+      "골키퍼": players.filter(p => p.mainPosition === "골키퍼").sort((a, b) => b.level - a.level),
+      "수비수": players.filter(p => p.mainPosition === "수비수").sort((a, b) => b.level - a.level),
+      "미드필더": players.filter(p => p.mainPosition === "미드필더").sort((a, b) => b.level - a.level),
+      "공격수": players.filter(p => p.mainPosition === "공격수").sort((a, b) => b.level - a.level)
     }
 
     const teamAPlayers = []
@@ -114,10 +115,8 @@ export function TeamFormation({ setTeamA, setTeamB, setBench, setIsFormationComp
     }
   }
 
-  const calculateTeamRating = (team: any[]) => {
-    if (team.length === 0) return 0
-    const total = team.reduce((sum, player) => sum + player.overallRating, 0)
-    return (total / team.length).toFixed(1)
+  const calculateTeamLevel = (team: any[]) => {
+    return calculateAverageLevel(team)
   }
 
   const getPositionCount = (team: any[], position: string) => {
@@ -198,7 +197,7 @@ export function TeamFormation({ setTeamA, setTeamB, setBench, setIsFormationComp
             참석자 현황
           </CardTitle>
           <CardDescription>
-            총 {attendingPlayers.length}명 참석 예정 | 평균 실력: {(attendingPlayers.reduce((sum, p) => sum + p.overallRating, 0) / attendingPlayers.length).toFixed(1)}
+            총 {attendingPlayers.length}명 참석 예정 | 평균 레벨: {calculateAverageLevel(attendingPlayers)}점
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -243,8 +242,8 @@ export function TeamFormation({ setTeamA, setTeamB, setBench, setIsFormationComp
                 {isFormationComplete && <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />}
               </CardTitle>
               <div className="flex items-center gap-2 flex-shrink-0">
-                <Star className="h-4 w-4 text-yellow-500" />
-                <span className="font-medium">{calculateTeamRating(teamA)}</span>
+                <Target className="h-4 w-4 text-blue-500" />
+                <span className="font-medium">{calculateTeamLevel(teamA)}점</span>
               </div>
             </div>
             <CardDescription className="text-sm">
@@ -272,8 +271,8 @@ export function TeamFormation({ setTeamA, setTeamB, setBench, setIsFormationComp
                     </div>
                   </div>
                   <div className="flex items-center gap-1 flex-shrink-0">
-                    <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                    <span className="text-sm font-medium">{player.overallRating}</span>
+                    <Target className="h-3 w-3 text-blue-500" />
+                    <span className="text-sm font-medium">{getLevelShortLabel(player.level)}</span>
                   </div>
                 </div>
               ))}
@@ -296,8 +295,8 @@ export function TeamFormation({ setTeamA, setTeamB, setBench, setIsFormationComp
                 {isFormationComplete && <CheckCircle className="h-4 w-4 text-green-500" />}
               </CardTitle>
               <div className="flex items-center gap-2">
-                <Star className="h-4 w-4 text-yellow-500" />
-                <span className="font-medium">{calculateTeamRating(teamB)}</span>
+                <Target className="h-4 w-4 text-blue-500" />
+                <span className="font-medium">{calculateTeamLevel(teamB)}점</span>
               </div>
             </div>
             <CardDescription>
@@ -325,8 +324,8 @@ export function TeamFormation({ setTeamA, setTeamB, setBench, setIsFormationComp
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
-                    <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                    <span className="text-sm font-medium">{player.overallRating}</span>
+                    <Target className="h-3 w-3 text-blue-500" />
+                    <span className="text-sm font-medium">{getLevelShortLabel(player.level)}</span>
                   </div>
                 </div>
               ))}
@@ -385,21 +384,21 @@ export function TeamFormation({ setTeamA, setTeamB, setBench, setIsFormationComp
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-4 bg-purple-500 rounded-full"></div>
-                  <h4 className="font-medium">실력 균형</h4>
+                  <h4 className="font-medium">레벨 균형</h4>
                 </div>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span>Team A 평균</span>
-                    <span className="font-medium">{calculateTeamRating(teamA)}</span>
+                    <span className="font-medium">{calculateTeamLevel(teamA)}점</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Team B 평균</span>
-                    <span className="font-medium">{calculateTeamRating(teamB)}</span>
+                    <span className="font-medium">{calculateTeamLevel(teamB)}점</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>실력 차이</span>
+                    <span>레벨 차이</span>
                     <span className="font-medium">
-                      {Math.abs(parseFloat(calculateTeamRating(teamA)) - parseFloat(calculateTeamRating(teamB))).toFixed(1)}
+                      {Math.abs(calculateTeamLevel(teamA) - calculateTeamLevel(teamB)).toFixed(1)}점
                     </span>
                   </div>
                 </div>
@@ -442,7 +441,7 @@ export function TeamFormation({ setTeamA, setTeamB, setBench, setIsFormationComp
                   <Badge className={getPositionColor(player.mainPosition)} variant="outline">
                     {player.mainPosition}
                   </Badge>
-                  <span className="text-xs text-muted-foreground">{player.overallRating}</span>
+                  <span className="text-xs text-muted-foreground">{getLevelShortLabel(player.level)}</span>
                 </div>
               ))}
             </div>
