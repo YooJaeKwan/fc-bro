@@ -156,7 +156,7 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{schedule.title} - 참석 투표</DialogTitle>
+          <DialogTitle>참석 투표</DialogTitle>
           <DialogDescription>
             {schedule.date} {schedule.time} | {schedule.location}
           </DialogDescription>
@@ -287,7 +287,7 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
                                 <span className="text-sm font-medium truncate">{attendee.name}</span>
-                                <Badge variant="outline" className="text-xs">
+                                <Badge className={`${getPositionColor(attendee.position)} text-xs`} variant="outline">
                                   {attendee.position}
                                 </Badge>
                                 {isManagerMode && (
@@ -296,11 +296,11 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
                                   </span>
                                 )}
                               </div>
-                              {attendee.updatedAt && (
+                              {/* {attendee.updatedAt && (
                                 <div className="text-xs text-muted-foreground">
                                   {new Date(attendee.updatedAt).toLocaleString('ko-KR')}
                                 </div>
-                              )}
+                              )} */}
                             </div>
                             <Badge className={getStatusColor(attendee.status)} variant="secondary">
                               {getStatusIcon(attendee.status)}

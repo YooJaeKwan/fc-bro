@@ -139,6 +139,10 @@ model Schedule {
   mvpUserId       String?   // MVP 선정
   matchSummary    String?   // 경기 요약/후기
   
+  // 팀편성 결과 저장
+  teamFormation   Json?     // 팀편성 결과 (노랑팀/파랑팀 정보)
+  formationDate   DateTime? // 팀편성 생성 일시
+  
   createdBy       String
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt

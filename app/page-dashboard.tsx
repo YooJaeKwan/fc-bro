@@ -311,13 +311,13 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
           </div>
 
           {/* Mobile Tab Indicator */}
-          <div className="lg:hidden">
+          {/* <div className="lg:hidden">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl sm:text-2xl font-bold">
                 {tabItems.find((item) => item.value === activeTab)?.label}
               </h2>
             </div>
-          </div>
+          </div> */}
 
           <TabsContent value="dashboard" className="space-y-4 sm:space-y-6">
             {/* 로딩 상태 */}
@@ -347,88 +347,7 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
               </Card>
             ) : (
               <>
-                {/* 주요 지표 카드들 - 실제 데이터 기반 */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">총 팀원</CardTitle>
-                      <Users className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">{dashboardData?.team?.totalMembers || 0}명</div>
-                      <p className="text-xs text-muted-foreground">활성 멤버 {dashboardData?.team?.activeMembers || 0}명</p>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">평균 출석률</CardTitle>
-                      <UserCheck className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">{dashboardData?.recentStats?.attendanceRate || 0}%</div>
-                      <Progress value={dashboardData?.recentStats?.attendanceRate || 0} className="mt-2" />
-                      <p className="text-xs text-muted-foreground mt-1">
-                        총 {dashboardData?.recentStats?.totalSchedules || 0}개 일정 기준
-                      </p>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="sm:col-span-2 lg:col-span-1">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">다음 경기</CardTitle>
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                      {dashboardData?.upcomingMatch ? (
-                        <>
-                          <div className="flex items-center gap-2 mb-2">
-                            <div className="text-2xl font-bold">
-                              {dashboardData.upcomingMatch.daysLeft === 0 ? (
-                                <span className="text-red-600">D-DAY</span>
-                              ) : dashboardData.upcomingMatch.daysLeft === 1 ? (
-                                <span className="text-orange-600">D-1</span>
-                              ) : dashboardData.upcomingMatch.daysLeft > 0 ? (
-                                `D-${dashboardData.upcomingMatch.daysLeft}`
-                              ) : (
-                                <span className="text-gray-500">지남</span>
-                              )}
-                            </div>
-                            {dashboardData.upcomingMatch.type === 'match' && (
-                              <Badge variant="destructive" className="text-xs">A매치</Badge>
-                            )}
-                            {dashboardData.upcomingMatch.type === 'internal' && (
-                              <Badge variant="default" className="text-xs">자체경기</Badge>
-                            )}
-                            {dashboardData.upcomingMatch.type === 'training' && (
-                              <Badge variant="secondary" className="text-xs">연습</Badge>
-                            )}
-                          </div>
-                          <p className="text-xs text-muted-foreground mb-1">
-                            {new Intl.DateTimeFormat('ko-KR', {
-                              month: 'short',
-                              day: 'numeric',
-                              weekday: 'short'
-                            }).format(new Date(dashboardData.upcomingMatch.date))} {dashboardData.upcomingMatch.time}
-                          </p>
-                          <p className="text-xs text-muted-foreground truncate whitespace-pre-line">
-                            {`${dashboardData.upcomingMatch.location}\n${dashboardData.upcomingMatch.time}`}
-                          </p>
-                        </>
-                      ) : (
-                        <>
-                          <div className="text-2xl font-bold text-gray-400">-</div>
-                          <p className="text-xs text-muted-foreground">예정된 경기 없음</p>
-                          <p className="text-xs text-blue-600 mt-1 cursor-pointer" onClick={() => setActiveTab("schedule")}>
-                            일정 추가하기 →
-                          </p>
-                        </>
-                      )}
-                    </CardContent>
-                  </Card>
-                </div>
-              </>
-            )}
+              
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
               {/* 다음 경기 정보 */}
@@ -447,9 +366,9 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
                         <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-full font-semibold">
                           <Calendar className="h-4 w-4" />
                           {dashboardData.upcomingMatch.daysLeft === 0 ? (
-                            <span className="text-red-600 font-bold">오늘 경기!</span>
+                            <span className="font-bold">오늘 경기!</span>
                           ) : dashboardData.upcomingMatch.daysLeft === 1 ? (
-                            <span className="text-orange-600 font-bold">내일 경기!</span>
+                            <span className="font-bold">내일 경기!</span>
                           ) : dashboardData.upcomingMatch.daysLeft > 0 ? (
                             <span>D-{dashboardData.upcomingMatch.daysLeft}</span>
                           ) : (
@@ -525,6 +444,87 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
                   )}
                 </CardContent>
               </Card>
+            </div>
+                {/* 주요 지표 카드들 - 실제 데이터 기반 */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">총 팀원</CardTitle>
+                      <Users className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{dashboardData?.team?.totalMembers || 0}명</div>
+                      <p className="text-xs text-muted-foreground">활성 멤버 {dashboardData?.team?.activeMembers || 0}명</p>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">평균 출석률</CardTitle>
+                      <UserCheck className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{dashboardData?.recentStats?.attendanceRate || 0}%</div>
+                      <Progress value={dashboardData?.recentStats?.attendanceRate || 0} className="mt-2" />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        총 {dashboardData?.recentStats?.totalSchedules || 0}개 일정 기준
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  {/* <Card className="sm:col-span-2 lg:col-span-1">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">다음 경기</CardTitle>
+                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      {dashboardData?.upcomingMatch ? (
+                        <>
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="text-2xl font-bold">
+                              {dashboardData.upcomingMatch.daysLeft === 0 ? (
+                                <span className="text-red-600">D-DAY</span>
+                              ) : dashboardData.upcomingMatch.daysLeft === 1 ? (
+                                <span className="text-orange-600">D-1</span>
+                              ) : dashboardData.upcomingMatch.daysLeft > 0 ? (
+                                `D-${dashboardData.upcomingMatch.daysLeft}`
+                              ) : (
+                                <span className="text-gray-500">지남</span>
+                              )}
+                            </div>
+                            {dashboardData.upcomingMatch.type === 'match' && (
+                              <Badge variant="destructive" className="text-xs">A매치</Badge>
+                            )}
+                            {dashboardData.upcomingMatch.type === 'internal' && (
+                              <Badge variant="default" className="text-xs">자체경기</Badge>
+                            )}
+                            {dashboardData.upcomingMatch.type === 'training' && (
+                              <Badge variant="secondary" className="text-xs">연습</Badge>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground mb-1">
+                            {new Intl.DateTimeFormat('ko-KR', {
+                              month: 'short',
+                              day: 'numeric',
+                              weekday: 'short'
+                            }).format(new Date(dashboardData.upcomingMatch.date))} {dashboardData.upcomingMatch.time}
+                          </p>
+                          <p className="text-xs text-muted-foreground truncate whitespace-pre-line">
+                            {`${dashboardData.upcomingMatch.location}\n${dashboardData.upcomingMatch.time}`}
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <div className="text-2xl font-bold text-gray-400">-</div>
+                          <p className="text-xs text-muted-foreground">예정된 경기 없음</p>
+                          <p className="text-xs text-blue-600 mt-1 cursor-pointer" onClick={() => setActiveTab("schedule")}>
+                            일정 추가하기 →
+                          </p>
+                        </>
+                      )}
+                    </CardContent>
+                  </Card> */}
+                  
 
               {/* 우수 선수 */}
               <Card>
@@ -576,7 +576,9 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
                   </div>
                 </CardContent>
               </Card>
-            </div>
+                </div>
+              </>
+            )}
 
             {/* 편성된 팀 표시 (대시보드) */}
             {isTeamFormationComplete && (formedTeamA.length > 0 || formedTeamB.length > 0) && (

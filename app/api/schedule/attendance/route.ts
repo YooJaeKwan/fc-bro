@@ -132,6 +132,7 @@ export async function GET(request: NextRequest) {
             nickname: true,
             preferredPosition: true,
             subPositions: true,
+            level: true,
             image: true
           }
         }
@@ -149,6 +150,7 @@ export async function GET(request: NextRequest) {
         nickname: true,
         preferredPosition: true,
         subPositions: true,
+        level: true,
         image: true
       }
     })
@@ -169,6 +171,7 @@ export async function GET(request: NextRequest) {
         position: user.preferredPosition || 'MC',
         status: attendance?.status.toLowerCase() || 'pending',
         rating: generateTempRating(user.preferredPosition || 'MC'),
+        level: user.level || 1,
         profileImage: user.image,
         updatedAt: attendance?.updatedAt.toISOString() || null
       }

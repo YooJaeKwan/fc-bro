@@ -47,6 +47,11 @@ export function ScheduleManagement({ isManagerMode, currentUser, onSwitchToForma
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [availableLocations, setAvailableLocations] = useState<any[]>([])
   const [isLoadingLocations, setIsLoadingLocations] = useState(false)
+  
+  // 팀편성 관련 상태
+  const [formationResults, setFormationResults] = useState<any>(null)
+  const [isFormingTeams, setIsFormingTeams] = useState(false)
+  const [isSavingFormation, setIsSavingFormation] = useState(false)
   const [newSchedule, setNewSchedule] = useState({
     type: "internal",
     date: "",
@@ -65,6 +70,19 @@ export function ScheduleManagement({ isManagerMode, currentUser, onSwitchToForma
     fetchSchedules()
     fetchAvailableLocations()
   }, [])
+
+  // 페이지 로드 시 저장된 팀편성 결과 확인 (기존 useEffect와 합침)
+  useEffect(() => {
+    if (schedules.length > 0) {
+      const nextSchedule = getNextUpcomingSchedule()
+      if (nextSchedule && nextSchedule.teamFormation) {
+        setFormationResults({
+          ...nextSchedule.teamFormation,
+          scheduleId: nextSchedule.id
+        })
+      }
+    }
+  }, [schedules])
 
   const fetchSchedules = async () => {
     try {
@@ -131,6 +149,145 @@ export function ScheduleManagement({ isManagerMode, currentUser, onSwitchToForma
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
     
     return diffDays
+  }
+
+  // 자동 팀편성 알고리즘 (레벨 기반)
+  const autoFormTeams = (schedule: any) => {
+    const attendingPlayers = schedule.attendees.filter((attendee: any) => 
+      attendee.status === 'attending' || attendee.status === 'attended'
+    )
+    
+    console.log('팀편성 시작:', {
+      총인원: schedule.attendees.length,
+      참석자: attendingPlayers.length,
+      참석자목록: attendingPlayers.map(p => ({ 이름: p.name, 포지션: p.position, 레벨: p.level }))
+    })
+    
+    if (attendingPlayers.length < 6) {
+      return { yellowTeam: [], blueTeam: [], message: '팀편성에는 최소 6명이 필요합니다.' }
+    }
+
+    const players = [...attendingPlayers]
+    const totalPlayers = players.length
+    const playersPerTeam = Math.floor(totalPlayers / 2)
+    
+    // 1단계: 포지션별로 그룹화 및 레벨순 정렬
+    const playersByPosition = {
+      "골키퍼": players.filter(p => p.position === "GK").sort((a, b) => (b.level || 1) - (a.level || 1)),
+      "수비수": players.filter(p => ["DC", "DR", "DL", "DRL", "DRLC"].includes(p.position)).sort((a, b) => (b.level || 1) - (a.level || 1)),
+      "미드필더": players.filter(p => ["MC", "AMC", "DM"].includes(p.position)).sort((a, b) => (b.level || 1) - (a.level || 1)),
+      "공격수": players.filter(p => ["ST", "CF", "SS", "LWF", "RWF"].includes(p.position)).sort((a, b) => (b.level || 1) - (a.level || 1))
+    }
+    
+    console.log('포지션별 분류:', {
+      골키퍼: playersByPosition["골키퍼"].map(p => p.name),
+      수비수: playersByPosition["수비수"].map(p => p.name),
+      미드필더: playersByPosition["미드필더"].map(p => p.name),
+      공격수: playersByPosition["공격수"].map(p => p.name)
+    })
+
+    const yellowTeam = []
+    const blueTeam = []
+    const usedPlayers = new Set()
+
+    // 2단계: 포지션별 균등 분배 (지그재그 방식)
+    Object.entries(playersByPosition).forEach(([position, positionPlayers]) => {
+      positionPlayers.forEach((player, index) => {
+        if (usedPlayers.has(player.userId || player.id)) return
+        
+        if (yellowTeam.length < playersPerTeam && (index % 2 === 0 || blueTeam.length >= playersPerTeam)) {
+          yellowTeam.push(player)
+        } else if (blueTeam.length < playersPerTeam) {
+          blueTeam.push(player)
+        }
+        usedPlayers.add(player.userId || player.id)
+      })
+    })
+
+    // 3단계: 레벨 균형 조정
+    const getTeamLevel = (team: any[]) => {
+      if (team.length === 0) return 0
+      return team.reduce((sum, p) => sum + (p.level || 1), 0) / team.length
+    }
+
+    // 필요시 선수 교환으로 레벨 균형 맞추기
+    let attempts = 0
+    while (attempts < 10) {
+      const yellowLevel = getTeamLevel(yellowTeam)
+      const blueLevel = getTeamLevel(blueTeam)
+      const levelDiff = Math.abs(yellowLevel - blueLevel)
+      
+      if (levelDiff < 0.5) break // 충분히 균형잡힘
+      
+      // 교환할 선수 쌍 찾기
+      let swapped = false
+      for (let i = 0; i < yellowTeam.length && !swapped; i++) {
+        for (let j = 0; j < blueTeam.length && !swapped; j++) {
+          // 교환 후 균형이 더 좋아지는지 확인
+          const tempYellow = [...yellowTeam]
+          const tempBlue = [...blueTeam]
+          
+          tempYellow[i] = blueTeam[j]
+          tempBlue[j] = yellowTeam[i]
+          
+          const newYellowLevel = getTeamLevel(tempYellow)
+          const newBlueLevel = getTeamLevel(tempBlue)
+          const newLevelDiff = Math.abs(newYellowLevel - newBlueLevel)
+          
+          if (newLevelDiff < levelDiff) {
+            yellowTeam[i] = blueTeam[j]
+            blueTeam[j] = tempBlue[j]
+            swapped = true
+          }
+        }
+      }
+      
+      if (!swapped) break
+      attempts++
+    }
+
+    // 팀편성이 제대로 안된 경우 (모든 선수가 한 팀에만 배치된 경우 등)
+    if (yellowTeam.length === 0 || blueTeam.length === 0) {
+      console.log('팀편성 실패: 한쪽 팀이 비어있음')
+      // 강제로 재분배
+      const allPlayers = [...yellowTeam, ...blueTeam]
+      const newYellow = []
+      const newBlue = []
+      
+      allPlayers.forEach((player, index) => {
+        if (index % 2 === 0) {
+          newYellow.push(player)
+        } else {
+          newBlue.push(player)
+        }
+      })
+      
+      yellowTeam.length = 0
+      blueTeam.length = 0
+      yellowTeam.push(...newYellow)
+      blueTeam.push(...newBlue)
+    }
+
+    const finalYellowTeam = yellowTeam.sort((a, b) => (b.level || 1) - (a.level || 1))
+    const finalBlueTeam = blueTeam.sort((a, b) => (b.level || 1) - (a.level || 1))
+    const yellowAvg = getTeamLevel(finalYellowTeam)
+    const blueAvg = getTeamLevel(finalBlueTeam)
+    
+    console.log('팀편성 완료:', {
+      노랑팀: finalYellowTeam.map(p => ({ 이름: p.name, 포지션: p.position, 레벨: p.level })),
+      파랑팀: finalBlueTeam.map(p => ({ 이름: p.name, 포지션: p.position, 레벨: p.level })),
+      노랑팀평균: yellowAvg,
+      파랑팀평균: blueAvg,
+      레벨차이: Math.abs(yellowAvg - blueAvg).toFixed(1)
+    })
+
+    return {
+      yellowTeam: finalYellowTeam,
+      blueTeam: finalBlueTeam,
+      yellowAverage: yellowAvg.toFixed(1),
+      blueAverage: blueAvg.toFixed(1),
+      levelDifference: Math.abs(yellowAvg - blueAvg).toFixed(1)
+    }
   }
 
   // 시간 옵션 생성 (6:00부터 23:30까지 30분 단위)
@@ -366,17 +523,37 @@ export function ScheduleManagement({ isManagerMode, currentUser, onSwitchToForma
   }
 
   const getPositionColor = (position: string) => {
+    // 포지션 코드 기반 색상 분류
     switch (position) {
-      case "골키퍼":
-        return "bg-yellow-100 text-yellow-800"
-      case "수비수":
-        return "bg-blue-100 text-blue-800"
-      case "미드필더":
-        return "bg-green-100 text-green-800"
-      case "공격수":
-        return "bg-red-100 text-red-800"
+      // 골키퍼 - 노란색
+      case "GK":
+        return "bg-yellow-100 text-yellow-800 border-yellow-300"
+      
+      // 수비수 - 파란색  
+      case "DC":
+      case "DR": 
+      case "DL":
+      case "DRL":
+      case "DRLC":
+        return "bg-blue-100 text-blue-800 border-blue-300"
+      
+      // 미드필더 - 초록색
+      case "MC":
+      case "AMC":
+      case "DM":
+        return "bg-green-100 text-green-800 border-green-300"
+      
+      // 공격수 - 빨간색
+      case "ST":
+      case "CF":
+      case "SS":
+      case "LWF":
+      case "RWF":
+        return "bg-red-100 text-red-800 border-red-300"
+      
+      // 기타 - 회색
       default:
-        return "bg-gray-100 text-gray-800"
+        return "bg-gray-100 text-gray-800 border-gray-300"
     }
   }
 
@@ -441,7 +618,13 @@ export function ScheduleManagement({ isManagerMode, currentUser, onSwitchToForma
     <div className="space-y-6">
       {/* 다음 경기 섹션 - 간소화된 디자인 */}
       {nextUpcomingSchedule && (
-        <Card className="border-l-4 border-l-blue-500 bg-blue-50/30">
+        <Card className="border-l-4 border-l-blue-500">          
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <CalendarIcon className="h-5 w-5" />
+              다음 경기 정보
+            </CardTitle>
+          </CardHeader>
           <CardContent className="space-y-4 p-6">
             {/* D-Day 표시 */}
             <div className="text-center">
@@ -450,9 +633,9 @@ export function ScheduleManagement({ isManagerMode, currentUser, onSwitchToForma
                 {(() => {
                   const daysLeft = calculateDaysLeft(nextUpcomingSchedule.date)
                   return daysLeft === 0 ? (
-                    <span className="text-red-600 font-bold">오늘 경기!</span>
+                    <span className="font-bold">오늘 경기!</span>
                   ) : daysLeft === 1 ? (
-                    <span className="text-orange-600 font-bold">내일 경기!</span>
+                    <span className="font-bold">내일 경기!</span>
                   ) : daysLeft > 0 ? (
                     <span>D-{daysLeft}</span>
                   ) : (
@@ -512,7 +695,7 @@ export function ScheduleManagement({ isManagerMode, currentUser, onSwitchToForma
               <Progress value={getAttendanceStats(nextUpcomingSchedule.attendees).percentage} className="h-2" />
             </div>
 
-            {/* 액션 버튼들 - 아이콘 제거 */}
+            {/* 액션 버튼들 */}
             <div className="flex gap-2 pt-2">
               <div className="flex-1">
                 <AttendanceVoting 
@@ -522,20 +705,179 @@ export function ScheduleManagement({ isManagerMode, currentUser, onSwitchToForma
                   onAttendanceUpdate={fetchSchedules}
                 />
               </div>
-              {isManagerMode && (
-                <Button 
-                  onClick={() => {
-                    if (onSwitchToFormation) {
-                      onSwitchToFormation()
-                    }
-                  }}
-                  className="bg-green-600 hover:bg-green-700"
-                  size="sm"
-                >
-                  팀편성하기
-                </Button>
+              {(() => {
+                const daysLeft = calculateDaysLeft(nextUpcomingSchedule.date)
+                return isManagerMode && daysLeft <= 2 && daysLeft >= 0 && (
+                  <Button 
+                    onClick={async () => {
+                      setIsFormingTeams(true)
+                      try {
+                        console.log('팀편성 버튼 클릭, 일정 데이터:', nextUpcomingSchedule)
+                        const result = autoFormTeams(nextUpcomingSchedule)
+                        console.log('팀편성 결과:', result)
+                        
+                        if (result.message) {
+                          // 오류 메시지가 있는 경우 (인원 부족 등)
+                          setFormationResults({ ...result, scheduleId: nextUpcomingSchedule.id })
+                        } else {
+                          // 정상 편성 결과를 데이터베이스에 저장
+                          setIsSavingFormation(true)
+                          const saveResponse = await fetch('/api/schedule/formation', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              scheduleId: nextUpcomingSchedule.id,
+                              yellowTeam: result.yellowTeam,
+                              blueTeam: result.blueTeam,
+                              yellowAverage: result.yellowAverage,
+                              blueAverage: result.blueAverage,
+                              levelDifference: result.levelDifference
+                            })
+                          })
+                          
+                          if (saveResponse.ok) {
+                            setFormationResults({ ...result, scheduleId: nextUpcomingSchedule.id })
+                            // 일정 목록 새로고침으로 저장된 데이터 반영
+                            fetchSchedules()
+                          } else {
+                            console.error('팀편성 저장 실패')
+                            setFormationResults({ 
+                              yellowTeam: [], 
+                              blueTeam: [], 
+                              message: '팀편성 저장에 실패했습니다.',
+                              scheduleId: nextUpcomingSchedule.id 
+                            })
+                          }
+                          setIsSavingFormation(false)
+                        }
+                      } catch (error) {
+                        console.error('팀편성 중 오류:', error)
+                        setFormationResults({ 
+                          yellowTeam: [], 
+                          blueTeam: [], 
+                          message: '팀편성 중 오류가 발생했습니다.',
+                          scheduleId: nextUpcomingSchedule.id 
+                        })
+                      } finally {
+                        setIsFormingTeams(false)
+                      }
+                    }}
+                    className="bg-green-600 hover:bg-green-700"
+                    size="sm"
+                    disabled={isFormingTeams || isSavingFormation}
+                  >
+                    {isFormingTeams ? "편성 중..." : isSavingFormation ? "저장 중..." : "팀편성하기"}
+                  </Button>
+                )
+              })()}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 팀편성 결과 표시 */}
+      {formationResults && formationResults.scheduleId === nextUpcomingSchedule?.id && (
+        <Card className="border-l-4 border-l-green-500">
+          <CardContent className="space-y-4 p-6">
+            <div className="text-center">
+              <h3 className="text-lg font-bold text-gray-900 mb-2">팀편성 결과</h3>
+              {formationResults.message ? (
+                <p className="text-sm text-red-600">{formationResults.message}</p>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  레벨 차이: {formationResults.levelDifference}점
+                </p>
               )}
             </div>
+
+            {!formationResults.message && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* 노랑팀 */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-yellow-500 rounded-full"></div>
+                  <h4 className="font-medium text-base">노랑팀 ({formationResults.yellowTeam.length}명)</h4>
+                  <div className="flex items-center gap-1">
+                    <span className="text-sm font-medium">평균 {formationResults.yellowAverage}점</span>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  {formationResults.yellowTeam.map((player: any) => (
+                    <div key={player.userId || player.id} className="flex items-center gap-2 text-sm p-2 bg-yellow-50 rounded-lg">
+                      <Avatar className="h-6 w-6">
+                        <AvatarFallback className="text-xs">{player.name[0]}</AvatarFallback>
+                      </Avatar>
+                      <span className="font-medium">{player.name}</span>
+                      <Badge className={getPositionColor(player.position)} variant="outline" size="sm">
+                        {player.position}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground ml-auto">
+                        {getLevelShortLabel(player.level)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 파랑팀 */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-blue-500 rounded-full"></div>
+                  <h4 className="font-medium text-base">파랑팀 ({formationResults.blueTeam.length}명)</h4>
+                  <div className="flex items-center gap-1">
+                    <span className="text-sm font-medium">평균 {formationResults.blueAverage}점</span>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  {formationResults.blueTeam.map((player: any) => (
+                    <div key={player.userId || player.id} className="flex items-center gap-2 text-sm p-2 bg-blue-50 rounded-lg">
+                      <Avatar className="h-6 w-6">
+                        <AvatarFallback className="text-xs">{player.name[0]}</AvatarFallback>
+                      </Avatar>
+                      <span className="font-medium">{player.name}</span>
+                      <Badge className={getPositionColor(player.position)} variant="outline" size="sm">
+                        {player.position}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground ml-auto">
+                        {getLevelShortLabel(player.level)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            )}
+
+            {/* 팀편성 초기화 버튼 (총무 전용) */}
+            {isManagerMode && (
+              <div className="text-center pt-2">
+                <Button 
+                  onClick={async () => {
+                    if (!nextUpcomingSchedule?.id) return
+                    
+                    try {
+                      const response = await fetch(`/api/schedule/formation?scheduleId=${nextUpcomingSchedule.id}`, {
+                        method: 'DELETE'
+                      })
+                      
+                      if (response.ok) {
+                        setFormationResults(null)
+                        // 일정 목록 새로고침으로 DB 변경사항 반영
+                        fetchSchedules()
+                      } else {
+                        console.error('팀편성 초기화 실패')
+                      }
+                    } catch (error) {
+                      console.error('팀편성 초기화 중 오류:', error)
+                    }
+                  }}
+                  variant="outline"
+                  size="sm"
+                >
+                  팀편성 초기화
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
@@ -912,9 +1254,9 @@ export function ScheduleManagement({ isManagerMode, currentUser, onSwitchToForma
                   <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-full font-semibold">
                     <CalendarIcon className="h-4 w-4" />
                     {daysLeft === 0 ? (
-                      <span className="text-red-600 font-bold">오늘 경기!</span>
+                      <span className="font-bold">오늘 경기!</span>
                     ) : daysLeft === 1 ? (
-                      <span className="text-orange-600 font-bold">내일 경기!</span>
+                      <span className="font-bold">내일 경기!</span>
                     ) : daysLeft > 0 ? (
                       <span>D-{daysLeft}</span>
                     ) : (

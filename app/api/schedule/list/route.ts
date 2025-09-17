@@ -42,16 +42,19 @@ export async function GET() {
         id: true,
         realName: true,
         nickname: true,
-        preferredPosition: true
+        preferredPosition: true,
+        level: true
       }
     })
 
-    // 임시 능력치 생성 함수
+    // 임시 능력치 생성 함수 (레벨 정보 포함)
     const addTempRating = (attendee: any) => {
       const tempRating = Math.random() * 2 + 6 // 6.0-8.0 사이 랜덤
+      const user = allUsers.find(u => u.id === attendee.userId)
       return {
         ...attendee,
-        rating: Number(tempRating.toFixed(1))
+        rating: Number(tempRating.toFixed(1)),
+        level: user?.level || 1
       }
     }
 
@@ -95,6 +98,8 @@ export async function GET() {
         trainingContent: schedule.trainingContent,
         status: schedule.status.toLowerCase(), // SCHEDULED -> scheduled
         attendees: allAttendees.map(addTempRating),
+        teamFormation: schedule.teamFormation, // 팀편성 결과 포함
+        formationDate: schedule.formationDate?.toISOString() || null,
         createdBy: {
           id: schedule.creator.id,
           name: schedule.creator.realName || schedule.creator.nickname

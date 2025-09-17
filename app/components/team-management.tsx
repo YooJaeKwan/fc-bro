@@ -210,7 +210,7 @@ export function TeamManagement({ isManagerMode }: TeamManagementProps) {
                           <DialogHeader>
                             <DialogTitle>{member.name} 상세 정보</DialogTitle>
                           </DialogHeader>
-                          <div className="space-y-4">
+                          <div className="space-y-5">
                             <div className="grid grid-cols-2 gap-4">
                               <div className="space-y-2">
                                 <Label>이름</Label>
@@ -247,8 +247,7 @@ export function TeamManagement({ isManagerMode }: TeamManagementProps) {
                             {isManagerMode && (
                               <div className="space-y-2">
                                 <Label className="flex items-center gap-2">
-                                  <Target className="h-4 w-4" />
-                                  선수 레벨 (총무 전용)
+                                  선수 레벨
                                 </Label>
                                 <div className="space-y-3">
                                   <div className="flex items-center gap-2">
