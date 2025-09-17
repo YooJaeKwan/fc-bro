@@ -43,12 +43,12 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [availableLocations, setAvailableLocations] = useState<any[]>([])
   const [isLoadingLocations, setIsLoadingLocations] = useState(false)
-  
+
   // 팀편성 관련 상태
   const [formationResults, setFormationResults] = useState<any>(null)
   const [isFormingTeams, setIsFormingTeams] = useState(false)
   const [isSavingFormation, setIsSavingFormation] = useState(false)
-  
+
   const [newSchedule, setNewSchedule] = useState({
     type: "internal",
     date: "",
@@ -103,7 +103,7 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
     try {
       setIsLoadingLocations(true)
       const response = await fetch('/api/schedule/locations')
-      
+
       if (response.ok) {
         const result = await response.json()
         setAvailableLocations(result.locations || [])
@@ -168,7 +168,7 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
   }
 
   const generateAutoTitle = (location: string, time: string) => {
-    return `${location}\\n${time}`
+    return `${location}\n${time}`
   }
 
   const handleScheduleSubmit = async () => {
@@ -183,8 +183,8 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
       const autoTitle = generateAutoTitle(newSchedule.location, newSchedule.time)
 
       // 선택된 날짜를 정확하게 포맷팅 (한국시간 기준)
-      const finalDate = selectedDate ? 
-        `${selectedDate.getFullYear()}-${(selectedDate.getMonth() + 1).toString().padStart(2, '0')}-${selectedDate.getDate().toString().padStart(2, '0')}` 
+      const finalDate = selectedDate ?
+        `${selectedDate.getFullYear()}-${(selectedDate.getMonth() + 1).toString().padStart(2, '0')}-${selectedDate.getDate().toString().padStart(2, '0')}`
         : newSchedule.date
 
       const scheduleData = {
@@ -332,15 +332,15 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
 
     try {
       console.log('일정 삭제 요청:', scheduleId)
-      
+
       const response = await fetch('/api/schedule/delete', {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           scheduleId,
-          userId: currentUser.id 
+          userId: currentUser.id
         })
       })
 
@@ -353,7 +353,7 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
       console.log('일정 삭제 성공:', result)
       await fetchSchedules()
       setError("")
-      
+
     } catch (error) {
       console.error('일정 삭제 오류:', error)
       setError(error instanceof Error ? error.message : '일정 삭제 중 오류가 발생했습니다.')
@@ -398,7 +398,7 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
         const dateB = new Date(Number(yearB), Number(monthB) - 1, Number(dayB))
         return dateA.getTime() - dateB.getTime()
       })
-    
+
     return upcomingSchedules[0] || null
   }
 
@@ -408,14 +408,14 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
     // 한국시간 기준으로 D-Day 계산
     const today = new Date()
     today.setHours(0, 0, 0, 0)
-    
+
     const [year, month, day] = scheduleDate.split('-')
     const matchDate = new Date(Number(year), Number(month) - 1, Number(day))
     matchDate.setHours(0, 0, 0, 0)
-    
+
     const diffTime = matchDate.getTime() - today.getTime()
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-    
+
     return diffDays
   }
 
@@ -425,20 +425,20 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
 
     const [hours, minutes] = startTime.split(":").map(Number)
     const startMinutes = hours * 60 + minutes
-    
+
     const quarters = []
     let currentMinutes = startMinutes
 
     for (let i = 1; i <= 4; i++) {
       const quarterStart = currentMinutes
       const quarterEnd = quarterStart + quarterTime
-      
+
       quarters.push({
         quarter: `${i}Q`,
         start: `${Math.floor(quarterStart / 60).toString().padStart(2, "0")}:${(quarterStart % 60).toString().padStart(2, "0")}`,
         end: `${Math.floor(quarterEnd / 60).toString().padStart(2, "0")}:${(quarterEnd % 60).toString().padStart(2, "0")}`
       })
-      
+
       // 다음 쿼터 시작 시간 (쿼터 시간 + 휴식 시간)
       currentMinutes = quarterEnd + (i < 4 ? restTime : 0)
     }
@@ -446,7 +446,7 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
     return quarters
   }
 
-  // 자동 팀편성 알고리즘 (게스트 포함, 레벨 기반 균형)
+  // 자동 팀편성 알고리즘 (우선순위: 인원수 > 포지션 균형 > 레벨 균형)
   const autoFormTeams = (schedule: any) => {
     const attendingPlayers = schedule.attendees.filter((attendee: any) =>
       attendee.status === 'attending' || attendee.status === 'attended'
@@ -456,47 +456,102 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
       return { yellowTeam: [], blueTeam: [], message: '팀편성에는 최소 6명이 필요합니다.' }
     }
 
-    // 레벨별로 선수들을 그룹화
-    const playersByLevel = attendingPlayers.reduce((acc: any, player: any) => {
-      const level = player.level || 7 // 기본 레벨 아마추어3
-      if (!acc[level]) acc[level] = []
-      // 선수 데이터에 level 필드가 없으면 추가
-      acc[level].push({ ...player, level })
-      return acc
-    }, {})
+    // 포지션별로 선수 그룹화
+    const playersByPosition = {
+      GK: [],
+      DEF: [], // DC, DR, DL, DRL, DRLC
+      MID: [], // MC, AMC, DM
+      FWD: []  // ST, CF, SS, LWF, RWF
+    }
 
-    // 레벨별로 정렬 (높은 레벨부터)
-    const sortedLevels = Object.keys(playersByLevel).sort((a, b) => Number(b) - Number(a))
+    attendingPlayers.forEach((player: any) => {
+      const position = player.position || 'MC'
+      const playerWithLevel = { ...player, level: player.level || 7 }
+
+      if (position === 'GK') {
+        playersByPosition.GK.push(playerWithLevel)
+      } else if (['DC', 'DR', 'DL', 'DRL', 'DRLC'].includes(position)) {
+        playersByPosition.DEF.push(playerWithLevel)
+      } else if (['MC', 'AMC', 'DM'].includes(position)) {
+        playersByPosition.MID.push(playerWithLevel)
+      } else if (['ST', 'CF', 'SS', 'LWF', 'RWF'].includes(position)) {
+        playersByPosition.FWD.push(playerWithLevel)
+      } else {
+        // 기타 포지션은 미드필더로 분류
+        playersByPosition.MID.push(playerWithLevel)
+      }
+    })
+
+    // 각 포지션그룹 내에서 레벨 순으로 정렬
+    Object.keys(playersByPosition).forEach(pos => {
+      playersByPosition[pos].sort((a, b) => (b.level || 7) - (a.level || 7))
+    })
 
     const yellowTeam = []
     const blueTeam = []
 
-    // 각 레벨 그룹에서 번갈아가며 팀에 배치
-    sortedLevels.forEach(level => {
-      const playersInLevel = playersByLevel[level]
-
-      // 레벨 내에서 랜덤하게 섞기
-      const shuffled = playersInLevel.sort(() => Math.random() - 0.5)
-
-      shuffled.forEach((player: any, index: number) => {
-        // 현재 팀 인원수 확인
-        const yellowCount = yellowTeam.length
-        const blueCount = blueTeam.length
-
-        // 인원이 적은 팀에 우선 배치
-        if (yellowCount <= blueCount) {
-          yellowTeam.push(player)
-        } else {
-          blueTeam.push(player)
-        }
-      })
+    // 1. 골키퍼 분배 (번갈아가며 하나씩)
+    playersByPosition.GK.forEach((player, index) => {
+      if (index % 2 === 0) {
+        yellowTeam.push(player)
+      } else {
+        blueTeam.push(player)
+      }
     })
+
+    // 2. 수비수 분배 (레벨 높은 순으로 번갈아가며)
+    playersByPosition.DEF.forEach((player, index) => {
+      // 현재 팀 인원수 확인하여 적은 팀에 배치
+      if (yellowTeam.length <= blueTeam.length) {
+        yellowTeam.push(player)
+      } else {
+        blueTeam.push(player)
+      }
+    })
+
+    // 3. 미드필더 분배
+    playersByPosition.MID.forEach((player, index) => {
+      if (yellowTeam.length <= blueTeam.length) {
+        yellowTeam.push(player)
+      } else {
+        blueTeam.push(player)
+      }
+    })
+
+    // 4. 공격수 분배
+    playersByPosition.FWD.forEach((player, index) => {
+      if (yellowTeam.length <= blueTeam.length) {
+        yellowTeam.push(player)
+      } else {
+        blueTeam.push(player)
+      }
+    })
+
+    // 최종 인원 균형 조정 (차이가 2명 이상이면 레벨 낮은 선수 이동)
+    const diff = Math.abs(yellowTeam.length - blueTeam.length)
+    if (diff >= 2) {
+      const largerTeam = yellowTeam.length > blueTeam.length ? yellowTeam : blueTeam
+      const smallerTeam = yellowTeam.length > blueTeam.length ? blueTeam : yellowTeam
+
+      // 레벨이 가장 낮은 선수를 인원이 적은 팀으로 이동
+      const transferCount = Math.floor(diff / 2)
+      const sortedByLevel = [...largerTeam].sort((a, b) => (a.level || 7) - (b.level || 7))
+
+      for (let i = 0; i < transferCount; i++) {
+        const playerToTransfer = sortedByLevel[i]
+        const index = largerTeam.indexOf(playerToTransfer)
+        if (index > -1) {
+          largerTeam.splice(index, 1)
+          smallerTeam.push(playerToTransfer)
+        }
+      }
+    }
 
     const result = {
       yellowTeam,
       blueTeam,
-      yellowAverage: yellowTeam.reduce((sum, p) => sum + (p.level || 1), 0) / yellowTeam.length,
-      blueAverage: blueTeam.reduce((sum, p) => sum + (p.level || 1), 0) / blueTeam.length
+      yellowAverage: yellowTeam.reduce((sum, p) => sum + (p.level || 7), 0) / yellowTeam.length,
+      blueAverage: blueTeam.reduce((sum, p) => sum + (p.level || 7), 0) / blueTeam.length
     }
 
     return {
@@ -553,8 +608,8 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                   <Label htmlFor="type">경기 유형 *</Label>
                   <Select
                     value={newSchedule.type}
-                    onValueChange={(value) => setNewSchedule({ 
-                      ...newSchedule, 
+                    onValueChange={(value) => setNewSchedule({
+                      ...newSchedule,
                       type: value,
                       opponentTeam: "",
                       trainingContent: ""
@@ -709,7 +764,7 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                         onChange={(e) => setNewSchedule({ ...newSchedule, location: e.target.value })}
                         placeholder="또는 직접 입력하세요"
                       />
-                      {newSchedule.location && 
+                      {newSchedule.location &&
                        !availableLocations.some((loc: any) => loc.name === newSchedule.location) && (
                         <div className="absolute right-2 top-1/2 -translate-y-1/2">
                           <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-700 border-yellow-300">
@@ -832,10 +887,10 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                 <Button
                   onClick={isEditingSchedule ? handleScheduleUpdate : handleScheduleSubmit}
                   disabled={
-                    !selectedDate || 
+                    !selectedDate ||
                     isNaN(selectedDate.getTime()) ||
-                    !newSchedule.time || 
-                    !newSchedule.location || 
+                    !newSchedule.time ||
+                    !newSchedule.location ||
                     (newSchedule.type === "match" && !newSchedule.opponentTeam) ||
                     (newSchedule.type === "training" && !newSchedule.trainingContent) ||
                     isSubmitting
@@ -867,7 +922,7 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
       {nextUpcomingSchedule && (
         <div className="space-y-2">
           {/* <h3 className="text-lg font-semibold">다음 일정</h3> */}
-          <Card className="border-l-4 border-l-blue-500">            
+          <Card className="border-l-4 border-l-blue-500">
             {/* <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
                 <CalendarIcon className="h-5 w-5" />
@@ -899,7 +954,7 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                     <span>{nextUpcomingSchedule.time}</span>
                   </h3>
                 </div>
-                
+
                 <div className="flex items-center justify-center">
                     <div className="flex items-center gap-2">
                         <Badge className={getTypeColor(nextUpcomingSchedule.type)} variant="secondary">
@@ -912,18 +967,18 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                         )}
                         {isManagerMode && (
                         <>
-                            <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="h-8 w-8 p-0" 
+                            <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
                             onClick={() => handleEditSchedule(nextUpcomingSchedule)}
                             >
                             <Edit className="h-4 w-4" />
                             </Button>
-                            <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50" 
+                            <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
                             onClick={() => handleDeleteSchedule(nextUpcomingSchedule.id, `${nextUpcomingSchedule.location} ${nextUpcomingSchedule.time}`)}
                             >
                             <Trash2 className="h-4 w-4" />
@@ -953,7 +1008,7 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                        <div className="text-muted-foreground">집합: {nextUpcomingSchedule.gatherTime}</div>
                      </div>
                    </div>
-                   
+
                    {/* 쿼터 시간 표시 */}
                    {nextUpcomingSchedule.quarterTime && (
                      <div className="space-y-2">
@@ -961,8 +1016,8 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                        <div className="bg-white rounded border p-2">
                          <div className="grid grid-cols-4 gap-0 text-xs font-mono">
                            {calculateQuarters(
-                             nextUpcomingSchedule.time, 
-                             nextUpcomingSchedule.quarterTime || 25, 
+                             nextUpcomingSchedule.time,
+                             nextUpcomingSchedule.quarterTime || 25,
                              nextUpcomingSchedule.restTime || 5
                            ).map((quarter) => (
                              <div key={quarter.quarter} className="text-center p-1">
@@ -1049,27 +1104,27 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                                   levelDifference: result.levelDifference
                                 })
                               })
-                              
+
                               if (saveResponse.ok) {
                                 setFormationResults({ ...result, scheduleId: nextUpcomingSchedule.id })
                                 fetchSchedules()
                               } else {
-                                setFormationResults({ 
-                                  yellowTeam: [], 
-                                  blueTeam: [], 
+                                setFormationResults({
+                                  yellowTeam: [],
+                                  blueTeam: [],
                                   message: '팀편성 저장에 실패했습니다.',
-                                  scheduleId: nextUpcomingSchedule.id 
+                                  scheduleId: nextUpcomingSchedule.id
                                 })
                               }
                               setIsSavingFormation(false)
                             }
                           } catch (error) {
                             console.error('팀편성 중 오류:', error)
-                            setFormationResults({ 
-                              yellowTeam: [], 
-                              blueTeam: [], 
+                            setFormationResults({
+                              yellowTeam: [],
+                              blueTeam: [],
                               message: '팀편성 중 오류가 발생했습니다.',
-                              scheduleId: nextUpcomingSchedule.id 
+                              scheduleId: nextUpcomingSchedule.id
                             })
                           } finally {
                             setIsFormingTeams(false)
@@ -1141,9 +1196,9 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                       <h4 className="font-medium text-base">노랑팀 ({formationResults.yellowTeam.length}명)</h4>
                     </div>
                     <div className="text-xs text-muted-foreground text-left pl-6">
-                      골키퍼 {formationResults.yellowTeam.filter((p: any) => p.position === 'GK').length} | 
-                      수비수 {formationResults.yellowTeam.filter((p: any) => ['DC', 'DR', 'DL', 'DRL', 'DRLC'].includes(p.position)).length} | 
-                      미드필더 {formationResults.yellowTeam.filter((p: any) => ['MC', 'AMC', 'DM'].includes(p.position)).length} | 
+                      골키퍼 {formationResults.yellowTeam.filter((p: any) => p.position === 'GK').length} |
+                      수비수 {formationResults.yellowTeam.filter((p: any) => ['DC', 'DR', 'DL', 'DRL', 'DRLC'].includes(p.position)).length} |
+                      미드필더 {formationResults.yellowTeam.filter((p: any) => ['MC', 'AMC', 'DM'].includes(p.position)).length} |
                       공격수 {formationResults.yellowTeam.filter((p: any) => ['ST', 'CF', 'SS', 'LWF', 'RWF'].includes(p.position)).length}
                     </div>
                   </div>
@@ -1221,9 +1276,9 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                       <h4 className="font-medium text-base">파랑팀 ({formationResults.blueTeam.length}명)</h4>
                     </div>
                     <div className="text-xs text-muted-foreground text-left pl-6">
-                      골키퍼 {formationResults.blueTeam.filter((p: any) => p.position === 'GK').length} | 
-                      수비수 {formationResults.blueTeam.filter((p: any) => ['DC', 'DR', 'DL', 'DRL', 'DRLC'].includes(p.position)).length} | 
-                      미드필더 {formationResults.blueTeam.filter((p: any) => ['MC', 'AMC', 'DM'].includes(p.position)).length} | 
+                      골키퍼 {formationResults.blueTeam.filter((p: any) => p.position === 'GK').length} |
+                      수비수 {formationResults.blueTeam.filter((p: any) => ['DC', 'DR', 'DL', 'DRL', 'DRLC'].includes(p.position)).length} |
+                      미드필더 {formationResults.blueTeam.filter((p: any) => ['MC', 'AMC', 'DM'].includes(p.position)).length} |
                       공격수 {formationResults.blueTeam.filter((p: any) => ['ST', 'CF', 'SS', 'LWF', 'RWF'].includes(p.position)).length}
                     </div>
                   </div>
@@ -1346,7 +1401,7 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
             .filter(schedule => schedule.id !== nextUpcomingSchedule?.id) // 다음 일정 제외
             .map((schedule) => {
             const stats = getAttendanceStats(schedule.attendees)
-            
+
             return (
               <Card key={schedule.id} className="hover:shadow-lg transition-shadow">
                 <CardContent className="p-6">
@@ -1358,8 +1413,8 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                           // 한국시간으로 저장된 날짜를 그대로 표시
                           const [year, month, day] = schedule.date.split('-')
                           const date = new Date(Number(year), Number(month) - 1, Number(day))
-                          return date.toLocaleDateString('ko-KR', { 
-                            month: 'long', 
+                          return date.toLocaleDateString('ko-KR', {
+                            month: 'long',
                             day: 'numeric',
                             weekday: 'short'
                           })
@@ -1371,18 +1426,18 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                         </Badge>
                         {isManagerMode && (
                           <>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="h-6 w-6 p-0" 
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0"
                               onClick={() => handleEditSchedule(schedule)}
                             >
                               <Edit className="h-3 w-3" />
                             </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50" 
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
                               onClick={() => handleDeleteSchedule(schedule.id, `${schedule.location} ${schedule.time}`)}
                             >
                               <Trash2 className="h-3 w-3" />
@@ -1391,7 +1446,7 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                         )}
                       </div>
                     </div>
-                    
+
                      <div className="items-center gap-4 text-sm text-muted-foreground">
                        <div className="flex items-center gap-1">
                          <MapPin className="h-4 w-4" />
@@ -1437,7 +1492,7 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                           onAttendanceUpdate={fetchSchedules}
                           allowGuests={schedule.allowGuests}
                         />
-                        
+
                       </div>
                     )}
                   </div>
