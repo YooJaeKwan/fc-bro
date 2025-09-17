@@ -20,27 +20,13 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Progress } from "@/components/ui/progress"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { CalendarIcon, Clock, MapPin, Users, Plus, Check, X, AlertCircle, Timer, Coffee, TrendingUp, Target, Edit } from "lucide-react"
+import { Calendar as CalendarIcon, Clock, MapPin, Users, Plus, Check, X, AlertCircle, Timer, Coffee, TrendingUp, Target, Edit } from "lucide-react"
 import { format } from "date-fns"
 import { ko } from "date-fns/locale"
 import { cn } from "@/lib/utils"
 import { AttendanceVoting } from "./attendance-voting"
 
-// 자주 사용하는 장소 목록 추가
-const popularLocations = [
-  "잠실종합운동장 보조구장",
-  "한강공원 축구장",
-  "올림픽공원 축구장",
-  "월드컵공원 축구장",
-  "탄천종합운동장",
-  "서울숲 축구장",
-  "뚝섬한강공원 축구장",
-  "반포한강공원 축구장",
-  "여의도한강공원 축구장",
-  "상암월드컵경기장 보조구장",
-  "송파구민체육센터",
-  "강남구민체육센터",
-]
+// 장소 목록을 동적으로 로드
 
 interface ScheduleManagementProps {
   isManagerMode: boolean
@@ -57,6 +43,8 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
   const [selectedDate, setSelectedDate] = useState<Date>()
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [availableLocations, setAvailableLocations] = useState<any[]>([])
+  const [isLoadingLocations, setIsLoadingLocations] = useState(false)
   const [newSchedule, setNewSchedule] = useState({
     type: "internal",
     date: "",
@@ -73,6 +61,7 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
 
   useEffect(() => {
     fetchSchedules()
+    fetchAvailableLocations()
   }, [])
 
   const fetchSchedules = async () => {
@@ -97,6 +86,34 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const fetchAvailableLocations = async () => {
+    try {
+      setIsLoadingLocations(true)
+      console.log('사용 가능한 장소 목록 가져오는 중...')
+
+      const response = await fetch('/api/schedule/locations')
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || '장소 목록을 가져올 수 없습니다.')
+      }
+
+      console.log('장소 목록 로드 성공:', result.locations.length + '개')
+      setAvailableLocations(result.locations)
+
+    } catch (error) {
+      console.error('장소 목록 조회 오류:', error)
+      // 장소 로딩 실패는 전체 기능을 막지 않음
+    } finally {
+      setIsLoadingLocations(false)
+    }
+  }
+
+  // 제목 자동 생성 함수 (장소 + 시간)
+  const generateAutoTitle = (location: string, time: string) => {
+    return `${location}\n${time}`
   }
 
   // 시간 옵션 생성 (6:00부터 23:30까지 30분 단위)
@@ -151,19 +168,8 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
     setIsSubmitting(true)
 
     try {
-      // 유형에 따른 제목 자동 생성
-      let autoTitle = ""
-      switch (newSchedule.type) {
-        case "internal":
-          autoTitle = "자체경기"
-          break
-        case "match":
-          autoTitle = `vs ${newSchedule.opponentTeam}`
-          break
-        case "training":
-          autoTitle = `연습 - ${newSchedule.trainingContent}`
-          break
-      }
+      // 장소 + 시간으로 제목 자동 생성
+      const autoTitle = generateAutoTitle(newSchedule.location, newSchedule.time)
 
       const scheduleData = {
         title: autoTitle,
@@ -200,6 +206,9 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
       
       // 일정 목록 새로고침
       await fetchSchedules()
+      
+      // 새로운 장소가 추가되었을 수 있으므로 장소 목록 다시 로드
+      fetchAvailableLocations()
       
       // 폼 초기화
       resetScheduleForm()
@@ -548,20 +557,49 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                       onValueChange={(value) => setNewSchedule({ ...newSchedule, location: value })}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="자주 사용하는 장소에서 선택" />
+                        <SelectValue placeholder="이전 사용 장소에서 선택" />
                       </SelectTrigger>
-                      <SelectContent>
-                        <div className="px-2 py-1 text-xs font-medium text-muted-foreground bg-muted">
-                          자주 사용하는 장소
-                        </div>
-                        {popularLocations.map((location) => (
-                          <SelectItem key={location} value={location}>
-                            <div className="flex items-center gap-2">
-                              <MapPin className="h-4 w-4" />
-                              {location}
-                            </div>
-                          </SelectItem>
-                        ))}
+                      <SelectContent className="max-h-60">
+                        {isLoadingLocations ? (
+                          <div className="px-2 py-1 text-xs text-muted-foreground">
+                            장소 목록 로딩 중...
+                          </div>
+                        ) : (
+                          <>
+                            {availableLocations.filter(loc => loc.type === 'used').length > 0 && (
+                              <div className="px-2 py-1 text-xs font-medium text-muted-foreground bg-muted">
+                                이전에 사용한 장소
+                              </div>
+                            )}
+                            {availableLocations.filter(loc => loc.type === 'used').map((location) => (
+                              <SelectItem key={location.name} value={location.name}>
+                                <div className="flex items-center gap-2">
+                                  <MapPin className="h-4 w-4 text-blue-500" />
+                                  <span>{location.name}</span>
+                                  <Badge variant="secondary" className="text-xs ml-auto">
+                                    {location.count}회
+                                  </Badge>
+                                </div>
+                              </SelectItem>
+                            ))}
+                            
+                            {availableLocations.filter(loc => loc.type === 'popular').length > 0 && (
+                              <>
+                                <div className="px-2 py-1 text-xs font-medium text-muted-foreground bg-muted mt-2">
+                                  추천 장소
+                                </div>
+                                {availableLocations.filter(loc => loc.type === 'popular').map((location) => (
+                                  <SelectItem key={location.name} value={location.name}>
+                                    <div className="flex items-center gap-2">
+                                      <MapPin className="h-4 w-4 text-green-500" />
+                                      <span>{location.name}</span>
+                                    </div>
+                                  </SelectItem>
+                                ))}
+                              </>
+                            )}
+                          </>
+                        )}
                       </SelectContent>
                     </Select>
 
@@ -572,9 +610,10 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                         onChange={(e) => setNewSchedule({ ...newSchedule, location: e.target.value })}
                         placeholder="또는 직접 입력하세요"
                       />
-                      {newSchedule.location && !popularLocations.includes(newSchedule.location) && (
+                      {newSchedule.location && 
+                       !availableLocations.some(loc => loc.name === newSchedule.location) && (
                         <div className="absolute right-2 top-1/2 -translate-y-1/2">
-                          <Badge variant="outline" className="text-xs">
+                          <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-700 border-yellow-300">
                             신규
                           </Badge>
                         </div>
@@ -734,7 +773,7 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
               <CardHeader className="pb-3">
                 <div className="space-y-3">
                     <div className="flex items-start justify-between gap-2">
-                      <CardTitle className="text-base sm:text-lg leading-tight">{schedule.title}</CardTitle>
+                       <CardTitle className="text-base sm:text-lg leading-tight whitespace-pre-line">{schedule.title}</CardTitle>
                       <div className="flex flex-col sm:flex-row gap-1 sm:gap-2 flex-shrink-0">
                         <Badge className={getTypeColor(schedule.type)} variant="secondary">
                           {schedule.type === "internal" ? "자체경기" : schedule.type === "match" ? "A매치" : "연습"}
@@ -750,29 +789,21 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                       </div>
                     </div>
 
-                  {/* 모바일에서는 세로 스택, 데스크톱에서는 그리드 */}
-                  <div className="space-y-2 sm:space-y-1">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-2">
-                        <CalendarIcon className="h-4 w-4 flex-shrink-0" />
-                        <span>{schedule.date}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4 flex-shrink-0" />
-                        <span>시작: {schedule.time}</span>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-2">
-                        <Users className="h-4 w-4 flex-shrink-0" />
-                        <span>집합: {schedule.gatherTime}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4 flex-shrink-0" />
-                        <span className="truncate">{schedule.location}</span>
-                      </div>
-                    </div>
-                  </div>
+                   {/* 간소화된 정보 - 제목에 장소+시간이 있으므로 중복 제거 */}
+                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                     <div className="flex items-center gap-2">
+                       <CalendarIcon className="h-4 w-4 flex-shrink-0" />
+                       <span>{new Intl.DateTimeFormat('ko-KR', {
+                         month: 'short',
+                         day: 'numeric',
+                         weekday: 'short'
+                       }).format(new Date(schedule.date))}</span>
+                     </div>
+                     <div className="flex items-center gap-2">
+                       <Users className="h-4 w-4 flex-shrink-0" />
+                       <span>집합: {schedule.gatherTime}</span>
+                     </div>
+                   </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">

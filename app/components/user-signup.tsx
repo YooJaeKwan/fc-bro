@@ -21,6 +21,7 @@ export function UserSignup({ kakaoUserInfo, onSignupComplete, onBack }: UserSign
   const [formData, setFormData] = useState({
     realName: "",
     phoneNumber: "",
+    birthYear: "",
     preferredPosition: "",
     subPosition1: "",
     subPosition2: "",
@@ -91,6 +92,11 @@ export function UserSignup({ kakaoUserInfo, onSignupComplete, onBack }: UserSign
       if (!phoneRegex.test(formData.phoneNumber)) {
         newErrors.phoneNumber = "올바른 전화번호 형식이 아닙니다. (예: 01012345678)"
       }
+    }
+
+    // 출생연도 검증
+    if (!formData.birthYear) {
+      newErrors.birthYear = "출생연도를 선택해주세요."
     }
 
     // 희망포지션 검증
@@ -165,6 +171,7 @@ export function UserSignup({ kakaoUserInfo, onSignupComplete, onBack }: UserSign
     handleInputChange('jerseyNumber', numbersOnly)
   }
 
+
   // 부포지션 선택에서 이미 선택된 포지션들 제외
   const getAvailableSubPositions = (excludePositions: string[] = []) => {
     return allPositions.filter(pos => !excludePositions.includes(pos.value))
@@ -188,6 +195,7 @@ export function UserSignup({ kakaoUserInfo, onSignupComplete, onBack }: UserSign
         // 입력 정보
         realName: formData.realName.trim(),
         phoneNumber: formData.phoneNumber,
+        birthYear: formData.birthYear,
         preferredPosition: formData.preferredPosition,
         subPositions: [formData.subPosition1, formData.subPosition2].filter(pos => pos !== ""),
         region: formData.region,
@@ -285,6 +293,32 @@ export function UserSignup({ kakaoUserInfo, onSignupComplete, onBack }: UserSign
             )}
           </div>
 
+          {/* 출생연도 선택 */}
+          <div className="space-y-2">
+            <Label>출생연도 *</Label>
+            <Select
+              value={formData.birthYear}
+              onValueChange={(value) => handleInputChange('birthYear', value)}
+            >
+              <SelectTrigger className={errors.birthYear ? "border-red-500" : ""}>
+                <SelectValue placeholder="출생연도를 선택해주세요" />
+              </SelectTrigger>
+              <SelectContent className="max-h-60">
+                {Array.from({ length: new Date().getFullYear() - 1900 + 1 }, (_, i) => new Date().getFullYear() - i).map((year) => (
+                  <SelectItem key={year} value={year.toString()}>
+                    {year}년
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {errors.birthYear && (
+              <p className="text-sm text-red-500">{errors.birthYear}</p>
+            )}
+            <div className="text-xs text-muted-foreground">
+              팀 편성 시 연령대별 밸런스를 맞추는 데 활용됩니다.
+            </div>
+          </div>
+
           {/* 희망포지션 선택 */}
           <div className="space-y-2">
             <Label>희망포지션 (주포지션) *</Label>
@@ -317,7 +351,7 @@ export function UserSignup({ kakaoUserInfo, onSignupComplete, onBack }: UserSign
 
           {/* 부포지션 선택 */}
           <div className="space-y-3">
-            <Label>부포지션 (선택사항, 최대 2개)</Label>
+            {/* <Label>부포지션 (선택사항, 최대 2개)</Label> */}
             <div className="text-xs text-muted-foreground">
               주포지션 외에 소화 가능한 포지션을 선택해주세요.
             </div>
@@ -381,7 +415,7 @@ export function UserSignup({ kakaoUserInfo, onSignupComplete, onBack }: UserSign
             </div>
 
             {/* 선택된 부포지션 표시 */}
-            {(formData.subPosition1 || formData.subPosition2) && (
+            {/* {(formData.subPosition1 || formData.subPosition2) && (
               <div className="text-sm text-blue-600">
                 선택된 부포지션: {[formData.subPosition1, formData.subPosition2].filter(pos => pos !== "").join(', ')}
                 <button 
@@ -398,7 +432,7 @@ export function UserSignup({ kakaoUserInfo, onSignupComplete, onBack }: UserSign
                   초기화
                 </button>
               </div>
-            )}
+            )} */}
 
             {errors.subPositions && (
               <p className="text-sm text-red-500">{errors.subPositions}</p>
@@ -486,9 +520,9 @@ export function UserSignup({ kakaoUserInfo, onSignupComplete, onBack }: UserSign
                 ))}
               </SelectContent>
             </Select>
-            <div className="text-xs text-muted-foreground">
+            {/* <div className="text-xs text-muted-foreground">
               팀 편성 시 참고 정보로 활용됩니다.
-            </div>
+            </div> */}
           </div>
 
           {/* 등번호 선택 */}

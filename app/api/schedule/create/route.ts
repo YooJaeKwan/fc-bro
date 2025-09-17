@@ -76,19 +76,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 유형에 따른 제목 자동 생성
-    let autoTitle = ""
-    switch (type) {
-      case "internal":
-        autoTitle = "자체경기"
-        break
-      case "match":
-        autoTitle = `vs ${opponentTeam}`
-        break
-      case "training":
-        autoTitle = `연습 - ${trainingContent}`
-        break
-    }
+    // 장소 + 시간으로 제목 자동 생성
+    const autoTitle = `${location}\n${time}`
 
     // 새 일정 생성
     const newSchedule = await prisma.schedule.create({

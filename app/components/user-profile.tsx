@@ -427,7 +427,7 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
               </div>
 
               {/* 선택된 부포지션 표시 */}
-              {(formData.subPosition1 || formData.subPosition2) && (
+              {/* {(formData.subPosition1 || formData.subPosition2) && (
                 <div className="text-sm text-blue-600">
                   선택된 부포지션: {[formData.subPosition1, formData.subPosition2].filter(pos => pos !== "").join(', ')}
                   <button 
@@ -444,7 +444,7 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
                     초기화
                   </button>
                 </div>
-              )}
+              )} */}
 
               {errors.subPositions && (
                 <p className="text-sm text-red-500">{errors.subPositions}</p>
@@ -532,9 +532,9 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
                   ))}
                 </SelectContent>
               </Select>
-            <div className="text-xs text-muted-foreground">
+            {/* <div className="text-xs text-muted-foreground">
               팀 편성 시 참고 정보로 활용됩니다.
-            </div>
+            </div> */}
           </div>
 
           {/* 등번호 입력 */}

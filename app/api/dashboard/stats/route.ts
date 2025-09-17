@@ -140,7 +140,7 @@ export async function GET() {
       data: {
         team: {
           name: "FC BRO",
-          emblem: "/placeholder.svg?height=60&width=60",
+          emblem: "/fc-bro-emblem.jpg",
           totalMembers,
           activeMembers: activeMembers.length,
           skillCategories: ["속도", "패스", "수비", "슈팅", "드리블", "체력", "멘탈"]

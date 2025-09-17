@@ -22,7 +22,7 @@ model User {
   phoneNumber   String?
   region        String?
   city          String?
-  birthYear     String?
+  birthYear     String
   preferredFoot String?
   jerseyNumber  Int?      // 등번호
   mainPosition     String?
@@ -34,12 +34,12 @@ model User {
 
   teams         TeamMember[]
   createdTeams  Team[]
-  matches       MatchPlayer[]
   posts           Post[]
   comments        Comment[]
   notifications   Notification[]
   createdSchedules Schedule[]     @relation("ScheduleCreator")
   scheduleAttendances ScheduleAttendance[]
+  playerStats      SchedulePlayerStat[]
 
   @@unique([provider, providerId])
 }
@@ -55,8 +55,6 @@ model Team {
   creator     User         @relation(fields: [creatorId], references: [id])
 
   members     TeamMember[]
-  homeMatches Match[]      @relation("HomeTeam")
-  awayMatches Match[]      @relation("AwayTeam")
   posts       Post[]
 }
 
@@ -73,38 +71,6 @@ model TeamMember {
   @@unique([userId, teamId])
 }
 
-model Match {
-  id           String        @id @default(cuid())
-  homeTeamId   String
-  awayTeamId   String?
-  matchDate    DateTime
-  location     String
-  homeScore    Int?
-  awayScore    Int?
-  status       String        @default("SCHEDULED") // SCHEDULED, ONGOING, COMPLETED, CANCELLED
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-
-  homeTeam     Team          @relation("HomeTeam", fields: [homeTeamId], references: [id])
-  awayTeam     Team?         @relation("AwayTeam", fields: [awayTeamId], references: [id])
-  players      MatchPlayer[]
-}
-
-model MatchPlayer {
-  id          String   @id @default(cuid())
-  matchId     String
-  userId      String
-  teamId      String
-  position    String?
-  goals       Int      @default(0)
-  assists     Int      @default(0)
-  attendance  String   @default("PENDING") // CONFIRMED, DECLINED, PENDING
-
-  match       Match    @relation(fields: [matchId], references: [id])
-  user        User     @relation(fields: [userId], references: [id])
-
-  @@unique([matchId, userId])
-}
 
 model Post {
   id          String    @id @default(cuid())
@@ -158,13 +124,21 @@ model Schedule {
   description     String?
   opponentTeam    String?   // A매치용 상대팀명
   trainingContent String?   // 연습용 연습내용
-  status          String    @default("SCHEDULED") // SCHEDULED, COMPLETED, CANCELLED
+  status          String    @default("SCHEDULED") // SCHEDULED, ONGOING, COMPLETED, CANCELLED
+  
+  // 경기 결과 관련 필드 (Match 테이블 기능 통합)
+  ourScore        Int?      // 우리팀 점수
+  opponentScore   Int?      // 상대팀 점수
+  mvpUserId       String?   // MVP 선정
+  matchSummary    String?   // 경기 요약/후기
+  
   createdBy       String
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
   creator      User      @relation("ScheduleCreator", fields: [createdBy], references: [id])
   attendances  ScheduleAttendance[]
+  playerStats  SchedulePlayerStat[]  // 개별 선수 통계
 }
 
 model ScheduleAttendance {
@@ -172,6 +146,26 @@ model ScheduleAttendance {
   scheduleId String
   userId     String
   status     String   @default("PENDING") // PENDING, ATTENDING, NOT_ATTENDING
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  schedule   Schedule @relation(fields: [scheduleId], references: [id])
+  user       User     @relation(fields: [userId], references: [id])
+
+  @@unique([scheduleId, userId])
+}
+
+model SchedulePlayerStat {
+  id         String   @id @default(cuid())
+  scheduleId String
+  userId     String
+  position   String?  // 해당 경기에서의 포지션
+  goals      Int      @default(0)
+  assists    Int      @default(0)
+  yellowCard Boolean  @default(false)
+  redCard    Boolean  @default(false)
+  rating     Float?   // 개별 평점 (1.0-10.0)
+  comment    String?  // 개별 코멘트
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 

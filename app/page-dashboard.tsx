@@ -38,7 +38,7 @@ import { UserProfile } from "./components/user-profile"
 // 기본 팀 정보 (고정값)
 const defaultTeamInfo = {
   name: "FC BRO",
-  emblem: "/placeholder.svg?height=60&width=60",
+  emblem: "/fc-bro-emblem.jpg",
   skillCategories: ["속도", "패스", "수비", "슈팅", "드리블", "체력", "멘탈"]
 }
 
@@ -151,7 +151,7 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
               </Avatar>
               <div className="hidden sm:block">
                 <h1 className="text-xl font-bold text-gray-900">{defaultTeamInfo.name}</h1>
-                <p className="text-sm text-gray-500">팀 관리 플랫폼</p>
+                {/* <p className="text-sm text-gray-500">팀 관리 플랫폼</p> */}
               </div>
               <div className="sm:hidden">
                 <h1 className="text-lg font-bold text-gray-900">FC BRO</h1>
@@ -168,11 +168,11 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
                 <div className="text-sm">
                   <p className="font-medium">{user?.realName || user?.nickname}</p>
                   <p className="text-xs text-muted-foreground">
-                    {user?.preferredPosition}
-                    {user?.subPositions && user.subPositions.length > 0 && 
+                    #{user?.jerseyNumber}
+                    {/* {user?.subPositions && user.subPositions.length > 0 && 
                       ` (+ ${user.subPositions.join(', ')})`
                     } • {user?.region} {user?.city}
-                    {user?.preferredFoot && ` • ${user.preferredFoot === 'RIGHT' ? '오른발' : user.preferredFoot === 'LEFT' ? '왼발' : '양발'}`}
+                    {user?.preferredFoot && ` • ${user.preferredFoot === 'RIGHT' ? '오른발' : user.preferredFoot === 'LEFT' ? '왼발' : '양발'}`} */}
                   </p>
                 </div>
               </div>
@@ -382,20 +382,46 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
                     <CardContent>
                       {dashboardData?.upcomingMatch ? (
                         <>
-                          <div className="text-2xl font-bold">
-                            {dashboardData.upcomingMatch.daysLeft > 0 ? `D-${dashboardData.upcomingMatch.daysLeft}` : 'D-DAY'}
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="text-2xl font-bold">
+                              {dashboardData.upcomingMatch.daysLeft === 0 ? (
+                                <span className="text-red-600">D-DAY</span>
+                              ) : dashboardData.upcomingMatch.daysLeft === 1 ? (
+                                <span className="text-orange-600">D-1</span>
+                              ) : dashboardData.upcomingMatch.daysLeft > 0 ? (
+                                `D-${dashboardData.upcomingMatch.daysLeft}`
+                              ) : (
+                                <span className="text-gray-500">지남</span>
+                              )}
+                            </div>
+                            {dashboardData.upcomingMatch.type === 'match' && (
+                              <Badge variant="destructive" className="text-xs">A매치</Badge>
+                            )}
+                            {dashboardData.upcomingMatch.type === 'internal' && (
+                              <Badge variant="default" className="text-xs">자체경기</Badge>
+                            )}
+                            {dashboardData.upcomingMatch.type === 'training' && (
+                              <Badge variant="secondary" className="text-xs">연습</Badge>
+                            )}
                           </div>
-                          <p className="text-xs text-muted-foreground">
-                            {dashboardData.upcomingMatch.date} {dashboardData.upcomingMatch.time}
+                          <p className="text-xs text-muted-foreground mb-1">
+                            {new Intl.DateTimeFormat('ko-KR', {
+                              month: 'short',
+                              day: 'numeric',
+                              weekday: 'short'
+                            }).format(new Date(dashboardData.upcomingMatch.date))} {dashboardData.upcomingMatch.time}
                           </p>
-                          <p className="text-xs text-muted-foreground">
-                            {dashboardData.upcomingMatch.title}
+                          <p className="text-xs text-muted-foreground truncate whitespace-pre-line">
+                            {`${dashboardData.upcomingMatch.location}\n${dashboardData.upcomingMatch.time}`}
                           </p>
                         </>
                       ) : (
                         <>
-                          <div className="text-2xl font-bold">-</div>
+                          <div className="text-2xl font-bold text-gray-400">-</div>
                           <p className="text-xs text-muted-foreground">예정된 경기 없음</p>
+                          <p className="text-xs text-blue-600 mt-1 cursor-pointer" onClick={() => setActiveTab("schedule")}>
+                            일정 추가하기 →
+                          </p>
                         </>
                       )}
                     </CardContent>
@@ -414,34 +440,77 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {/* 실제 데이터가 없으면 표시하지 않음 */}
                   {dashboardData?.upcomingMatch ? (
                     <div className="space-y-4">
-                      <div className="space-y-2">
-                        <div className="flex items-start gap-2 text-sm">
-                          <Clock className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                          <div>
-                            <div>
-                              경기 시간: {dashboardData.upcomingMatch.date} {dashboardData.upcomingMatch.time}
+                      {/* D-Day 표시 */}
+                      <div className="text-center">
+                        <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-full font-semibold">
+                          <Calendar className="h-4 w-4" />
+                          {dashboardData.upcomingMatch.daysLeft === 0 ? (
+                            <span className="text-red-600 font-bold">오늘 경기!</span>
+                          ) : dashboardData.upcomingMatch.daysLeft === 1 ? (
+                            <span className="text-orange-600 font-bold">내일 경기!</span>
+                          ) : dashboardData.upcomingMatch.daysLeft > 0 ? (
+                            <span>D-{dashboardData.upcomingMatch.daysLeft}</span>
+                          ) : (
+                            <span className="text-gray-500">지난 경기</span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* 경기 제목 */}
+                      <div className="text-center">
+                        <h3 className="text-lg font-bold text-gray-900 mb-2 whitespace-pre-line">
+                          {`${dashboardData.upcomingMatch.location}\n${dashboardData.upcomingMatch.time}`}
+                        </h3>
+                        {dashboardData.upcomingMatch.type === 'match' && (
+                          <Badge variant="destructive" className="mb-2">A매치</Badge>
+                        )}
+                        {dashboardData.upcomingMatch.type === 'internal' && (
+                          <Badge variant="default" className="mb-2">자체경기</Badge>
+                        )}
+                        {dashboardData.upcomingMatch.type === 'training' && (
+                          <Badge variant="secondary" className="mb-2">연습</Badge>
+                        )}
+                      </div>
+
+                      {/* 경기 세부 정보 - 중복 제거 후 간소화 */}
+                      <div className="space-y-3 bg-gray-50 rounded-lg p-4">
+                        <div className="flex items-center gap-3 text-sm">
+                          <Calendar className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                          <div className="flex-1">
+                            <div className="font-medium">
+                              {new Intl.DateTimeFormat('ko-KR', {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric',
+                                weekday: 'short'
+                              }).format(new Date(dashboardData.upcomingMatch.date))}
                             </div>
-                            <div className="text-muted-foreground">집합 시간: {dashboardData.upcomingMatch.gatherTime}</div>
+                            <div className="text-muted-foreground">집합: {dashboardData.upcomingMatch.gatherTime}</div>
                           </div>
                         </div>
-                        <div className="flex items-start gap-2 text-sm">
-                          <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                          <span>{dashboardData.upcomingMatch.location}</span>
+                      </div>
+
+                      {/* 참석 현황 */}
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">참석 현황</span>
+                          <div className="flex items-center gap-2">
+                            <Users className="h-4 w-4" />
+                            <Badge variant="outline" className="font-medium">
+                              {dashboardData.upcomingMatch.attendees}/{dashboardData.upcomingMatch.total}명
+                            </Badge>
+                            <span className="text-xs text-muted-foreground">
+                              ({dashboardData.upcomingMatch.attendanceRate}%)
+                            </span>
+                          </div>
                         </div>
+                        <Progress
+                          value={dashboardData.upcomingMatch.attendanceRate}
+                          className="h-2"
+                        />
                       </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">참석 현황</span>
-                        <Badge variant="secondary">
-                          {dashboardData.upcomingMatch.attendees}/{dashboardData.upcomingMatch.total}
-                        </Badge>
-                      </div>
-                      <Progress
-                        value={dashboardData.upcomingMatch.attendanceRate}
-                        className="mt-2"
-                      />
                     </div>
                   ) : (
                     <div className="text-center py-6 text-muted-foreground">

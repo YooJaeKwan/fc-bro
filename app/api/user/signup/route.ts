@@ -12,6 +12,7 @@ export async function POST(request: NextRequest) {
       profileImage, 
       realName, 
       phoneNumber, 
+      birthYear,
       preferredPosition,
       subPositions = [],
       region,
@@ -21,7 +22,7 @@ export async function POST(request: NextRequest) {
     } = body
 
     // 필수 필드 검증
-    if (!kakaoId || !realName || !phoneNumber || !preferredPosition || !region || !city) {
+    if (!kakaoId || !realName || !phoneNumber || !birthYear || !preferredPosition || !region || !city) {
       return NextResponse.json(
         { error: '필수 정보가 누락되었습니다.' }, 
         { status: 400 }
@@ -60,6 +61,24 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // 출생연도 검증
+    const currentYear = new Date().getFullYear()
+    const birthYearNum = parseInt(birthYear)
+    
+    if (!/^\d{4}$/.test(birthYear)) {
+      return NextResponse.json(
+        { error: '출생연도는 4자리 숫자로 입력해주세요.' }, 
+        { status: 400 }
+      )
+    }
+    
+    if (birthYearNum < 1900 || birthYearNum > currentYear - 5) {
+      return NextResponse.json(
+        { error: `출생연도는 1900년부터 ${currentYear - 5}년 사이로 입력해주세요.` }, 
+        { status: 400 }
+      )
+    }
+
     // 기존 사용자 확인 (카카오 ID로)
     const existingUser = await prisma.user.findUnique({
       where: { kakaoId: kakaoId.toString() }
@@ -94,6 +113,7 @@ export async function POST(request: NextRequest) {
         image: profileImage,
         realName: realName.trim(),
         phoneNumber,
+        birthYear,
         preferredPosition,
         subPositions,
         region,
@@ -118,6 +138,7 @@ export async function POST(request: NextRequest) {
         kakaoId: newUser.kakaoId,
         nickname: newUser.nickname,
         realName: newUser.realName,
+        birthYear: newUser.birthYear,
         preferredPosition: newUser.preferredPosition,
         subPositions: newUser.subPositions,
         region: newUser.region,
