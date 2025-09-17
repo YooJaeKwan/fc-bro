@@ -151,17 +151,7 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         <Button size="sm" className="w-full sm:w-auto">
-          {isManagerMode ? (
-            <>
-              <Users className="h-4 w-4 mr-2" />
-              참석 투표 보기
-            </>
-          ) : (
-            <>
-              {getStatusIcon(currentUserStatus)}
-              <span className="ml-2">참석 여부 선택</span>
-            </>
-          )}
+          참석 여부 선택
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">

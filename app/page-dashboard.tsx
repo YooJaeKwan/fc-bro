@@ -730,7 +730,11 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
           </TabsContent>
 
           <TabsContent value="schedule">
-            <ScheduleManagement isManagerMode={isManagerMode} currentUser={user} />
+            <ScheduleManagement 
+              isManagerMode={isManagerMode} 
+              currentUser={user}
+              onSwitchToFormation={() => setActiveTab("formation")}
+            />
           </TabsContent>
 
           {isManagerMode && (

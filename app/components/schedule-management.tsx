@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -25,15 +25,17 @@ import { format } from "date-fns"
 import { ko } from "date-fns/locale"
 import { cn } from "@/lib/utils"
 import { AttendanceVoting } from "./attendance-voting"
+import { getLevelShortLabel } from '@/lib/level-system'
 
 // 장소 목록을 동적으로 로드
 
 interface ScheduleManagementProps {
   isManagerMode: boolean
   currentUser?: any
+  onSwitchToFormation?: () => void
 }
 
-export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManagementProps) {
+export function ScheduleManagement({ isManagerMode, currentUser, onSwitchToFormation }: ScheduleManagementProps) {
   const [schedules, setSchedules] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
@@ -114,6 +116,21 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
   // 제목 자동 생성 함수 (장소 + 시간)
   const generateAutoTitle = (location: string, time: string) => {
     return `${location}\n${time}`
+  }
+
+  // D-Day 계산 함수
+  const calculateDaysLeft = (scheduleDate: string) => {
+    const today = new Date()
+    const matchDate = new Date(scheduleDate)
+    
+    // 시간 차이를 제거하고 날짜만 비교
+    today.setHours(0, 0, 0, 0)
+    matchDate.setHours(0, 0, 0, 0)
+    
+    const diffTime = matchDate.getTime() - today.getTime()
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    
+    return diffDays
   }
 
   // 시간 옵션 생성 (6:00부터 23:30까지 30분 단위)
@@ -405,8 +422,124 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
     )
   }
 
+  // 다음 경기 찾기 (가장 가까운 미래 일정)
+  const getNextUpcomingSchedule = () => {
+    const now = new Date()
+    const upcomingSchedules = schedules
+      .filter(schedule => {
+        const scheduleDate = new Date(schedule.date)
+        return scheduleDate >= now && schedule.status === 'scheduled'
+      })
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    
+    return upcomingSchedules[0] || null
+  }
+
+  const nextUpcomingSchedule = getNextUpcomingSchedule()
+
   return (
     <div className="space-y-6">
+      {/* 다음 경기 섹션 - 간소화된 디자인 */}
+      {nextUpcomingSchedule && (
+        <Card className="border-l-4 border-l-blue-500 bg-blue-50/30">
+          <CardContent className="space-y-4 p-6">
+            {/* D-Day 표시 */}
+            <div className="text-center">
+              <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-full font-semibold">
+                <CalendarIcon className="h-4 w-4" />
+                {(() => {
+                  const daysLeft = calculateDaysLeft(nextUpcomingSchedule.date)
+                  return daysLeft === 0 ? (
+                    <span className="text-red-600 font-bold">오늘 경기!</span>
+                  ) : daysLeft === 1 ? (
+                    <span className="text-orange-600 font-bold">내일 경기!</span>
+                  ) : daysLeft > 0 ? (
+                    <span>D-{daysLeft}</span>
+                  ) : (
+                    <span className="text-gray-500">지난 경기</span>
+                  )
+                })()}
+              </div>
+            </div>
+
+            {/* 경기 제목 */}
+            <div className="text-center">
+              <h3 className="text-lg font-bold text-gray-900 mb-2">
+                {nextUpcomingSchedule.location}
+              </h3>
+              <h3 className="text-lg font-bold text-gray-900 mb-2">
+                {nextUpcomingSchedule.time}
+              </h3>
+              <div className="flex justify-center gap-2 flex-wrap">
+                <Badge className={getTypeColor(nextUpcomingSchedule.type)} variant="secondary">
+                  {nextUpcomingSchedule.type === "internal" ? "자체경기" : nextUpcomingSchedule.type === "match" ? "A매치" : "연습"}
+                </Badge>
+              </div>
+            </div>
+
+            {/* 경기 세부 정보 */}
+            <div className="space-y-3 bg-gray-50 rounded-lg p-4">
+              <div className="flex items-center gap-3 text-sm">
+                <CalendarIcon className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                <div className="flex-1">
+                  <div className="font-medium">
+                    {new Intl.DateTimeFormat('ko-KR', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                      weekday: 'short'
+                    }).format(new Date(nextUpcomingSchedule.date))}
+                  </div>
+                  <div className="text-muted-foreground">집합: {nextUpcomingSchedule.gatherTime}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* 참석 현황 */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">참석 현황</span>
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  <Badge variant="outline" className="font-medium">
+                    {getAttendanceStats(nextUpcomingSchedule.attendees).attending}/{getAttendanceStats(nextUpcomingSchedule.attendees).total}명
+                  </Badge>
+                  <span className="text-xs text-muted-foreground">
+                    ({getAttendanceStats(nextUpcomingSchedule.attendees).percentage}%)
+                  </span>
+                </div>
+              </div>
+              <Progress value={getAttendanceStats(nextUpcomingSchedule.attendees).percentage} className="h-2" />
+            </div>
+
+            {/* 액션 버튼들 - 아이콘 제거 */}
+            <div className="flex gap-2 pt-2">
+              <div className="flex-1">
+                <AttendanceVoting 
+                  schedule={nextUpcomingSchedule}
+                  currentUser={currentUser}
+                  isManagerMode={isManagerMode}
+                  onAttendanceUpdate={fetchSchedules}
+                />
+              </div>
+              {isManagerMode && (
+                <Button 
+                  onClick={() => {
+                    if (onSwitchToFormation) {
+                      onSwitchToFormation()
+                    }
+                  }}
+                  className="bg-green-600 hover:bg-green-700"
+                  size="sm"
+                >
+                  팀편성하기
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* 헤더 */}
       <div className="flex justify-end items-center">
         {isManagerMode && (
@@ -765,102 +898,150 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
             </CardContent>
           </Card>
         ) : (
-          schedules.map((schedule) => {
-          const stats = getAttendanceStats(schedule.attendees)
+          schedules
+            .filter(schedule => schedule.id !== nextUpcomingSchedule?.id) // 다음 경기 제외
+            .map((schedule) => {
+            const stats = getAttendanceStats(schedule.attendees)
+            const daysLeft = calculateDaysLeft(schedule.date)
 
           return (
             <Card key={schedule.id} className="hover:shadow-lg transition-shadow">
-              <CardHeader className="pb-3">
-                <div className="space-y-3">
-                    <div className="flex items-start justify-between gap-2">
-                       <CardTitle className="text-base sm:text-lg leading-tight whitespace-pre-line">{schedule.title}</CardTitle>
-                      <div className="flex flex-col sm:flex-row gap-1 sm:gap-2 flex-shrink-0">
-                        <Badge className={getTypeColor(schedule.type)} variant="secondary">
-                          {schedule.type === "internal" ? "자체경기" : schedule.type === "match" ? "A매치" : "연습"}
+              <CardContent className="space-y-4 p-6">
+                {/* D-Day 표시 */}
+                <div className="text-center">
+                  <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-full font-semibold">
+                    <CalendarIcon className="h-4 w-4" />
+                    {daysLeft === 0 ? (
+                      <span className="text-red-600 font-bold">오늘 경기!</span>
+                    ) : daysLeft === 1 ? (
+                      <span className="text-orange-600 font-bold">내일 경기!</span>
+                    ) : daysLeft > 0 ? (
+                      <span>D-{daysLeft}</span>
+                    ) : (
+                      <span className="text-gray-500">지난 경기</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* 경기 제목 */}
+                <div className="text-center">
+                  <h3 className="text-lg font-bold text-gray-900 mb-2 whitespace-pre-line">
+                    {schedule.location}
+                  </h3>
+                  <h3 className="text-lg font-bold text-gray-900 mb-2 whitespace-pre-line">
+                    {schedule.time}
+                  </h3>
+                  <div className="flex justify-center gap-2 flex-wrap">
+                    <Badge className={getTypeColor(schedule.type)} variant="secondary">
+                      {schedule.type === "internal" ? "자체경기" : schedule.type === "match" ? "A매치" : "연습"}
+                    </Badge>
+                    {/* <Badge className={getStatusColor(schedule.status)} variant="outline">
+                      {schedule.status === "scheduled" ? "예정" : "완료"}
+                    </Badge> */}
+                    {isManagerMode && schedule.status === "scheduled" && (
+                      <Button variant="ghost" size="sm" className="h-6 px-2" onClick={() => handleEditSchedule(schedule)}>
+                        <Edit className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                {/* 경기 세부 정보 - 대시보드와 동일한 스타일 */}
+                <div className="space-y-3 bg-gray-50 rounded-lg p-4">
+                  <div className="flex items-center gap-3 text-sm">
+                    <CalendarIcon className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                    <div className="flex-1">
+                      <div className="font-medium">
+                        {new Intl.DateTimeFormat('ko-KR', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                          weekday: 'short'
+                        }).format(new Date(schedule.date))}
+                      </div>
+                      <div className="text-muted-foreground">집합: {schedule.gatherTime}</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 설명 */}
+                {schedule.description && (
+                  <p className="text-sm text-muted-foreground text-center">{schedule.description}</p>
+                )}
+
+                {/* 참석 현황 - 대시보드와 동일한 스타일 */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">참석 현황</span>
+                    <div className="flex items-center gap-2">
+                      <Users className="h-4 w-4" />
+                      <Badge variant="outline" className="font-medium">
+                        {stats.attending}/{stats.total}명
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">
+                        ({stats.percentage}%)
+                      </span>
+                    </div>
+                  </div>
+                  <Progress value={stats.percentage} className="h-2" />
+                </div>
+
+                {/* 참석자 목록 */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {schedule.attendees.map((attendee, index) => (
+                    <div key={index} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+                      <Avatar className="h-6 w-6 flex-shrink-0">
+                        <AvatarFallback className="text-xs">{attendee.name[0]}</AvatarFallback>
+                      </Avatar>
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <span className="text-sm truncate">{attendee.name}</span>
+                        <Badge className={getPositionColor(attendee.position)} variant="outline" size="sm">
+                          {attendee.position}
                         </Badge>
-                        <Badge className={getStatusColor(schedule.status)} variant="outline">
-                          {schedule.status === "scheduled" ? "예정" : "완료"}
-                        </Badge>
-                        {isManagerMode && schedule.status === "scheduled" && (
-                          <Button variant="ghost" size="sm" className="h-6 px-2" onClick={() => handleEditSchedule(schedule)}>
-                            <Edit className="h-3 w-3" />
-                          </Button>
+                        {isManagerMode && (
+                          <span className="text-xs text-muted-foreground flex-shrink-0">{getLevelShortLabel(attendee.level)}</span>
+                        )}
+                      </div>
+                      <div className="flex-shrink-0">
+                        {attendee.status === "attending" || attendee.status === "attended" ? (
+                          <Check className="h-3 w-3 text-green-500" />
+                        ) : attendee.status === "not_attending" ? (
+                          <X className="h-3 w-3 text-red-500" />
+                        ) : (
+                          <AlertCircle className="h-3 w-3 text-yellow-500" />
                         )}
                       </div>
                     </div>
-
-                   {/* 간소화된 정보 - 제목에 장소+시간이 있으므로 중복 제거 */}
-                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                     <div className="flex items-center gap-2">
-                       <CalendarIcon className="h-4 w-4 flex-shrink-0" />
-                       <span>{new Intl.DateTimeFormat('ko-KR', {
-                         month: 'short',
-                         day: 'numeric',
-                         weekday: 'short'
-                       }).format(new Date(schedule.date))}</span>
-                     </div>
-                     <div className="flex items-center gap-2">
-                       <Users className="h-4 w-4 flex-shrink-0" />
-                       <span>집합: {schedule.gatherTime}</span>
-                     </div>
-                   </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-sm text-muted-foreground">{schedule.description}</p>
-
-                {/* 참석 현황 */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Users className="h-4 w-4" />
-                      <span className="text-sm font-medium">참석 현황</span>
-                    </div>
-                    <Badge variant="secondary">
-                      {stats.attending}/{stats.total} ({stats.percentage}%)
-                    </Badge>
-                  </div>
-                  <Progress value={stats.percentage} className="h-2" />
-
-                  {/* 참석자 목록 */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {schedule.attendees.map((attendee, index) => (
-                      <div key={index} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
-                        <Avatar className="h-6 w-6 flex-shrink-0">
-                          <AvatarFallback className="text-xs">{attendee.name[0]}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex items-center gap-2 min-w-0 flex-1">
-                          <span className="text-sm truncate">{attendee.name}</span>
-                          <Badge className={getPositionColor(attendee.position)} variant="outline" size="sm">
-                            {attendee.position}
-                          </Badge>
-                          {isManagerMode && (
-                            <span className="text-xs text-muted-foreground flex-shrink-0">{attendee.rating}</span>
-                          )}
-                        </div>
-                        <div className="flex-shrink-0">
-                          {attendee.status === "attending" || attendee.status === "attended" ? (
-                            <Check className="h-3 w-3 text-green-500" />
-                          ) : attendee.status === "not_attending" ? (
-                            <X className="h-3 w-3 text-red-500" />
-                          ) : (
-                            <AlertCircle className="h-3 w-3 text-yellow-500" />
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  ))}
                 </div>
 
-                {/* 참석 투표 컴포넌트 */}
+                {/* 참석 투표 및 팀편성 버튼 */}
                 {schedule.status === "scheduled" && (
-                  <div className="flex flex-col sm:flex-row gap-2 pt-2">
+                  <div className="flex flex-col gap-3 pt-2">
+                    {/* 참석 투표 */}
                     <AttendanceVoting 
                       schedule={schedule}
                       currentUser={currentUser}
                       isManagerMode={isManagerMode}
                       onAttendanceUpdate={fetchSchedules}
                     />
+                    
+                    {/* 총무 전용 팀편성 버튼 */}
+                    {isManagerMode && (
+                      <div className="flex justify-center">
+                        <Button 
+                          onClick={() => {
+                            if (onSwitchToFormation) {
+                              onSwitchToFormation()
+                            }
+                          }}
+                          className="bg-green-600 hover:bg-green-700"
+                          size="sm"
+                        >
+                          팀편성하기
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 )}
               </CardContent>
