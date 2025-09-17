@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
     const [year, month, day] = date.split('-')
     const [hour, minute] = time.split(':')
     const inputDateTime = new Date(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute))
-    
+
     if (inputDateTime < new Date()) {
       return NextResponse.json(
         { error: '과거 날짜로는 일정을 등록할 수 없습니다.' },
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
       data: {
         title: autoTitle,
         type,
-        matchDate: kstDateTime, // DateTime으로 저장
+        matchDate: inputDateTime, // DateTime으로 저장
         startTime: time,
         gatherTime,
         location: location.trim(),

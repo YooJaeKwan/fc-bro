@@ -654,7 +654,12 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
                 <Label className="text-sm font-medium text-muted-foreground">주포지션 (희망포지션)</Label>
                 <div className="flex items-center space-x-2">
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                    {userInfo?.preferredPosition || '정보 없음'}
+                    {(() => {
+                      const position = userInfo?.preferredPosition
+                      if (!position) return '정보 없음'
+                      const positionInfo = allPositions.find(p => p.value === position)
+                      return positionInfo ? positionInfo.label : position
+                    })()}
                   </span>
                 </div>
               </div>
@@ -663,14 +668,17 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
                 <Label className="text-sm font-medium text-muted-foreground">부포지션</Label>
                 <div className="flex flex-wrap gap-2">
                   {userInfo?.subPositions && userInfo.subPositions.length > 0 ? (
-                    userInfo.subPositions.map((position: string, index: number) => (
-                      <span 
-                        key={index}
-                        className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
-                      >
-                        {position}
-                      </span>
-                    ))
+                    userInfo.subPositions.map((position: string, index: number) => {
+                      const positionInfo = allPositions.find(p => p.value === position)
+                      return (
+                        <span
+                          key={index}
+                          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                        >
+                          {positionInfo ? positionInfo.label : position}
+                        </span>
+                      )
+                    })
                   ) : (
                     <p className="text-base text-muted-foreground">설정된 부포지션이 없습니다</p>
                   )}

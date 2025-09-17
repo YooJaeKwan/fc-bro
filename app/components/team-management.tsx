@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Progress } from "@/components/ui/progress"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Switch } from "@/components/ui/switch"
 import { Edit, Star, MapPin, Phone, Calendar, TrendingUp, Eye, Target, BarChart3, Shield, Award, Users, User, AlertCircle, UserMinus, UserX, Power } from 'lucide-react'
 import { LEVEL_OPTIONS, LEVEL_CATEGORIES, getLevelLabel, getLevelShortLabel, getLevelColor } from '@/lib/level-system'
 
@@ -52,9 +53,10 @@ const positionFullNames: Record<string, string> = {
 
 interface TeamManagementProps {
   isManagerMode: boolean
+  currentUser?: any
 }
 
-export function TeamManagement({ isManagerMode }: TeamManagementProps) {
+export function TeamManagement({ isManagerMode, currentUser }: TeamManagementProps) {
   const [teamMembers, setTeamMembers] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
@@ -64,23 +66,63 @@ export function TeamManagement({ isManagerMode }: TeamManagementProps) {
   const [isSaving, setIsSaving] = useState(false)
   const [saveMessage, setSaveMessage] = useState("")
   const [showInactive, setShowInactive] = useState(false)
+  const [positionFilter, setPositionFilter] = useState("all")
 
   useEffect(() => {
-    fetchTeamMembers(showInactive)
+    let abortController = new AbortController()
+
+    const fetchData = async () => {
+      try {
+        setIsLoading(true)
+        // 현재 사용자 정보 가져오기 (역할 확인용)
+        const user = currentUser || JSON.parse(sessionStorage.getItem('user') || '{}')
+        const requesterId = user?.id || ''
+
+        const queryParams = new URLSearchParams({
+          requesterId,
+          includeInactive: showInactive.toString()
+        })
+
+        const response = await fetch(`/api/team/members?${queryParams}`, {
+          signal: abortController.signal
+        })
+
+        if (!response.ok) {
+          const result = await response.json()
+          throw new Error(result.error || '팀원 목록을 가져올 수 없습니다.')
+        }
+
+        const result = await response.json()
+        setTeamMembers(result.members)
+        setError("")
+      } catch (error) {
+        if (error.name !== 'AbortError') {
+          setError(error instanceof Error ? error.message : '팀원 목록 조회 중 오류가 발생했습니다.')
+        }
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchData()
+
+    return () => {
+      abortController.abort()
+    }
   }, [showInactive])
 
   const fetchTeamMembers = async (includeInactive = false) => {
     try {
       setIsLoading(true)
       // 현재 사용자 정보 가져오기 (역할 확인용)
-      const currentUser = JSON.parse(sessionStorage.getItem('user') || '{}')
-      const requesterId = currentUser.id || ''
-      
+      const user = currentUser || JSON.parse(sessionStorage.getItem('user') || '{}')
+      const requesterId = user?.id || ''
+
       const queryParams = new URLSearchParams({
         requesterId,
         includeInactive: includeInactive.toString()
       })
-      
+
       const response = await fetch(`/api/team/members?${queryParams}`)
       const result = await response.json()
 
@@ -109,28 +151,48 @@ export function TeamManagement({ isManagerMode }: TeamManagementProps) {
   }
 
   // 포지션별 팀원 필터링
-  const getFilteredMembers = (positionType: string) => {
-    if (positionType === "all") return teamMembers
-    
-    return teamMembers.filter(member => {
-      const memberPositionType = positionMapping[member.mainPosition || member.preferredPosition] || (member.mainPosition || member.preferredPosition)
-      return memberPositionType === positionType
+  const getFilteredMembers = () => {
+    let filtered = teamMembers
+
+    // 포지션 필터 적용
+    if (positionFilter !== "all") {
+      filtered = filtered.filter(member => {
+        const memberPositionType = positionMapping[member.mainPosition || member.preferredPosition] || (member.mainPosition || member.preferredPosition)
+        return memberPositionType === positionFilter
+      })
+    }
+
+    return filtered
+  }
+
+  // 포지션 대분류로 멤버 그룹화
+  const getGroupedMembers = () => {
+    const filtered = getFilteredMembers()
+    const grouped = {
+      "공격수": [] as any[],
+      "미드필더": [] as any[],
+      "수비수": [] as any[],
+      "골키퍼": [] as any[]
+    }
+
+    filtered.forEach(member => {
+      const positionType = positionMapping[member.mainPosition || member.preferredPosition] || "미분류"
+      if (grouped[positionType]) {
+        grouped[positionType].push(member)
+      }
     })
+
+    return grouped
   }
 
   // 포지션별 카운트
   const getPositionCount = (positionType: string) => {
-    return getFilteredMembers(positionType).length
+    if (positionType === "all") return teamMembers.length
+    return teamMembers.filter(member => {
+      const memberPositionType = positionMapping[member.mainPosition || member.preferredPosition] || (member.mainPosition || member.preferredPosition)
+      return memberPositionType === positionType
+    }).length
   }
-
-  // 포지션 탭 구성
-  const positionTabs = [
-    { value: "all", label: "전체", icon: Users, count: teamMembers.length },
-    { value: "공격수", label: "FW", icon: Target, count: getPositionCount("공격수") },
-    { value: "미드필더", label: "MF", icon: BarChart3, count: getPositionCount("미드필더") },
-    { value: "수비수", label: "DF", icon: Shield, count: getPositionCount("수비수") },
-    { value: "골키퍼", label: "GK", icon: Award, count: getPositionCount("골키퍼") }
-  ]
 
   // 로딩 상태 표시
   if (isLoading) {
@@ -162,75 +224,192 @@ export function TeamManagement({ isManagerMode }: TeamManagementProps) {
   return (
     <div className="space-y-6">
       {/* 헤더 */}
-      {isManagerMode && (
-        <div className="flex justify-between items-center">
+      <div className="flex flex-col gap-4">
+        <div className="flex justify-between items-center ml-2">
           <div className="flex items-center gap-3">
-            <Users className="h-5 w-5 text-blue-500" />
+            <Users className="h-5 w-5" />
             <h2 className="text-lg font-semibold">팀 멤버</h2>
+            {/* <Badge variant="outline" className="ml-2">
+              총 {teamMembers.length}명
+            </Badge> */}
           </div>
-          <div className="flex items-center gap-3">
+
+          {/* 비활성화 필터 - 우측 상단 */}
+          {isManagerMode && (
             <div className="flex items-center gap-2">
-              <Button
-                variant={showInactive ? "default" : "outline"}
-                size="sm"
-                onClick={() => setShowInactive(!showInactive)}
-                className="h-8"
-              >
-                <Eye className="h-3 w-3 mr-1" />
-                {showInactive ? "숨기기" : "비활성화 명단 보기"}
-              </Button>
+              <Switch
+                id="show-inactive"
+                checked={showInactive}
+                onCheckedChange={setShowInactive}
+              />
+              <Label htmlFor="show-inactive" className="text-sm cursor-pointer">
+                비활성 멤버 포함
+              </Label>
             </div>
-            {/* <Button onClick={() => fetchTeamMembers(showInactive)} variant="outline" size="sm">
-          <TrendingUp className="h-4 w-4 mr-2" />
-          새로고침
-            </Button> */}
+          )}
+        </div>
+
+        {/* 포지션 필터 탭 */}
+        <div className="bg-gray-50 p-1 rounded-lg">
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant={positionFilter === "all" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setPositionFilter("all")}
+              className={`flex items-center p-2 gap-0 ${positionFilter === "all" ? "" : "p-2 hover:bg-white"}`}
+            >
+              ALL
+              <Badge variant="secondary" className="text-xs ml-1 px-1 py-0">
+                {teamMembers.length}
+              </Badge>
+            </Button>
+
+            <Button
+              variant={positionFilter === "공격수" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setPositionFilter("공격수")}
+              className={`flex items-center p-2 gap-0 ${positionFilter === "공격수" ? "p-2 bg-red-500 hover:bg-red-600" : "hover:bg-white"}`}
+            >
+              FW
+              <Badge variant={positionFilter === "공격수" ? "secondary" : "outline"} className="text-xs ml-1 px-1 py-0">
+                {getPositionCount("공격수")}
+              </Badge>
+            </Button>
+
+            <Button
+              variant={positionFilter === "미드필더" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setPositionFilter("미드필더")}
+              className={`flex items-center p-2 gap-0 ${positionFilter === "미드필더" ? "p-2 bg-green-500 hover:bg-green-600" : "hover:bg-white"}`}
+            >
+              MF
+              <Badge variant={positionFilter === "미드필더" ? "secondary" : "outline"} className="text-xs ml-1 px-1 py-0">
+                {getPositionCount("미드필더")}
+              </Badge>
+            </Button>
+
+            <Button
+              variant={positionFilter === "수비수" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setPositionFilter("수비수")}
+              className={`flex items-center p-2 gap-0 ${positionFilter === "수비수" ? "p-2 bg-blue-500 hover:bg-blue-600" : "hover:bg-white"}`}
+            >
+              DF
+              <Badge variant={positionFilter === "수비수" ? "secondary" : "outline"} className="text-xs ml-1 px-1 py-0">
+                {getPositionCount("수비수")}
+              </Badge>
+            </Button>
+
+            <Button
+              variant={positionFilter === "골키퍼" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setPositionFilter("골키퍼")}
+              className={`flex items-center p-2 gap-0 ${positionFilter === "골키퍼" ? "p-2 bg-yellow-500 hover:bg-yellow-600" : "hover:bg-white"}`}
+            >
+              GK
+              <Badge variant={positionFilter === "골키퍼" ? "secondary" : "outline"} className="text-xs ml-1 px-1 py-0">
+                {getPositionCount("골키퍼")}
+              </Badge>
+            </Button>
           </div>
         </div>
-      )}
+      </div>
 
-      {/* 포지션별 탭 */}
-      <Tabs value={activePositionTab} onValueChange={setActivePositionTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5">
-          {positionTabs.map((tab) => {
-            const Icon = tab.icon
-            return (
-              <TabsTrigger key={tab.value} value={tab.value} className="flex items-center gap-1">
-                <Icon className="h-4 w-4 hidden sm:inline" />
-                <span className="text-sm">{tab.label}</span>
-                <span className="text-xs">({tab.count})</span>
-              </TabsTrigger>
-            )
-          })}
-        </TabsList>
+      {/* 포지션별 그룹화된 멤버 표시 */}
+      <div className="space-y-6">
+        {Object.entries(getGroupedMembers()).map(([positionType, members]) => {
+          if (members.length === 0) return null
 
-        {positionTabs.map((tab) => (
-          <TabsContent key={tab.value} value={tab.value}>
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
-              {getFilteredMembers(tab.value).map((member) => (
-                <Card key={member.id} className={`hover:shadow-lg transition-shadow ${!member.isActive ? 'opacity-60 border-dashed border-gray-300' : ''}`}>
+          const positionConfig = {
+            "공격수": {
+              icon: Target,
+              color: "text-red-600",
+              bgColor: "bg-gradient-to-r from-red-50 to-red-100/50",
+              borderColor: "border-red-300",
+              iconBg: "bg-red-100"
+            },
+            "미드필더": {
+              icon: BarChart3,
+              color: "text-green-600",
+              bgColor: "bg-gradient-to-r from-green-50 to-green-100/50",
+              borderColor: "border-green-300",
+              iconBg: "bg-green-100"
+            },
+            "수비수": {
+              icon: Shield,
+              color: "text-blue-600",
+              bgColor: "bg-gradient-to-r from-blue-50 to-blue-100/50",
+              borderColor: "border-blue-300",
+              iconBg: "bg-blue-100"
+            },
+            "골키퍼": {
+              icon: Award,
+              color: "text-yellow-600",
+              bgColor: "bg-gradient-to-r from-yellow-50 to-yellow-100/50",
+              borderColor: "border-yellow-300",
+              iconBg: "bg-yellow-100"
+            }
+          }
+
+          const config = positionConfig[positionType] || {
+            icon: Users,
+            color: "text-gray-600",
+            bgColor: "bg-gradient-to-r from-gray-50 to-gray-100/50",
+            borderColor: "border-gray-300",
+            iconBg: "bg-gray-100"
+          }
+          const Icon = config.icon
+
+          return (
+            <div key={positionType} className="space-y-4">
+              {/* 포지션 헤더 */}
+              <div className={`flex items-center gap-3 px-4 py-3 rounded-xl ${config.bgColor} ${config.borderColor} border shadow-sm`}>
+                {/* <div className={`p-2 rounded-lg ${config.iconBg}`}>
+                  <Icon className={`h-5 w-5 ${config.color}`} />
+                </div> */}
+                <h3 className="font-bold text-lg text-gray-800">{positionType}</h3>
+                <Badge variant="outline" className="bg-gray-50 border-gray-500 text-gray-800 ml-auto font-semibold">
+                  {members.length}명
+                </Badge>
+              </div>
+
+              {/* 멤버 카드 그리드 */}
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
+                {members.map((member) => (
+                <Card key={member.id} className={`hover:shadow-lg transition-all duration-200 hover:-translate-y-1 ${!member.isActive ? 'opacity-60 border-dashed border-gray-300' : 'hover:border-gray-300'}`}>
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="relative">
-                          <Avatar className="h-10 w-10 sm:h-12 sm:w-12">
+                          <Avatar className="h-12 w-12 ring-2 ring-white shadow-md">
                             <AvatarImage src={member.profileImage || "/placeholder.svg"} />
-                            <AvatarFallback>{member.name[0]}</AvatarFallback>
+                            <AvatarFallback className="bg-gradient-to-br from-blue-400 to-blue-600 text-white font-semibold">
+                              {member.name[0]}
+                            </AvatarFallback>
                           </Avatar>
                           {member.jerseyNumber && (
-                            <div className="absolute -bottom-1 -right-1 bg-blue-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
+                            <div className="absolute -bottom-1 -right-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white text-xs rounded-full h-6 w-6 flex items-center justify-center font-bold shadow-md border-2 border-white">
                               {member.jerseyNumber}
                             </div>
                           )}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <CardTitle className="text-base sm:text-lg truncate flex items-center gap-2">
-                            <span className="font-bold text-gray-900">{member.name}</span>
-                            <Badge className={getPositionColor(member.mainPosition || member.preferredPosition)} variant="secondary" size="sm">
-                              {member.mainPosition || member.preferredPosition}
-                            </Badge>
+                          <CardTitle className="text-base sm:text-lg flex flex-col gap-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-gray-900">{member.name}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Badge className={`${getPositionColor(member.mainPosition || member.preferredPosition)} text-xs`} variant="secondary">
+                                {member.mainPosition || member.preferredPosition}
+                              </Badge>
+                              {member.subPositions && member.subPositions.length > 0 && (
+                                <span className="text-xs text-muted-foreground">
+                                  {member.subPositions.map(pos => pos).join(' · ')}
+                                </span>
+                              )}
+                            </div>
                           </CardTitle>
-                          
-                          </div>
+                        </div>
                         </div>
                       <div className="flex items-center gap-1">
                         {/* 상세보기/수정 버튼 */}
@@ -244,8 +423,8 @@ export function TeamManagement({ isManagerMode }: TeamManagementProps) {
                           <DialogHeader className="pb-6">
                             <div className="flex items-center gap-4">
                               <Avatar className="h-16 w-16">
-                                {member.image ? (
-                                  <img src={member.image} alt={member.name} className="h-full w-full object-cover" />
+                                {member.profileImage ? (
+                                  <img src={member.profileImage} alt={member.name} className="h-full w-full object-cover" />
                                 ) : (
                                   <AvatarFallback className="text-2xl font-bold bg-blue-100 text-blue-600">
                                     {member.name[0]}
@@ -261,110 +440,6 @@ export function TeamManagement({ isManagerMode }: TeamManagementProps) {
                                 </DialogTitle>
                                 {/* <p className="text-muted-foreground mt-1">선수 상세 정보</p> */}
                               </div>
-                              {isManagerMode && (
-                                <div className="flex items-center gap-2">
-                                  {/* <div className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded">
-                                    <Target className="h-4 w-4 text-blue-500" />
-                                    <span className="text-sm font-medium text-blue-600">
-                                      {member.level ? getLevelShortLabel(member.level) : '레벨 정보 없음'}
-                                    </span>
-                                  </div> */}
-                                  
-                                  {/* 비활성화/활성화 버튼 */}
-                                  <Button
-                                    variant={member.isActive ? "outline" : "default"}
-                                    size="sm"
-                                    className={member.isActive ? 'text-orange-600 border-orange-200 hover:bg-orange-50' : 'bg-green-600 hover:bg-green-700'}
-                                    onClick={async () => {
-                                      try {
-                                        const currentUser = JSON.parse(sessionStorage.getItem('user') || '{}')
-                                        const endpoint = member.isActive ? '/api/user/deactivate' : '/api/user/deactivate'
-                                        const method = member.isActive ? 'PUT' : 'POST'
-                                        
-                                        const response = await fetch(endpoint, {
-                                          method,
-                                          headers: { 'Content-Type': 'application/json' },
-                                          body: JSON.stringify({
-                                            targetUserId: member.id,
-                                            adminUserId: currentUser.id
-                                          })
-                                        })
-                                        
-                                        if (response.ok) {
-                                          const updatedData = await response.json()
-                                          // 현재 멤버 상태 즉시 업데이트
-                                          if (updatedData.user) {
-                                            setTeamMembers(prevMembers =>
-                                              prevMembers.map(m =>
-                                                m.id === member.id
-                                                  ? { ...m, isActive: updatedData.user.isActive }
-                                                  : m
-                                              )
-                                            )
-                                          }
-                                          alert(member.isActive ? '선수가 비활성화되었습니다.' : '선수가 활성화되었습니다.')
-                                        } else {
-                                          const error = await response.json()
-                                          alert(error.error || '상태 변경에 실패했습니다.')
-                                        }
-                                      } catch (error) {
-                                        console.error('상태 변경 중 오류:', error)
-                                        alert('상태 변경 중 오류가 발생했습니다.')
-                                      }
-                                    }}
-                                  >
-                                    {member.isActive ? (
-                                      <>
-                                        <UserMinus className="h-4 w-4 mr-1" />
-                                      </>
-                                    ) : (
-                                      <>
-                                        <Power className="h-4 w-4 mr-1" />
-                                        활성화
-                                      </>
-                                    )}
-                                  </Button>
-                                  
-                                  {/* 삭제 버튼 */}
-                                  <Button
-                                    variant="destructive"
-                                    size="sm"
-                                    onClick={async () => {
-                                      const confirmed = confirm(`${member.name} 선수를 완전히 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없으며, 해당 선수의 모든 데이터가 삭제됩니다.`)
-                                      if (!confirmed) return
-                                      
-                                      try {
-                                        const currentUser = JSON.parse(sessionStorage.getItem('user') || '{}')
-                                        const response = await fetch('/api/user/delete', {
-                                          method: 'DELETE',
-                                          headers: { 'Content-Type': 'application/json' },
-                                          body: JSON.stringify({
-                                            targetUserId: member.id,
-                                            adminUserId: currentUser.id,
-                                            confirmDelete: true
-                                          })
-                                        })
-                                        
-                                        if (response.ok) {
-                                          // 삭제된 멤버를 목록에서 즉시 제거
-                                          setTeamMembers(prevMembers =>
-                                            prevMembers.filter(m => m.id !== member.id)
-                                          )
-                                          alert('선수가 성공적으로 삭제되었습니다.')
-                                        } else {
-                                          const error = await response.json()
-                                          alert(error.error || '삭제에 실패했습니다.')
-                                        }
-                                      } catch (error) {
-                                        console.error('삭제 중 오류:', error)
-                                        alert('삭제 중 오류가 발생했습니다.')
-                                      }
-                                    }}
-                                  >
-                                    <UserX className="h-4 w-4 mr-1" />
-                                  </Button>
-                                </div>
-                              )}
                             </div>
                           </DialogHeader>
                           
@@ -395,7 +470,6 @@ export function TeamManagement({ isManagerMode }: TeamManagementProps) {
                             <div className="space-y-2">
                                     <Label className="text-xs font-medium text-gray-700">거주지역</Label>
                                     <div className="p-2 bg-gray-50 rounded-lg border flex items-center gap-2">
-                                      <MapPin className="h-3 w-3 text-muted-foreground" />
                                       <span className="text-sm">{member.region} {member.city}</span>
                                     </div>
                             </div>
@@ -680,6 +754,118 @@ export function TeamManagement({ isManagerMode }: TeamManagementProps) {
                                 </div>
                               </CardContent>
                             </Card>
+
+                            {/* 관리 버튼들 (총무 전용) */}
+                            {isManagerMode && (
+                              <div className="flex flex-col gap-3 pt-4 border-t">
+                                {/* 비활성화/활성화 버튼 */}
+                                <Button
+                                  variant={member.isActive ? "outline" : "default"}
+                                  className={`w-full ${member.isActive ? 'text-orange-600 border-orange-300 hover:bg-orange-50' : 'bg-green-600 hover:bg-green-700 text-white'}`}
+                                  onClick={async () => {
+                                    try {
+                                      const user = currentUser || JSON.parse(sessionStorage.getItem('user') || '{}')
+
+                                      if (!user?.id) {
+                                        alert('로그인 정보를 찾을 수 없습니다. 다시 로그인해주세요.')
+                                        return
+                                      }
+
+                                      const endpoint = '/api/user/deactivate'
+                                      const method = member.isActive ? 'PUT' : 'POST'
+
+                                      console.log('Deactivate request:', {
+                                        targetUserId: member.id,
+                                        adminUserId: user.id,
+                                        method
+                                      })
+
+                                      const response = await fetch(endpoint, {
+                                        method,
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({
+                                          targetUserId: member.id,
+                                          adminUserId: user.id
+                                        })
+                                      })
+
+                                      if (response.ok) {
+                                        const updatedData = await response.json()
+                                        // 현재 멤버 상태 즉시 업데이트
+                                        if (updatedData.user) {
+                                          setTeamMembers(prevMembers =>
+                                            prevMembers.map(m =>
+                                              m.id === member.id
+                                                ? { ...m, isActive: updatedData.user.isActive }
+                                                : m
+                                            )
+                                          )
+                                        }
+                                        alert(member.isActive ? '선수가 비활성화되었습니다.' : '선수가 활성화되었습니다.')
+                                      } else {
+                                        const error = await response.json()
+                                        alert(error.error || '상태 변경에 실패했습니다.')
+                                      }
+                                    } catch (error) {
+                                      console.error('상태 변경 중 오류:', error)
+                                      alert('상태 변경 중 오류가 발생했습니다.')
+                                    }
+                                  }}
+                                >
+                                  {member.isActive ? (
+                                    <>
+                                      <UserMinus className="h-4 w-4 mr-2" />
+                                      비활성화
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Power className="h-4 w-4 mr-2" />
+                                      활성화
+                                    </>
+                                  )}
+                                </Button>
+
+                                {/* 삭제 버튼 */}
+                                <Button
+                                  variant="destructive"
+                                  className="w-full"
+                                  onClick={async () => {
+                                    const confirmed = confirm(`${member.name} 선수를 완전히 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없으며, 해당 선수의 모든 데이터가 삭제됩니다.`)
+                                    if (!confirmed) return
+
+                                    try {
+                                      const user = currentUser || JSON.parse(sessionStorage.getItem('user') || '{}')
+                                      const response = await fetch('/api/user/delete', {
+                                        method: 'DELETE',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({
+                                          targetUserId: member.id,
+                                          adminUserId: user.id,
+                                          confirmDelete: true
+                                        })
+                                      })
+
+                                      if (response.ok) {
+                                        // 삭제된 멤버를 목록에서 즉시 제거
+                                        setTeamMembers(prevMembers =>
+                                          prevMembers.filter(m => m.id !== member.id)
+                                        )
+                                        alert('선수가 성공적으로 삭제되었습니다.')
+                                      } else {
+                                        const error = await response.json()
+                                        alert(error.error || '삭제에 실패했습니다.')
+                                      }
+                                    } catch (error) {
+                                      console.error('삭제 중 오류:', error)
+                                      alert('삭제 중 오류가 발생했습니다.')
+                                    }
+                                  }}
+                                >
+                                  <UserX className="h-4 w-4 mr-2" />
+                                  선수 삭제
+                                </Button>
+                              </div>
+                            )}
                           </div>
                         </DialogContent>
                       </Dialog>
@@ -687,63 +873,35 @@ export function TeamManagement({ isManagerMode }: TeamManagementProps) {
                     </div>
                   </CardHeader>
                   <CardContent className="pt-3 pb-3 px-4 space-y-3">
-                    {/* 부포지션, 레벨, 주발 정보 그리드 */}
-                    <div className={`grid ${isManagerMode ? 'grid-cols-3' : 'grid-cols-2'} gap-x-3 gap-y-2 text-xs`}>
-                      {/* 부포지션 */}
-                      <div>
-                        <span className="text-muted-foreground block mb-1">부포지션</span>
-                        <div className="text-sm text-gray-900 font-medium">
-                          {member.subPositions && member.subPositions.length > 0 
-                            ? member.subPositions.join(', ')
-                            : '없음'
-                          }
-                        </div>
-                      </div>
-                      
-                      {/* 레벨 (총무만) */}
+                    {/* 레벨과 주발 뱃지 */}
+                    <div className="flex items-center gap-2">
                       {isManagerMode && (
-                        <div>
-                          <span className="text-muted-foreground block mb-1">레벨</span>
-                          <Badge 
-                            variant="secondary" 
-                            size="sm"
-                            className={`${(() => {
-                              const level = member.level || 1
-                              if (level === 1) return 'bg-gray-100 text-gray-700'
-                              if (level <= 4) return 'bg-green-100 text-green-700'
-                              if (level <= 9) return 'bg-blue-100 text-blue-700'
-                              if (level <= 12) return 'bg-purple-100 text-purple-700'
-                              return 'bg-yellow-100 text-yellow-700'
-                            })()}`}
-                          >
-                            {getLevelLabel(member.level)}
-                          </Badge>
-                        </div>
-                      )}
-                      
-                      {/* 주발 */}
-                      <div>
-                        <span className="text-muted-foreground block mb-1">주발</span>
-                        <Badge variant="outline" size="sm" className="bg-orange-50 text-orange-700 border-orange-200">
-                          {member.preferredFoot === 'RIGHT' ? '오른발' : 
-                           member.preferredFoot === 'LEFT' ? '왼발' : 
-                           member.preferredFoot === 'BOTH' ? '양발' : '정보없음'}
+                        <Badge
+                          variant="outline"
+                          size="sm"
+                          className={`text-xs ${(() => {
+                            const level = member.level || 1
+                            if (level === 1) return 'bg-gray-50 text-gray-600 border-gray-200'
+                            if (level <= 4) return 'bg-green-50 text-green-600 border-green-200'
+                            if (level <= 9) return 'bg-blue-50 text-blue-600 border-blue-200'
+                            if (level <= 12) return 'bg-purple-50 text-purple-600 border-purple-200'
+                            return 'bg-yellow-50 text-yellow-600 border-yellow-200'
+                          })()}`}
+                        >
+                          {getLevelLabel(member.level)}
                         </Badge>
-                      </div>
+                      )}
+                      <Badge variant="outline" size="sm" className="text-xs">
+                        {member.preferredFoot === 'RIGHT' ? '오른발' :
+                         member.preferredFoot === 'LEFT' ? '왼발' :
+                         member.preferredFoot === 'BOTH' ? '양발' : '정보없음'}
+                      </Badge>
+                      {!member.isActive && (
+                        <Badge variant="destructive" size="sm" className="text-xs">
+                          비활성
+                        </Badge>
+                      )}
                     </div>
-
-                    {/* 전화번호 */}
-                    {/* <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Phone className="h-3 w-3 flex-shrink-0" />
-                        <span className="truncate">{member.phone}</span>
-                    </div> */}
-
-                    {/* 지역 */}
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <MapPin className="h-3 w-3 flex-shrink-0" />
-                        <span className="truncate">{member.region} {member.city}</span>
-                      </div>
-
 
                     {/* 출석률 */}
                     <div className="flex items-center justify-between pt-1">
@@ -755,9 +913,10 @@ export function TeamManagement({ isManagerMode }: TeamManagementProps) {
                 </Card>
               ))}
             </div>
-          </TabsContent>
-        ))}
-      </Tabs>
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }

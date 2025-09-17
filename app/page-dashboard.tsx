@@ -126,8 +126,8 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
   const tabItems = [
     { value: "schedule", label: "일정 관리", icon: Calendar },
     { value: "dashboard", label: "팀 대시보드", icon: BarChart3 },
-    { value: "profile", label: "내 정보", icon: User },
     { value: "team", label: "팀 멤버", icon: Users },
+    { value: "profile", label: "내 정보", icon: User },
   ]
 
   const getPositionColor = (position: string) => {
@@ -255,7 +255,7 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
                     </div>
 
                     {/* Role 기반 권한 표시 */}
-                    <div className="space-y-4">
+                    {/* <div className="space-y-4">
                       <h3 className="font-semibold">권한 정보</h3>
                       <div className="flex items-center justify-center">
                         <Badge
@@ -274,11 +274,11 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
                           총무 권한이 필요한 기능은 표시되지 않습니다.
                         </p>
                       )}
-                    </div>
+                    </div> */}
 
                     {/* Navigation Menu */}
                     <div className="space-y-2">
-                      <h3 className="font-semibold">메뉴</h3>
+                      {/* <h3 className="font-semibold">메뉴</h3> */}
                       {tabItems.map((item) => {
                         const Icon = item.icon
                         return (
@@ -395,7 +395,7 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
                     </CardContent>
                   </Card>
 
-                  <Card className="sm:col-span-2 lg:col-span-1">
+                  {/* <Card className="sm:col-span-2 lg:col-span-1">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                       <CardTitle className="text-sm font-medium">다음 경기</CardTitle>
                       <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -450,7 +450,7 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
                         </>
                       )}
                     </CardContent>
-                  </Card>
+                  </Card> */}
                   
 
               {/* 우수 선수 */}
@@ -572,7 +572,7 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
           </TabsContent>
 
           <TabsContent value="team">
-            <TeamManagement isManagerMode={isManagerMode} />
+            <TeamManagement isManagerMode={isManagerMode} currentUser={user} />
           </TabsContent>
 
           <TabsContent value="schedule">
