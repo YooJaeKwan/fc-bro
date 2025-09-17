@@ -13,8 +13,8 @@ export async function POST(request: NextRequest) {
       time,
       gatherTime,
       location,
-      quarterTime = 20,
-      restTime = 10,
+      quarterTime = 25,
+      restTime = 5,
       description = "",
       opponentTeam = null,
       trainingContent = null,
@@ -53,11 +53,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 날짜와 시간을 결합하여 DateTime 생성
-    const matchDateTime = new Date(`${date}T${time}:00`)
+    // 한국시간대(Asia/Seoul) 기준으로 DateTime 생성
+    const kstDateTime = new Date(`${date}T${time}:00+09:00`)
     
     // 과거 날짜 검증
-    if (matchDateTime < new Date()) {
+    if (kstDateTime < new Date()) {
       return NextResponse.json(
         { error: '과거 날짜로는 일정을 등록할 수 없습니다.' },
         { status: 400 }
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
       data: {
         title: autoTitle,
         type,
-        matchDate: matchDateTime,
+        matchDate: kstDateTime,
         startTime: time,
         gatherTime,
         location: location.trim(),

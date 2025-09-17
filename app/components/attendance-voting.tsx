@@ -318,58 +318,67 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
                 </div>
               )}
 
-              {/* 참석자 목록 (투표 시간 순서대로 정렬) */}
-              <div className="space-y-2">
-                <h4 className="font-medium text-sm flex items-center gap-2">
-                  <Users className="h-4 w-4" />
-                  전체 참석자 ({attendees.length}명)
-                  <span className="text-xs text-muted-foreground ml-2">최신 투표순</span>
-                </h4>
-                <div className="space-y-2">
-                  {attendees
-                    .sort((a, b) => {
-                      // 투표한 사람들은 투표 시간순으로, 미투표자는 마지막에
-                      if (!a.updatedAt && !b.updatedAt) return 0
-                      if (!a.updatedAt) return 1
-                      if (!b.updatedAt) return -1
-                      return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime() // 최신순
-                    })
-                    .map((attendee) => (
-                    <div key={attendee.userId} className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={attendee.profileImage || "/placeholder.svg"} />
-                        <AvatarFallback className="text-xs">{attendee.name[0]}</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium truncate">{attendee.name}</span>
-                          <Badge className={`${getPositionColor(attendee.position)} text-xs`} variant="outline">
-                            {attendee.position}
-                          </Badge>
-                          {isManagerMode && (
-                            <span className="text-xs text-muted-foreground">
-                              ⭐ {attendee.rating}
-                            </span>
-                          )}
-                        </div>
-                        {attendee.updatedAt && (
-                          <div className="text-xs text-muted-foreground">
-                            투표: {new Date(attendee.updatedAt).toLocaleString('ko-KR', {
-                              month: 'short',
-                              day: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
+              {/* 참석자 목록 (카테고리별 그룹화) */}
+              <div className="space-y-3">
+                {['attending', 'pending', 'not_attending'].map(statusFilter => {
+                  const filteredAttendees = attendees.filter(a => a.status === statusFilter)
+                  
+                  if (filteredAttendees.length === 0) return null
+
+                  return (
+                    <div key={statusFilter}>
+                      <h4 className="font-medium text-sm mb-2 flex items-center gap-2">
+                        {getStatusIcon(statusFilter)}
+                        {getStatusLabel(statusFilter)} ({filteredAttendees.length}명)
+                      </h4>
+                      <div className="space-y-2">
+                        {filteredAttendees
+                          .sort((a, b) => {
+                            // 각 카테고리 내에서는 투표 시간순으로 정렬
+                            if (!a.updatedAt && !b.updatedAt) return 0
+                            if (!a.updatedAt) return 1
+                            if (!b.updatedAt) return -1
+                            return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+                          })
+                          .map((attendee) => (
+                          <div key={attendee.userId} className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg">
+                            <Avatar className="h-8 w-8">
+                              <AvatarImage src={attendee.profileImage || "/placeholder.svg"} />
+                              <AvatarFallback className="text-xs">{attendee.name[0]}</AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium truncate">{attendee.name}</span>
+                                <Badge className={`${getPositionColor(attendee.position)} text-xs`} variant="outline">
+                                  {attendee.position}
+                                </Badge>
+                                {isManagerMode && (
+                                  <span className="text-xs text-muted-foreground">
+                                    ⭐ {attendee.rating}
+                                  </span>
+                                )}
+                              </div>
+                              {/* {attendee.updatedAt && (
+                                <div className="text-xs text-muted-foreground">
+                                  투표: {new Date(attendee.updatedAt).toLocaleString('ko-KR', {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
+                                </div>
+                              )} */}
+                            </div>
+                            <Badge className={getStatusColor(attendee.status)} variant="secondary">
+                              {getStatusIcon(attendee.status)}
+                              <span className="ml-1">{getStatusLabel(attendee.status)}</span>
+                            </Badge>
                           </div>
-                        )}
+                        ))}
                       </div>
-                      <Badge className={getStatusColor(attendee.status)} variant="secondary">
-                        {getStatusIcon(attendee.status)}
-                        <span className="ml-1">{getStatusLabel(attendee.status)}</span>
-                      </Badge>
                     </div>
-                  ))}
-                </div>
+                  )
+                })}
               </div>
             </>
           )}

@@ -13,8 +13,8 @@ export async function PUT(request: NextRequest) {
       time,
       gatherTime,
       location,
-      quarterTime = 20,
-      restTime = 10,
+      quarterTime = 25,
+      restTime = 5,
       description = "",
       opponentTeam = null,
       trainingContent = null,
@@ -59,16 +59,21 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    // 수정 권한 확인 (생성자만 수정 가능)
-    if (existingSchedule.createdBy !== userId) {
+    // 수정 권한 확인 (총무만 수정 가능)
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true }
+    })
+
+    if (!user || user.role !== 'ADMIN') {
       return NextResponse.json(
-        { error: '일정을 수정할 권한이 없습니다.' },
+        { error: '일정을 수정할 권한이 없습니다. 총무만 일정을 수정할 수 있습니다.' },
         { status: 403 }
       )
     }
 
-    // 날짜와 시간을 결합하여 DateTime 생성
-    const matchDateTime = new Date(`${date}T${time}:00`)
+    // 한국시간대(Asia/Seoul) 기준으로 DateTime 생성
+    const kstDateTime = new Date(`${date}T${time}:00+09:00`)
 
     // 유형에 따른 제목 자동 생성
     let autoTitle = ""
@@ -90,7 +95,7 @@ export async function PUT(request: NextRequest) {
       data: {
         title: autoTitle,
         type,
-        matchDate: matchDateTime,
+        matchDate: kstDateTime,
         startTime: time,
         gatherTime,
         location: location.trim(),
