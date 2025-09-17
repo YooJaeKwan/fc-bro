@@ -52,11 +52,19 @@ export async function GET() {
     // 임시 능력치 생성 함수 (레벨 정보 포함)
     const addTempRating = (attendee: any) => {
       const tempRating = Math.random() * 2 + 6 // 6.0-8.0 사이 랜덤
+      // 게스트인 경우 이미 level이 포함되어 있음
+      if (attendee.isGuest) {
+        return {
+          ...attendee,
+          rating: Number(tempRating.toFixed(1))
+        }
+      }
+      // 일반 사용자의 경우
       const user = allUsers.find(u => u.id === attendee.userId)
       return {
         ...attendee,
         rating: Number(tempRating.toFixed(1)),
-        level: user?.level || 1
+        level: attendee.level || user?.level || 1
       }
     }
 
@@ -72,6 +80,7 @@ export async function GET() {
             position: attendance.guestPosition || 'MC',
             subPositions: [],
             userId: attendance.guestId || attendance.userId,
+            level: attendance.guestLevel || 7,  // 게스트 레벨 추가
             isGuest: true
           }
         }

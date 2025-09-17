@@ -460,7 +460,8 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
     const playersByLevel = attendingPlayers.reduce((acc: any, player: any) => {
       const level = player.level || 7 // 기본 레벨 아마추어3
       if (!acc[level]) acc[level] = []
-      acc[level].push(player)
+      // 선수 데이터에 level 필드가 없으면 추가
+      acc[level].push({ ...player, level })
       return acc
     }, {})
 
@@ -1031,6 +1032,7 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                           setIsFormingTeams(true)
                           try {
                             const result = autoFormTeams(nextUpcomingSchedule)
+                            console.log('팀편성 결과:', result)
                             if (result.message) {
                               setFormationResults({ ...result, scheduleId: nextUpcomingSchedule.id })
                             } else {
