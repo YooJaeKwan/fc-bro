@@ -169,6 +169,7 @@ export async function GET(request: NextRequest) {
         userId: user.id,
         name: user.realName || user.nickname || '이름 없음',
         position: user.preferredPosition || 'MC',
+        subPositions: user.subPositions || [],
         status: attendance?.status.toLowerCase() || 'pending',
         rating: generateTempRating(user.preferredPosition || 'MC'),
         level: user.level || 1,

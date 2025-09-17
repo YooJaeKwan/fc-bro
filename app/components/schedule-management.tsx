@@ -807,11 +807,20 @@ export function ScheduleManagement({ isManagerMode, currentUser, onSwitchToForma
                       <Avatar className="h-6 w-6">
                         <AvatarFallback className="text-xs">{player.name[0]}</AvatarFallback>
                       </Avatar>
-                      <span className="font-medium">{player.name}</span>
-                      <Badge className={getPositionColor(player.position)} variant="outline" size="sm">
-                        {player.position}
-                      </Badge>
-                      <span className="text-xs text-muted-foreground ml-auto">
+                      <div className="flex-1">
+                        <span className="font-medium">{player.name}</span>
+                        <div className="flex items-center gap-1 mt-1">
+                          <Badge className={getPositionColor(player.position)} variant="outline" size="sm">
+                            {player.position}
+                          </Badge>
+                          {player.subPositions && player.subPositions.length > 0 && (
+                            <span className="text-xs text-muted-foreground">
+                              + {player.subPositions.join(', ')}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <span className="text-xs text-muted-foreground">
                         {getLevelShortLabel(player.level)}
                       </span>
                     </div>
@@ -834,11 +843,20 @@ export function ScheduleManagement({ isManagerMode, currentUser, onSwitchToForma
                       <Avatar className="h-6 w-6">
                         <AvatarFallback className="text-xs">{player.name[0]}</AvatarFallback>
                       </Avatar>
-                      <span className="font-medium">{player.name}</span>
-                      <Badge className={getPositionColor(player.position)} variant="outline" size="sm">
-                        {player.position}
-                      </Badge>
-                      <span className="text-xs text-muted-foreground ml-auto">
+                      <div className="flex-1">
+                        <span className="font-medium">{player.name}</span>
+                        <div className="flex items-center gap-1 mt-1">
+                          <Badge className={getPositionColor(player.position)} variant="outline" size="sm">
+                            {player.position}
+                          </Badge>
+                          {player.subPositions && player.subPositions.length > 0 && (
+                            <span className="text-xs text-muted-foreground">
+                              + {player.subPositions.join(', ')}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <span className="text-xs text-muted-foreground">
                         {getLevelShortLabel(player.level)}
                       </span>
                     </div>

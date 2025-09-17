@@ -27,7 +27,10 @@ export async function GET() {
             user: {
               select: {
                 realName: true,
-                nickname: true
+                nickname: true,
+                preferredPosition: true,
+                subPositions: true,
+                level: true
               }
             }
           }
@@ -114,6 +117,16 @@ export async function GET() {
       const attendees = upcomingSchedule.attendances.filter(a => a.status === 'ATTENDING').length
       const totalInvited = upcomingSchedule.attendances.length
 
+      // 참석자 세부 정보 구성
+      const attendeesList = upcomingSchedule.attendances.map(attendance => ({
+        userId: attendance.user.realName || attendance.user.nickname ? attendance.userId : attendance.userId,
+        name: attendance.user.realName || attendance.user.nickname || '이름 없음',
+        position: attendance.user.preferredPosition || 'MC',
+        subPositions: attendance.user.subPositions || [],
+        status: attendance.status.toLowerCase(),
+        level: attendance.user.level || 1
+      }))
+
       upcomingMatchInfo = {
         id: upcomingSchedule.id,
         title: upcomingSchedule.title,
@@ -123,9 +136,11 @@ export async function GET() {
         location: upcomingSchedule.location,
         type: upcomingSchedule.type,
         daysLeft: diffDays,
-        attendees,
-        total: Math.max(totalInvited, totalMembers), // 전체 팀원 수와 비교
-        attendanceRate: totalInvited > 0 ? Math.round((attendees / totalInvited) * 100) : 0
+        attendees: attendeesList, // 배열 형태로 변경
+        total: Math.max(totalInvited, totalMembers),
+        attendanceRate: totalInvited > 0 ? Math.round((attendees / totalInvited) * 100) : 0,
+        teamFormation: upcomingSchedule.teamFormation, // 저장된 팀편성 결과 포함
+        formationDate: upcomingSchedule.formationDate?.toISOString() || null
       }
     }
 

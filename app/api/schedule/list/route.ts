@@ -23,7 +23,8 @@ export async function GET() {
                 realName: true,
                 nickname: true,
                 preferredPosition: true,
-                subPositions: true
+                subPositions: true,
+                level: true
               }
             }
           }
@@ -43,6 +44,7 @@ export async function GET() {
         realName: true,
         nickname: true,
         preferredPosition: true,
+        subPositions: true,
         level: true
       }
     })
@@ -65,6 +67,7 @@ export async function GET() {
         name: attendance.user.realName || attendance.user.nickname || '이름 없음',
         status: attendance.status.toLowerCase(),
         position: attendance.user.preferredPosition || 'MC',
+        subPositions: attendance.user.subPositions || [],
         userId: attendance.user.id
       }))
 
@@ -79,6 +82,7 @@ export async function GET() {
           name: user.realName || user.nickname || '이름 없음',
           status: 'pending',
           position: user.preferredPosition || 'MC',
+          subPositions: user.subPositions || [],
           userId: user.id
         }
       })
