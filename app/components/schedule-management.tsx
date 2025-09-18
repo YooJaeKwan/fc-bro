@@ -985,7 +985,7 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                       })
                     })()} <span >{nextUpcomingSchedule.time}</span>
                   </h3>
-                  <h3 className="flex items-center justify-center text-xl font-bold">
+                  <h3 className="flex gap-2 items-center justify-center text-xl font-bold">
                     <MapPin className="h-4 w-4" />
                     {nextUpcomingSchedule.location}
                   </h3>
@@ -1025,7 +1025,7 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                    </div>
                  {/* 경기 세부 정보 */}
                  <div className="space-y-3 bg-gray-50 rounded-lg p-4">
-                   <div className="flex items-center gap-3 text-sm">
+                   <div className="flex items-center gap-2 text-sm">gk
                      <CalendarIcon className="h-4 w-4 text-blue-500 flex-shrink-0" />
                      <div className="flex-1">
                        <div className="text-muted-foreground">집합: {nextUpcomingSchedule.gatherTime}</div>

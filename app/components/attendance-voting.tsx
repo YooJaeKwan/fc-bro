@@ -40,6 +40,26 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
     fetchAttendees()
   }, [schedule.id])
 
+  // 게스트 목록 가져오기
+  const fetchGuests = async () => {
+    try {
+      const response = await fetch(`/api/schedule/guest?scheduleId=${schedule.id}`)
+      const result = await response.json()
+
+      if (response.ok) {
+        setGuests(result.guests || [])
+      }
+    } catch (error) {
+      console.error('게스트 목록 조회 오류:', error)
+    }
+  }
+
+  useEffect(() => {
+    if (allowGuests) {
+      fetchGuests()
+    }
+  }, [schedule.id, allowGuests])
+
   const fetchAttendees = async () => {
     try {
       setIsLoading(true)
@@ -158,6 +178,11 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
       // 참석자 목록 새로고침
       await fetchAttendees()
       
+      // 게스트 목록 새로고침
+      if (allowGuests) {
+        await fetchGuests()
+      }
+      
       // 게스트 초대 폼 초기화
       setGuestName("")
       setGuestLevel(7)
@@ -170,6 +195,54 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
     } catch (error) {
       console.error('게스트 초대 오류:', error)
       setError(error instanceof Error ? error.message : '게스트 초대 중 오류가 발생했습니다.')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  // 게스트 삭제 함수
+  const handleGuestRemove = async (guestId: string) => {
+    if (!isManagerMode) {
+      setError('게스트 삭제는 총무만 가능합니다.')
+      return
+    }
+
+    setIsSubmitting(true)
+
+    try {
+      const response = await fetch('/api/schedule/guest', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          scheduleId: schedule.id,
+          guestId: guestId
+        })
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || '게스트 삭제 중 오류가 발생했습니다.')
+      }
+
+      console.log('게스트 삭제 성공:', result)
+      
+      // 참석자 목록 새로고침
+      await fetchAttendees()
+      
+      // 게스트 목록 새로고침
+      if (allowGuests) {
+        await fetchGuests()
+      }
+      
+      // 상위 컴포넌트에 알림
+      onAttendanceUpdate?.()
+
+    } catch (error) {
+      console.error('게스트 삭제 오류:', error)
+      setError(error instanceof Error ? error.message : '게스트 삭제 중 오류가 발생했습니다.')
     } finally {
       setIsSubmitting(false)
     }
@@ -241,39 +314,50 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
         </div>
       )}
 
-      {/* 참석 투표 버튼 (선수 모드) */}
-      {!isManagerMode && (
-        <div className="flex gap-1">
-          <Button
-            onClick={() => handleAttendanceVote('attending')}
-            disabled={isSubmitting}
-            className={`flex-1 ${
-              currentUserStatus === 'ATTENDING' 
-                ? 'bg-green-600 hover:bg-green-700 text-white' 
-                : 'bg-green-100 text-green-800 hover:bg-green-200'
-            }`}
-            size="sm"
-          >
-            <Check className="h-3 w-3 mr-1" />
-            참석
-          </Button>
-          <Button
-            onClick={() => handleAttendanceVote('not_attending')}
-            disabled={isSubmitting}
-            className={`flex-1 ${
-              currentUserStatus === 'NOT_ATTENDING' 
-                ? 'bg-red-600 hover:bg-red-700 text-white' 
-                : 'bg-red-100 text-red-800 hover:bg-red-200'
-            }`}
-            size="sm"
-          >
-            <X className="h-3 w-3 mr-1" />
-            불참
-          </Button>
-        </div>
-      )}
+      {/* 참석 투표 버튼 (모든 사용자) */}
+      <div className="flex gap-1">
+        <Button
+          onClick={() => handleAttendanceVote('attending')}
+          disabled={isSubmitting}
+          className={`flex-1 ${
+            currentUserStatus === 'ATTENDING' 
+              ? 'bg-green-600 hover:bg-green-700 text-white' 
+              : 'bg-green-100 text-green-800 hover:bg-green-200'
+          }`}
+          size="sm"
+        >
+          <Check className="h-3 w-3 mr-1" />
+          참석
+        </Button>
+        <Button
+          onClick={() => handleAttendanceVote('not_attending')}
+          disabled={isSubmitting}
+          className={`flex-1 ${
+            currentUserStatus === 'NOT_ATTENDING' 
+              ? 'bg-red-600 hover:bg-red-700 text-white' 
+              : 'bg-red-100 text-red-800 hover:bg-red-200'
+          }`}
+          size="sm"
+        >
+          <X className="h-3 w-3 mr-1" />
+          불참
+        </Button>
+        <Button
+          onClick={() => handleAttendanceVote('pending')}
+          disabled={isSubmitting}
+          className={`flex-1 ${
+            currentUserStatus === 'PENDING' 
+              ? 'bg-yellow-600 hover:bg-yellow-700 text-white' 
+              : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
+          }`}
+          size="sm"
+        >
+          <Clock className="h-3 w-3 mr-1" />
+          미정
+        </Button>
+      </div>
 
-      {/* 참석 현황 (총무 모드) */}
+      {/* 참석 현황 (총무 모드 추가 정보) */}
       {isManagerMode && (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
@@ -290,13 +374,14 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
 
       {/* 게스트 초대 (게스트 허용 시) */}
       {allowGuests && (
-        <Dialog open={showGuestDialog} onOpenChange={setShowGuestDialog}>
-          <DialogTrigger asChild>
-            <Button variant="outline" size="sm" className="w-full">
-              <UserPlus className="h-3 w-3 mr-1" />
-              게스트 초대
-            </Button>
-          </DialogTrigger>
+        <div className="space-y-2">
+          <Dialog open={showGuestDialog} onOpenChange={setShowGuestDialog}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm" className="w-full">
+                <UserPlus className="h-3 w-3 mr-1" />
+                게스트 초대
+              </Button>
+            </DialogTrigger>
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>게스트 초대</DialogTitle>
@@ -364,6 +449,36 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* 게스트 목록 (총무만 삭제 가능) */}
+        {guests.length > 0 && (
+          <div className="space-y-1">
+            <div className="text-xs text-muted-foreground">초대된 게스트</div>
+            {guests.map((guest) => (
+              <div key={guest.id} className="flex items-center justify-between p-2 bg-gray-50 rounded text-xs">
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="text-xs">
+                    {getLevelShortLabel(guest.level)}
+                  </Badge>
+                  <span className="font-medium">{guest.name}</span>
+                  <span className="text-muted-foreground">({guest.position})</span>
+                </div>
+                {isManagerMode && (
+                  <Button
+                    onClick={() => handleGuestRemove(guest.id)}
+                    disabled={isSubmitting}
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
       )}
     </div>
   )

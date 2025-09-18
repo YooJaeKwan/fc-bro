@@ -1,6 +1,68 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
+// 게스트 목록 조회
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const scheduleId = searchParams.get('scheduleId')
+
+    if (!scheduleId) {
+      return NextResponse.json(
+        { error: '일정 ID가 필요합니다.' },
+        { status: 400 }
+      )
+    }
+
+    // 해당 일정의 게스트 목록 조회
+    const guests = await prisma.scheduleAttendance.findMany({
+      where: {
+        scheduleId,
+        isGuest: true
+      },
+      select: {
+        id: true,
+        guestId: true,
+        guestName: true,
+        guestLevel: true,
+        guestPosition: true,
+        invitedByUserId: true,
+        status: true,
+        createdAt: true,
+        user: {
+          select: {
+            realName: true,
+            nickname: true
+          }
+        }
+      },
+      orderBy: {
+        createdAt: 'asc'
+      }
+    })
+
+    return NextResponse.json({
+      success: true,
+      guests: guests.map(guest => ({
+        id: guest.guestId,
+        name: guest.guestName,
+        level: guest.guestLevel,
+        position: guest.guestPosition,
+        status: guest.status,
+        invitedBy: guest.user?.realName || guest.user?.nickname || '알 수 없음',
+        createdAt: guest.createdAt
+      }))
+    })
+
+  } catch (error) {
+    console.error('게스트 목록 조회 중 오류:', error)
+    return NextResponse.json(
+      { error: '게스트 목록 조회 중 오류가 발생했습니다.' },
+      { status: 500 }
+    )
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
@@ -92,9 +154,8 @@ export async function POST(request: NextRequest) {
 // 게스트 삭제
 export async function DELETE(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url)
-    const scheduleId = searchParams.get('scheduleId')
-    const guestId = searchParams.get('guestId')
+    const body = await request.json()
+    const { scheduleId, guestId } = body
 
     if (!scheduleId || !guestId) {
       return NextResponse.json(
