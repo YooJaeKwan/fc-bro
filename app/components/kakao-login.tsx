@@ -13,6 +13,9 @@ declare global {
           success: (authObj: any) => void
           fail: (error: any) => void
           scope?: string
+          throughTalk?: boolean
+          persistAccessToken?: boolean
+          persistRefreshToken?: boolean
         }) => void
         logout: (callback?: () => void) => void
       }
@@ -46,7 +49,9 @@ export function useKakaoLogin({ onSuccess, onError }: KakaoLoginHookProps) {
 
     // 카카오 SDK 스크립트 로드 (최신 CDN 사용)
     const script = document.createElement('script')
-    script.src = 'https://developers.kakao.com/sdk/js/kakao.js'
+    script.src = 'https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js'
+    script.integrity = 'sha384-TiCUE00h649CAMonG018J2ujOgDKW/kVWlChEuu4jK2vxfAAD0eZxzCKakxg55G4'
+    script.crossOrigin = 'anonymous'
     script.async = true
     
     script.onload = () => {
@@ -108,6 +113,26 @@ export function useKakaoLogin({ onSuccess, onError }: KakaoLoginHookProps) {
     }
   }, [onError])
 
+  // 모바일 기기 감지 함수
+  const isMobile = () => {
+    if (typeof window === 'undefined') return false
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+  }
+
+  // 모바일 브라우저별 감지 함수
+  const getMobileBrowser = () => {
+    if (typeof window === 'undefined') return 'unknown'
+    const userAgent = navigator.userAgent
+    
+    if (userAgent.includes('Instagram')) return 'instagram'
+    if (userAgent.includes('KAKAOTALK')) return 'kakaotalk'
+    if (userAgent.includes('Chrome')) return 'chrome'
+    if (userAgent.includes('Safari') && !userAgent.includes('Chrome')) return 'safari'
+    if (userAgent.includes('Firefox')) return 'firefox'
+    
+    return 'unknown'
+  }
+
   const loginWithKakao = () => {
     console.log('loginWithKakao 호출됨, isKakaoReady:', isKakaoReady)
     
@@ -128,8 +153,14 @@ export function useKakaoLogin({ onSuccess, onError }: KakaoLoginHookProps) {
 
     console.log('카카오 로그인 시작...')
     
+    const mobile = isMobile()
+    const browser = getMobileBrowser()
+    
+    console.log('디바이스 정보:', { mobile, browser })
+    
     try {
-      window.Kakao.Auth.login({
+      // 모바일 최적화된 로그인 옵션
+      const loginOptions: any = {
         success: (authObj: any) => {
           console.log('카카오 로그인 성공:', authObj)
           
@@ -170,11 +201,32 @@ export function useKakaoLogin({ onSuccess, onError }: KakaoLoginHookProps) {
           }
           
           onError(errorMessage)
-        },
-        // scope를 제거하여 기본 권한만 요청 (닉네임, 프로필사진 등)
-        // 필요시 카카오 개발자 콘솔에서 동의항목 설정 후 추가
-        // scope: 'profile_nickname,profile_image'
-      })
+        }
+      }
+
+      // 모바일 환경에 따른 로그인 옵션 최적화
+      if (mobile) {
+        // 모바일에서는 throughTalk 옵션으로 카카오톡 앱 연동 우선 시도
+        if (browser === 'kakaotalk') {
+          // 카카오톡 인앱 브라우저에서는 기본 옵션 사용
+          console.log('카카오톡 인앱 브라우저에서 로그인')
+        } else {
+          // 일반 모바일 브라우저에서는 throughTalk 비활성화
+          loginOptions.throughTalk = false
+          console.log('모바일 브라우저에서 카카오톡 앱 연동 비활성화')
+        }
+        
+        // 모바일에서 팝업 대신 현재 창에서 로그인 진행
+        loginOptions.persistAccessToken = true
+        loginOptions.persistRefreshToken = true
+      } else {
+        // 데스크톱에서는 기본 팝업 방식 사용
+        console.log('데스크톱 브라우저에서 팝업 로그인')
+      }
+
+      console.log('로그인 옵션:', loginOptions)
+      window.Kakao.Auth.login(loginOptions)
+      
     } catch (error) {
       console.error('카카오 로그인 중 예외 발생:', error)
       onError('카카오 로그인 중 오류가 발생했습니다.')

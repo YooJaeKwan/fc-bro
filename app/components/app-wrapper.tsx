@@ -7,6 +7,7 @@ import { AlertCircle } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import Dashboard from "../page-dashboard"
 import { useKakaoLogin } from "./kakao-login"
+import { MobileKakaoGuide } from "./mobile-kakao-guide"
 import { UserSignup } from "./user-signup"
 
 // 앱의 상태를 정의
@@ -18,6 +19,7 @@ export function AppWrapper() {
   const [kakaoUserInfo, setKakaoUserInfo] = useState(null)
   const [userInfo, setUserInfo] = useState(null)
   const [error, setError] = useState("")
+  const [showMobileGuide, setShowMobileGuide] = useState(false)
 
   const { loginWithKakao, isKakaoReady, isLoading: kakaoLoading } = useKakaoLogin({
     onSuccess: async (kakaoUserInfo) => {
@@ -37,6 +39,12 @@ export function AppWrapper() {
       console.error('로그인 오류:', errorMessage)
       setError(errorMessage)
       setIsLoading(false)
+      
+      // 모바일에서 로그인 실패 시 가이드 표시
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+      if (isMobile && (errorMessage.includes('팝업') || errorMessage.includes('차단') || errorMessage.includes('취소'))) {
+        setShowMobileGuide(true)
+      }
     }
   })
 
@@ -48,7 +56,14 @@ export function AppWrapper() {
     
     setIsLoading(true)
     setError("")
+    setShowMobileGuide(false) // 재시도 시 가이드 숨기기
     loginWithKakao()
+  }
+
+  const handleRetryLogin = () => {
+    setShowMobileGuide(false)
+    setError("")
+    handleKakaoLogin()
   }
 
   const checkExistingUser = async (kakaoUserInfo: any) => {
@@ -182,6 +197,13 @@ export function AppWrapper() {
           >
             {isLoading ? '로그인 중...' : !isKakaoReady ? 'SDK 로딩 중...' : '카카오로 시작하기'}
           </Button>
+          
+          {/* 모바일 로그인 가이드 */}
+          <MobileKakaoGuide 
+            onRetry={handleRetryLogin}
+            isVisible={showMobileGuide}
+          />
+          
           <p className="text-xs text-center text-muted-foreground">
             카카오 계정으로 로그인하면
             <br />자동으로 팀 가입 화면으로 이동합니다
