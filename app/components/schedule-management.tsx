@@ -20,11 +20,12 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Progress } from "@/components/ui/progress"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Calendar as CalendarIcon, Clock, MapPin, Users, Plus, Edit, Trash2, Timer, Coffee, Target, UserPlus } from "lucide-react"
+import { Calendar as CalendarIcon, Clock, MapPin, Users, Plus, Edit, Trash2, Timer, Coffee, Target, UserPlus, ChevronDown, ChevronRight } from "lucide-react"
 import { format } from "date-fns"
 import { ko } from "date-fns/locale"
 import { cn } from "@/lib/utils"
 import { AttendanceVoting } from "./attendance-voting"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 
 interface ScheduleManagementProps {
   isManagerMode: boolean
@@ -48,6 +49,7 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
   const [formationResults, setFormationResults] = useState<any>(null)
   const [isFormingTeams, setIsFormingTeams] = useState(false)
   const [isSavingFormation, setIsSavingFormation] = useState(false)
+  const [isFormationOpen, setIsFormationOpen] = useState(false)
 
   const [newSchedule, setNewSchedule] = useState({
     type: "internal",
@@ -76,9 +78,12 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
           ...nextSchedule.teamFormation,
           scheduleId: nextSchedule.id
         })
+        // 팀편성 결과가 있으면 자동으로 펼치기
+        setIsFormationOpen(true)
       } else {
         // 다음 일정에 팀편성 결과가 없으면 초기화
         setFormationResults(null)
+        setIsFormationOpen(false)
       }
     }
   }, [schedules])
@@ -110,8 +115,13 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
         ...nextSchedule.teamFormation,
         scheduleId: nextSchedule.id
       })
+      // 팀편성 결과가 있으면 펼치기 (사용자가 수동으로 접었다면 유지)
+      if (!isFormationOpen) {
+        setIsFormationOpen(true)
+      }
     } else {
       setFormationResults(null)
+      setIsFormationOpen(false)
     }
   }
 
@@ -1122,10 +1132,11 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                                    })
                                  })
 
-                                 if (saveResponse.ok) {
-                                   setFormationResults({ ...result, scheduleId: nextUpcomingSchedule.id })
-                                   fetchSchedules()
-                                 } else {
+                               if (saveResponse.ok) {
+                                 setFormationResults({ ...result, scheduleId: nextUpcomingSchedule.id })
+                                 setIsFormationOpen(true) // 팀편성 완료 시 자동으로 펼치기
+                                 fetchSchedules()
+                               } else {
                                    setFormationResults({
                                      yellowTeam: [],
                                      blueTeam: [],
@@ -1193,18 +1204,37 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
         </div>
       )}
 
-      {/* 팀편성 결과 표시 */}
-      {formationResults && formationResults.scheduleId === nextUpcomingSchedule?.id && (
-        <Card className="border-l-4 border-l-green-500">
-          <CardContent className="space-y-4 p-6">
-            <div className="text-center">
-              <h3 className="text-lg font-bold text-gray-900 mb-4">팀편성 결과</h3>
-              {formationResults.message && (
-                <p className="text-sm text-red-600">{formationResults.message}</p>
-              )}
-            </div>
-
-            {!formationResults.message && (
+       {/* 팀편성 결과 표시 */}
+       {formationResults && formationResults.scheduleId === nextUpcomingSchedule?.id && (
+         <Card className="border-l-4 border-l-green-500">
+           <Collapsible open={isFormationOpen} onOpenChange={setIsFormationOpen}>
+             <CollapsibleTrigger asChild>
+               <CardContent className="p-4 cursor-pointer hover:bg-gray-50 transition-colors">
+                 <div className="flex items-center justify-between">
+                   <div className="flex items-center gap-2">
+                     <h3 className="text-lg font-bold text-gray-900">팀편성 결과</h3>
+                     {formationResults.message && (
+                       <Badge variant="destructive" className="text-xs">
+                         {formationResults.message}
+                       </Badge>
+                     )}
+                   </div>
+                   <div className="flex items-center gap-2">
+                     <Badge variant="outline" className="text-xs">
+                       {formationResults.yellowTeam?.length || 0} vs {formationResults.blueTeam?.length || 0}
+                     </Badge>
+                     {isFormationOpen ? (
+                       <ChevronDown className="h-4 w-4 text-gray-500" />
+                     ) : (
+                       <ChevronRight className="h-4 w-4 text-gray-500" />
+                     )}
+                   </div>
+                 </div>
+               </CardContent>
+             </CollapsibleTrigger>
+             <CollapsibleContent>
+               <CardContent className="space-y-4 p-6 pt-0">
+                 {!formationResults.message && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* 노랑팀 */}
                 <div className="space-y-3">
@@ -1368,34 +1398,37 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
               </div>
             )}
 
-            {/* 팀편성 초기화 버튼 (총무 전용) */}
-            {!formationResults.message && isManagerMode && (
-              <div className="text-center pt-2">
-                <Button
-                  onClick={async () => {
-                    if (!nextUpcomingSchedule?.id) return
-                    try {
-                      const response = await fetch(`/api/schedule/formation?scheduleId=${nextUpcomingSchedule.id}`, {
-                        method: 'DELETE'
-                      })
-                      if (response.ok) {
-                        setFormationResults(null)
-                        fetchSchedules()
-                      }
-                    } catch (error) {
-                      console.error('팀편성 초기화 중 오류:', error)
-                    }
-                  }}
-                  variant="outline"
-                  size="sm"
-                >
-                  팀편성 초기화
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
+                 {/* 팀편성 초기화 버튼 (총무 전용) */}
+                 {!formationResults.message && isManagerMode && (
+                   <div className="text-center pt-2">
+                     <Button
+                       onClick={async () => {
+                         if (!nextUpcomingSchedule?.id) return
+                         try {
+                           const response = await fetch(`/api/schedule/formation?scheduleId=${nextUpcomingSchedule.id}`, {
+                             method: 'DELETE'
+                           })
+                           if (response.ok) {
+                             setFormationResults(null)
+                             setIsFormationOpen(false)
+                             fetchSchedules()
+                           }
+                         } catch (error) {
+                           console.error('팀편성 초기화 중 오류:', error)
+                         }
+                       }}
+                       variant="outline"
+                       size="sm"
+                     >
+                       팀편성 초기화
+                     </Button>
+                   </div>
+                 )}
+               </CardContent>
+             </CollapsibleContent>
+           </Collapsible>
+         </Card>
+       )}
 
       {/* 전체 일정 목록 */}
       <div className="space-y-4">
