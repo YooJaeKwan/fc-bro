@@ -37,6 +37,7 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
   const [guestPosition, setGuestPosition] = useState<string>("MC") // 기본값 미드필더
   const [guests, setGuests] = useState<any[]>([])
   const [isAttendanceOpen, setIsAttendanceOpen] = useState(false)
+  const [showFormationResetNotification, setShowFormationResetNotification] = useState(false)
 
   useEffect(() => {
     fetchAttendees()
@@ -61,6 +62,14 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
       fetchGuests()
     }
   }, [schedule.id, allowGuests])
+
+  // 팀편성 초기화 알림 표시
+  const showFormationResetAlert = () => {
+    setShowFormationResetNotification(true)
+    setTimeout(() => {
+      setShowFormationResetNotification(false)
+    }, 5000) // 5초 후 자동 숨김
+  }
 
   const fetchAttendees = async () => {
     try {
@@ -132,6 +141,7 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
       // API에서 팀편성이 초기화되었음을 알림받았을 때 사용자에게 피드백 제공
       if (result.teamFormationReset) {
         console.log('✅ 팀편성이 자동으로 초기화되었습니다.')
+        showFormationResetAlert()
         // 팀편성 초기화 알림을 상위 컴포넌트에 전달
         onAttendanceUpdate?.()
       }
@@ -192,6 +202,7 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
       
       // 팀편성 초기화 알림을 상위 컴포넌트에 전달
       if (result.teamFormationReset) {
+        showFormationResetAlert()
         onAttendanceUpdate?.()
       }
 
@@ -242,6 +253,7 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
       
       // 팀편성 초기화 알림을 상위 컴포넌트에 전달
       if (result.teamFormationReset) {
+        showFormationResetAlert()
         onAttendanceUpdate?.()
       }
 
@@ -319,9 +331,17 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
         </div>
       )}
 
+      {/* 팀편성 초기화 알림 */}
+      {showFormationResetNotification && (
+        <div className="p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-800 flex items-center gap-2">
+          <AlertCircle className="h-4 w-4" />
+          <span>참석 현황이 변경되어 팀편성이 초기화되었습니다.</span>
+        </div>
+      )}
+
       {/* 참석 투표 버튼 (모든 사용자) */}
       <div className="space-y-2">
-        <div className="flex gap-1">
+        <div className="flex gap-2">
           <Button
             onClick={() => handleAttendanceVote('attending')}
             disabled={isSubmitting}
@@ -347,19 +367,6 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
           >
             <X className="h-3 w-3 mr-1" />
             {currentUserStatus === 'NOT_ATTENDING' ? '✗ 불참' : '불참'}
-          </Button>
-          <Button
-            onClick={() => handleAttendanceVote('pending')}
-            disabled={isSubmitting}
-            className={`flex-1 ${
-              currentUserStatus === 'PENDING' 
-                ? 'bg-yellow-600 hover:bg-yellow-700 text-white border-2 border-yellow-700 shadow-md' 
-                : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200 border border-yellow-300'
-            }`}
-            size="sm"
-          >
-            <Clock className="h-3 w-3 mr-1" />
-            {currentUserStatus === 'PENDING' ? '? 미정' : '미정'}
           </Button>
         </div>
         
@@ -468,14 +475,13 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
 
       {/* 게스트 초대 (게스트 허용 시) */}
       {allowGuests && (
-        <div className="space-y-2">
-          <Dialog open={showGuestDialog} onOpenChange={setShowGuestDialog}>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="sm" className="w-full">
-                <UserPlus className="h-3 w-3 mr-1" />
-                게스트 초대
-              </Button>
-            </DialogTrigger>
+        <Dialog open={showGuestDialog} onOpenChange={setShowGuestDialog}>
+          <DialogTrigger asChild>
+            <Button variant="outline" size="sm" className="w-full">
+              <UserPlus className="h-3 w-3 mr-1" />
+              게스트 초대
+            </Button>
+          </DialogTrigger>
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>게스트 초대</DialogTitle>
@@ -543,9 +549,8 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
             </div>
           </DialogContent>
         </Dialog>
-
-      </div>
       )}
+
     </div>
   )
 }
