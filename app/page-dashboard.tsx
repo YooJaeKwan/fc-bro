@@ -124,10 +124,10 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
 
 
   const tabItems = [
-    { value: "schedule", label: "일정 관리", icon: Calendar },
-    { value: "dashboard", label: "팀 대시보드", icon: BarChart3 },
-    { value: "team", label: "팀 멤버", icon: Users },
-    { value: "profile", label: "내 정보", icon: User },
+    { value: "schedule", label: "Schedule", icon: Calendar },
+    { value: "dashboard", label: "Dashboard", icon: BarChart3 },
+    { value: "team", label: "Teams", icon: Users },
+    { value: "profile", label: "Profile", icon: User },
   ]
 
   const getPositionColor = (position: string) => {
