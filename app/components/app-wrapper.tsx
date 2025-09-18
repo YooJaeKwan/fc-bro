@@ -164,7 +164,7 @@ export function AppWrapper() {
             />
           </div>
           <CardTitle className="text-2xl">FC BRO</CardTitle>
-          {/* <CardDescription>팀 관리 플랫폼에 오신 것을 환영합니다</CardDescription> */}
+          {/* <CardDescription>Football Club BRO</CardDescription> */}
         </CardHeader>
         <CardContent className="space-y-4">
           {error && (
@@ -182,10 +182,10 @@ export function AppWrapper() {
           >
             {isLoading ? '로그인 중...' : !isKakaoReady ? 'SDK 로딩 중...' : '카카오로 시작하기'}
           </Button>
-          {/* <p className="text-xs text-center text-muted-foreground">
-            카카오 계정으로 간편하게 로그인하고
-            <br />팀 관리 서비스를 이용해보세요
-          </p> */}
+          <p className="text-xs text-center text-muted-foreground">
+            카카오 계정으로 로그인하면
+            <br />자동으로 팀 가입 화면으로 이동합니다
+          </p>
         </CardContent>
       </Card>
     </div>
