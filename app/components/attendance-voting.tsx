@@ -310,6 +310,14 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
     return { attending, total, percentage: Math.round((attending / total) * 100) }
   }
 
+  // 참석자들을 상태별로 분류하는 함수
+  const getAttendeesByStatus = (attendees: any[]) => {
+    const attending = attendees.filter((a) => a.status === "attending" || a.status === "attended")
+    const notAttending = attendees.filter((a) => a.status === "not_attending")
+    const pending = attendees.filter((a) => a.status === "pending")
+    return { attending, notAttending, pending }
+  }
+
   const currentUserStatus = getCurrentUserStatus()
   const stats = getAttendanceStats(attendees)
 
@@ -375,12 +383,12 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
           <div className="text-center">
             <Badge 
               variant="outline" 
-              className={`text-xs ${
+              className={`text-xs font-medium ${
                 currentUserStatus === 'ATTENDING' 
-                  ? 'bg-green-50 text-green-700 border-green-300' 
+                  ? 'bg-green-100 text-green-800 border-green-400' 
                   : currentUserStatus === 'NOT_ATTENDING'
-                  ? 'bg-red-50 text-red-700 border-red-300'
-                  : 'bg-yellow-50 text-yellow-700 border-yellow-300'
+                  ? 'bg-red-100 text-red-800 border-red-400'
+                  : 'bg-yellow-100 text-yellow-800 border-yellow-400'
               }`}
             >
               {getStatusIcon(currentUserStatus)}
@@ -409,50 +417,150 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
           </Button>
         </CollapsibleTrigger>
         <CollapsibleContent>
-          <div className="mt-2 space-y-2 p-3 bg-gray-50 rounded border">
-            {/* 참석자 목록 */}
-            <div className="space-y-1">
-              {attendees.map((attendee) => (
-                <div key={attendee.userId || attendee.guestId} className="flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2">
-                    <Badge 
-                      variant="outline" 
-                      className={`text-xs ${getStatusColor(attendee.status)}`}
-                    >
-                      {getStatusIcon(attendee.status)}
-                      <span className="ml-1">{getStatusText(attendee.status)}</span>
-                    </Badge>
-                    <span className="font-medium">
-                      {attendee.isGuest ? attendee.guestName : (attendee.user?.realName || attendee.user?.nickname)}
-                    </span>
-                    {attendee.isGuest && (
-                      <Badge variant="secondary" className="text-xs">
-                        게스트
-                      </Badge>
-                    )}
-                    {attendee.isGuest && attendee.guestLevel && (
-                      <Badge variant="outline" className="text-xs">
-                        {getLevelShortLabel(attendee.guestLevel)}
-                      </Badge>
-                    )}
-                    {attendee.isGuest && attendee.guestPosition && (
-                      <span className="text-muted-foreground">({attendee.guestPosition})</span>
-                    )}
-                  </div>
-                  {attendee.isGuest && isManagerMode && (
-                    <Button
-                      onClick={() => handleGuestRemove(attendee.guestId)}
-                      disabled={isSubmitting}
-                      variant="ghost"
-                      size="sm"
-                      className="h-5 w-5 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
+          <div className="mt-2 space-y-3 p-3 bg-gray-50 rounded border">
+            {/* 참석자 목록을 상태별로 구분하여 표시 */}
+            {(() => {
+              const { attending, notAttending, pending } = getAttendeesByStatus(attendees)
+              
+              return (
+                <div className="space-y-3">
+                  {/* 참석자 목록 */}
+                  {attending.length > 0 && (
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 text-xs font-medium text-green-700">
+                        <Check className="h-3 w-3" />
+                        <span>참석 ({attending.length}명)</span>
+                      </div>
+                      <div className="space-y-1 ml-5">
+                        {attending.map((attendee) => (
+                          <div key={attendee.userId || attendee.guestId} className="flex items-center justify-between text-xs">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">
+                                {attendee.isGuest ? attendee.guestName : (attendee.user?.realName || attendee.user?.nickname)}
+                              </span>
+                              <span className="text-muted-foreground">
+                                ({attendee.isGuest ? attendee.guestPosition : (attendee.user?.preferredPosition || '미정')})
+                              </span>
+                              {attendee.isGuest && (
+                                <Badge variant="secondary" className="text-xs">
+                                  게스트
+                                </Badge>
+                              )}
+                              {attendee.isGuest && attendee.guestLevel && (
+                                <Badge variant="outline" className="text-xs">
+                                  {getLevelShortLabel(attendee.guestLevel)}
+                                </Badge>
+                              )}
+                            </div>
+                            {attendee.isGuest && isManagerMode && (
+                              <Button
+                                onClick={() => handleGuestRemove(attendee.guestId)}
+                                disabled={isSubmitting}
+                                variant="ghost"
+                                size="sm"
+                                className="h-5 w-5 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 불참자 목록 */}
+                  {notAttending.length > 0 && (
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 text-xs font-medium text-red-700">
+                        <X className="h-3 w-3" />
+                        <span>불참 ({notAttending.length}명)</span>
+                      </div>
+                      <div className="space-y-1 ml-5">
+                        {notAttending.map((attendee) => (
+                          <div key={attendee.userId || attendee.guestId} className="flex items-center justify-between text-xs">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">
+                                {attendee.isGuest ? attendee.guestName : (attendee.user?.realName || attendee.user?.nickname)}
+                              </span>
+                              <span className="text-muted-foreground">
+                                ({attendee.isGuest ? attendee.guestPosition : (attendee.user?.preferredPosition || '미정')})
+                              </span>
+                              {attendee.isGuest && (
+                                <Badge variant="secondary" className="text-xs">
+                                  게스트
+                                </Badge>
+                              )}
+                              {attendee.isGuest && attendee.guestLevel && (
+                                <Badge variant="outline" className="text-xs">
+                                  {getLevelShortLabel(attendee.guestLevel)}
+                                </Badge>
+                              )}
+                            </div>
+                            {attendee.isGuest && isManagerMode && (
+                              <Button
+                                onClick={() => handleGuestRemove(attendee.guestId)}
+                                disabled={isSubmitting}
+                                variant="ghost"
+                                size="sm"
+                                className="h-5 w-5 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 미정자 목록 */}
+                  {pending.length > 0 && (
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 text-xs font-medium text-yellow-700">
+                        <Clock className="h-3 w-3" />
+                        <span>미정 ({pending.length}명)</span>
+                      </div>
+                      <div className="space-y-1 ml-5">
+                        {pending.map((attendee) => (
+                          <div key={attendee.userId || attendee.guestId} className="flex items-center justify-between text-xs">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">
+                                {attendee.isGuest ? attendee.guestName : (attendee.user?.realName || attendee.user?.nickname)}
+                              </span>
+                              <span className="text-muted-foreground">
+                                ({attendee.isGuest ? attendee.guestPosition : (attendee.user?.preferredPosition || '미정')})
+                              </span>
+                              {attendee.isGuest && (
+                                <Badge variant="secondary" className="text-xs">
+                                  게스트
+                                </Badge>
+                              )}
+                              {attendee.isGuest && attendee.guestLevel && (
+                                <Badge variant="outline" className="text-xs">
+                                  {getLevelShortLabel(attendee.guestLevel)}
+                                </Badge>
+                              )}
+                            </div>
+                            {attendee.isGuest && isManagerMode && (
+                              <Button
+                                onClick={() => handleGuestRemove(attendee.guestId)}
+                                disabled={isSubmitting}
+                                variant="ghost"
+                                size="sm"
+                                className="h-5 w-5 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   )}
                 </div>
-              ))}
-            </div>
+              )
+            })()}
             
             {/* 참석률 통계 */}
             <div className="pt-2 border-t">
