@@ -963,11 +963,21 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
 
                 {/* 일정 기본 정보 */}
                 <div className="text-center space-y-2">
-                  <h3 className="flex items-center justify-center text-xl font-bold">
-                    {nextUpcomingSchedule.location}
-                  </h3>
                   <h3 className="text-xl font-bold">
-                    <span>{nextUpcomingSchedule.time}</span>
+                    {(() => {
+                      // 한국시간으로 저장된 날짜를 그대로 표시
+                      const [year, month, day] = nextUpcomingSchedule.date.split('-')
+                      const date = new Date(Number(year), Number(month) - 1, Number(day))
+                      return date.toLocaleDateString('ko-KR', {
+                        month: 'long',
+                        day: 'numeric',
+                        weekday: 'short'
+                      })
+                    })()} <span >{nextUpcomingSchedule.time}</span>
+                  </h3>
+                  <h3 className="flex items-center justify-center text-xl font-bold">
+                    <MapPin className="h-4 w-4" />
+                    {nextUpcomingSchedule.location}
                   </h3>
                 </div>
 
@@ -1008,19 +1018,6 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                    <div className="flex items-center gap-3 text-sm">
                      <CalendarIcon className="h-4 w-4 text-blue-500 flex-shrink-0" />
                      <div className="flex-1">
-                       <div className="font-medium">
-                         {(() => {
-                           // 한국시간으로 저장된 날짜를 그대로 표시
-                           const [year, month, day] = nextUpcomingSchedule.date.split('-')
-                           const date = new Date(Number(year), Number(month) - 1, Number(day))
-                           return new Intl.DateTimeFormat('ko-KR', {
-                             year: 'numeric',
-                             month: 'long',
-                             day: 'numeric',
-                             weekday: 'short'
-                           }).format(date)
-                         })()}
-                       </div>
                        <div className="text-muted-foreground">집합: {nextUpcomingSchedule.gatherTime}</div>
                      </div>
                    </div>
