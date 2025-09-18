@@ -76,6 +76,9 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
           ...nextSchedule.teamFormation,
           scheduleId: nextSchedule.id
         })
+      } else {
+        // 다음 일정에 팀편성 결과가 없으면 초기화
+        setFormationResults(null)
       }
     }
   }, [schedules])
@@ -96,6 +99,19 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
       setError(error instanceof Error ? error.message : '일정 목록 조회 중 오류가 발생했습니다.')
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  // 팀편성 결과 확인 및 초기화 함수
+  const refreshFormationResults = () => {
+    const nextSchedule = getNextUpcomingSchedule()
+    if (nextSchedule && nextSchedule.teamFormation) {
+      setFormationResults({
+        ...nextSchedule.teamFormation,
+        scheduleId: nextSchedule.id
+      })
+    } else {
+      setFormationResults(null)
     }
   }
 
@@ -1489,7 +1505,10 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                           schedule={schedule}
                           currentUser={currentUser}
                           isManagerMode={isManagerMode}
-                          onAttendanceUpdate={fetchSchedules}
+                          onAttendanceUpdate={() => {
+                            fetchSchedules()
+                            refreshFormationResults()
+                          }}
                           allowGuests={schedule.allowGuests}
                         />
 

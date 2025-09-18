@@ -45,8 +45,30 @@ export async function POST(request: NextRequest) {
 
     console.log('게스트 등록 성공:', { guestName, invitedBy: inviter.realName })
 
+    // 게스트 초대 시 기존 팀편성 결과 초기화
+    try {
+      const scheduleWithFormation = await prisma.schedule.findUnique({
+        where: { id: scheduleId },
+        select: { teamFormation: true, formationDate: true }
+      })
+
+      if (scheduleWithFormation?.teamFormation || scheduleWithFormation?.formationDate) {
+        await prisma.schedule.update({
+          where: { id: scheduleId },
+          data: {
+            teamFormation: null,
+            formationDate: null
+          }
+        })
+        console.log('게스트 초대로 인한 팀편성 초기화 완료:', scheduleId)
+      }
+    } catch (error) {
+      console.error('팀편성 초기화 중 오류 (무시됨):', error)
+    }
+
     return NextResponse.json({
       success: true,
+      teamFormationReset: true, // 팀편성이 초기화되었음을 알림
       guest: {
         userId: guestId,  // 프론트엔드에서 사용할 ID
         name: guestName,
@@ -90,7 +112,31 @@ export async function DELETE(request: NextRequest) {
       }
     })
 
-    return NextResponse.json({ success: true })
+    // 게스트 삭제 시 기존 팀편성 결과 초기화
+    try {
+      const scheduleWithFormation = await prisma.schedule.findUnique({
+        where: { id: scheduleId },
+        select: { teamFormation: true, formationDate: true }
+      })
+
+      if (scheduleWithFormation?.teamFormation || scheduleWithFormation?.formationDate) {
+        await prisma.schedule.update({
+          where: { id: scheduleId },
+          data: {
+            teamFormation: null,
+            formationDate: null
+          }
+        })
+        console.log('게스트 삭제로 인한 팀편성 초기화 완료:', scheduleId)
+      }
+    } catch (error) {
+      console.error('팀편성 초기화 중 오류 (무시됨):', error)
+    }
+
+    return NextResponse.json({ 
+      success: true,
+      teamFormationReset: true
+    })
 
   } catch (error) {
     console.error('게스트 삭제 중 오류:', error)

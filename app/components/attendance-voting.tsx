@@ -107,16 +107,10 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
       // 참석자 목록 새로고침
       await fetchAttendees()
       
-      // 참석 현황 변경 시 팀편성 결과 초기화
-      try {
-        const resetResponse = await fetch(`/api/schedule/formation?scheduleId=${schedule.id}`, {
-          method: 'DELETE'
-        })
-        if (resetResponse.ok) {
-          console.log('팀편성 결과 초기화 완료 (참석 현황 변경)')
-        }
-      } catch (error) {
-        console.error('팀편성 초기화 오류:', error)
+      // API에서 팀편성이 초기화되었음을 알림받았을 때 사용자에게 피드백 제공
+      if (result.teamFormationReset) {
+        console.log('✅ 팀편성이 자동으로 초기화되었습니다.')
+        // 추가적인 UI 피드백이 필요하다면 여기에 추가 (예: Toast 메시지)
       }
       
       // 상위 컴포넌트에 알림 (일정 목록 새로고침용)
