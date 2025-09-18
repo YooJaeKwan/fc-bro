@@ -1025,7 +1025,7 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                    </div>
                  {/* 경기 세부 정보 */}
                  <div className="space-y-3 bg-gray-50 rounded-lg p-4">
-                   <div className="flex items-center gap-2 text-sm">gk
+                   <div className="flex items-center gap-2 text-sm">
                      <CalendarIcon className="h-4 w-4 text-blue-500 flex-shrink-0" />
                      <div className="flex-1">
                        <div className="text-muted-foreground">집합: {nextUpcomingSchedule.gatherTime}</div>

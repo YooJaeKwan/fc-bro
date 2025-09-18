@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Users, Check, X, Clock, RefreshCw, AlertCircle, UserPlus } from "lucide-react"
+import { Users, Check, X, Clock, RefreshCw, AlertCircle, UserPlus, ChevronDown, ChevronRight } from "lucide-react"
 import { getLevelShortLabel, LEVEL_OPTIONS } from "@/lib/level-system"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -16,6 +16,7 @@ import {
   DialogTitle,
   DialogTrigger
 } from "@/components/ui/dialog"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 
 interface AttendanceVotingProps {
   schedule: any
@@ -35,6 +36,7 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
   const [guestLevel, setGuestLevel] = useState<number>(7) // 기본값 아마추어3
   const [guestPosition, setGuestPosition] = useState<string>("MC") // 기본값 미드필더
   const [guests, setGuests] = useState<any[]>([])
+  const [isAttendanceOpen, setIsAttendanceOpen] = useState(false)
 
   useEffect(() => {
     fetchAttendees()
@@ -130,10 +132,9 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
       // API에서 팀편성이 초기화되었음을 알림받았을 때 사용자에게 피드백 제공
       if (result.teamFormationReset) {
         console.log('✅ 팀편성이 자동으로 초기화되었습니다.')
+        // 팀편성 초기화 알림을 상위 컴포넌트에 전달
+        onAttendanceUpdate?.()
       }
-      
-      // 상위 컴포넌트에 알림 (일정 목록 새로고침용)
-      onAttendanceUpdate?.()
 
     } catch (error) {
       console.error('참석 투표 오류:', error)
@@ -189,8 +190,10 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
       setGuestPosition("MC")
       setShowGuestDialog(false)
       
-      // 상위 컴포넌트에 알림
-      onAttendanceUpdate?.()
+      // 팀편성 초기화 알림을 상위 컴포넌트에 전달
+      if (result.teamFormationReset) {
+        onAttendanceUpdate?.()
+      }
 
     } catch (error) {
       console.error('게스트 초대 오류:', error)
@@ -237,8 +240,10 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
         await fetchGuests()
       }
       
-      // 상위 컴포넌트에 알림
-      onAttendanceUpdate?.()
+      // 팀편성 초기화 알림을 상위 컴포넌트에 전달
+      if (result.teamFormationReset) {
+        onAttendanceUpdate?.()
+      }
 
     } catch (error) {
       console.error('게스트 삭제 오류:', error)
@@ -315,62 +320,151 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
       )}
 
       {/* 참석 투표 버튼 (모든 사용자) */}
-      <div className="flex gap-1">
-        <Button
-          onClick={() => handleAttendanceVote('attending')}
-          disabled={isSubmitting}
-          className={`flex-1 ${
-            currentUserStatus === 'ATTENDING' 
-              ? 'bg-green-600 hover:bg-green-700 text-white' 
-              : 'bg-green-100 text-green-800 hover:bg-green-200'
-          }`}
-          size="sm"
-        >
-          <Check className="h-3 w-3 mr-1" />
-          참석
-        </Button>
-        <Button
-          onClick={() => handleAttendanceVote('not_attending')}
-          disabled={isSubmitting}
-          className={`flex-1 ${
-            currentUserStatus === 'NOT_ATTENDING' 
-              ? 'bg-red-600 hover:bg-red-700 text-white' 
-              : 'bg-red-100 text-red-800 hover:bg-red-200'
-          }`}
-          size="sm"
-        >
-          <X className="h-3 w-3 mr-1" />
-          불참
-        </Button>
-        <Button
-          onClick={() => handleAttendanceVote('pending')}
-          disabled={isSubmitting}
-          className={`flex-1 ${
-            currentUserStatus === 'PENDING' 
-              ? 'bg-yellow-600 hover:bg-yellow-700 text-white' 
-              : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
-          }`}
-          size="sm"
-        >
-          <Clock className="h-3 w-3 mr-1" />
-          미정
-        </Button>
+      <div className="space-y-2">
+        <div className="flex gap-1">
+          <Button
+            onClick={() => handleAttendanceVote('attending')}
+            disabled={isSubmitting}
+            className={`flex-1 ${
+              currentUserStatus === 'ATTENDING' 
+                ? 'bg-green-600 hover:bg-green-700 text-white border-2 border-green-700 shadow-md' 
+                : 'bg-green-100 text-green-800 hover:bg-green-200 border border-green-300'
+            }`}
+            size="sm"
+          >
+            <Check className="h-3 w-3 mr-1" />
+            {currentUserStatus === 'ATTENDING' ? '✓ 참석' : '참석'}
+          </Button>
+          <Button
+            onClick={() => handleAttendanceVote('not_attending')}
+            disabled={isSubmitting}
+            className={`flex-1 ${
+              currentUserStatus === 'NOT_ATTENDING' 
+                ? 'bg-red-600 hover:bg-red-700 text-white border-2 border-red-700 shadow-md' 
+                : 'bg-red-100 text-red-800 hover:bg-red-200 border border-red-300'
+            }`}
+            size="sm"
+          >
+            <X className="h-3 w-3 mr-1" />
+            {currentUserStatus === 'NOT_ATTENDING' ? '✗ 불참' : '불참'}
+          </Button>
+          <Button
+            onClick={() => handleAttendanceVote('pending')}
+            disabled={isSubmitting}
+            className={`flex-1 ${
+              currentUserStatus === 'PENDING' 
+                ? 'bg-yellow-600 hover:bg-yellow-700 text-white border-2 border-yellow-700 shadow-md' 
+                : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200 border border-yellow-300'
+            }`}
+            size="sm"
+          >
+            <Clock className="h-3 w-3 mr-1" />
+            {currentUserStatus === 'PENDING' ? '? 미정' : '미정'}
+          </Button>
+        </div>
+        
+        {/* 현재 투표 상태 표시 */}
+        {currentUserStatus !== 'PENDING' && (
+          <div className="text-center">
+            <Badge 
+              variant="outline" 
+              className={`text-xs ${
+                currentUserStatus === 'ATTENDING' 
+                  ? 'bg-green-50 text-green-700 border-green-300' 
+                  : currentUserStatus === 'NOT_ATTENDING'
+                  ? 'bg-red-50 text-red-700 border-red-300'
+                  : 'bg-yellow-50 text-yellow-700 border-yellow-300'
+              }`}
+            >
+              {getStatusIcon(currentUserStatus)}
+              <span className="ml-1">현재 투표: {getStatusText(currentUserStatus)}</span>
+            </Badge>
+          </div>
+        )}
       </div>
 
-      {/* 참석 현황 (총무 모드 추가 정보) */}
-      {isManagerMode && (
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-muted-foreground">참석률</span>
-            <div className="flex items-center gap-1">
+      {/* 참석 현황 (펼쳐서 볼 수 있음) */}
+      <Collapsible open={isAttendanceOpen} onOpenChange={setIsAttendanceOpen}>
+        <CollapsibleTrigger asChild>
+          <Button variant="outline" size="sm" className="w-full justify-between">
+            <div className="flex items-center gap-2">
               <Users className="h-3 w-3" />
+              <span>참석 현황</span>
               <Badge variant="outline" className="text-xs">
                 {stats.attending}/{stats.total}명
               </Badge>
             </div>
+            {isAttendanceOpen ? (
+              <ChevronDown className="h-3 w-3" />
+            ) : (
+              <ChevronRight className="h-3 w-3" />
+            )}
+          </Button>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <div className="mt-2 space-y-2 p-3 bg-gray-50 rounded border">
+            {/* 참석자 목록 */}
+            <div className="space-y-1">
+              {attendees.map((attendee) => (
+                <div key={attendee.userId || attendee.guestId} className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2">
+                    <Badge 
+                      variant="outline" 
+                      className={`text-xs ${getStatusColor(attendee.status)}`}
+                    >
+                      {getStatusIcon(attendee.status)}
+                      <span className="ml-1">{getStatusText(attendee.status)}</span>
+                    </Badge>
+                    <span className="font-medium">
+                      {attendee.isGuest ? attendee.guestName : (attendee.user?.realName || attendee.user?.nickname)}
+                    </span>
+                    {attendee.isGuest && (
+                      <Badge variant="secondary" className="text-xs">
+                        게스트
+                      </Badge>
+                    )}
+                    {attendee.isGuest && attendee.guestLevel && (
+                      <Badge variant="outline" className="text-xs">
+                        {getLevelShortLabel(attendee.guestLevel)}
+                      </Badge>
+                    )}
+                    {attendee.isGuest && attendee.guestPosition && (
+                      <span className="text-muted-foreground">({attendee.guestPosition})</span>
+                    )}
+                  </div>
+                  {attendee.isGuest && isManagerMode && (
+                    <Button
+                      onClick={() => handleGuestRemove(attendee.guestId)}
+                      disabled={isSubmitting}
+                      variant="ghost"
+                      size="sm"
+                      className="h-5 w-5 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+            
+            {/* 참석률 통계 */}
+            <div className="pt-2 border-t">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">참석률</span>
+                <div className="flex items-center gap-2">
+                  <div className="w-20 bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="bg-green-500 h-2 rounded-full" 
+                      style={{ width: `${stats.percentage}%` }}
+                    ></div>
+                  </div>
+                  <span className="font-medium">{stats.percentage}%</span>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
-      )}
+        </CollapsibleContent>
+      </Collapsible>
 
       {/* 게스트 초대 (게스트 허용 시) */}
       {allowGuests && (
@@ -450,34 +544,6 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
           </DialogContent>
         </Dialog>
 
-        {/* 게스트 목록 (총무만 삭제 가능) */}
-        {guests.length > 0 && (
-          <div className="space-y-1">
-            <div className="text-xs text-muted-foreground">초대된 게스트</div>
-            {guests.map((guest) => (
-              <div key={guest.id} className="flex items-center justify-between p-2 bg-gray-50 rounded text-xs">
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="text-xs">
-                    {getLevelShortLabel(guest.level)}
-                  </Badge>
-                  <span className="font-medium">{guest.name}</span>
-                  <span className="text-muted-foreground">({guest.position})</span>
-                </div>
-                {isManagerMode && (
-                  <Button
-                    onClick={() => handleGuestRemove(guest.id)}
-                    disabled={isSubmitting}
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
       </div>
       )}
     </div>
