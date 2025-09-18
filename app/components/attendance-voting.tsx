@@ -1,12 +1,13 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Progress } from "@/components/ui/progress"
-import { Separator } from "@/components/ui/separator"
+import { Users, Check, X, Clock, RefreshCw, AlertCircle, UserPlus } from "lucide-react"
+import { getLevelShortLabel, LEVEL_OPTIONS } from "@/lib/level-system"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   Dialog,
   DialogContent,
@@ -15,11 +16,6 @@ import {
   DialogTitle,
   DialogTrigger
 } from "@/components/ui/dialog"
-import { Users, Check, X, Clock, RefreshCw, AlertCircle, UserPlus } from "lucide-react"
-import { getLevelShortLabel, LEVEL_OPTIONS } from "@/lib/level-system"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 interface AttendanceVotingProps {
   schedule: any
@@ -31,10 +27,9 @@ interface AttendanceVotingProps {
 
 export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAttendanceUpdate, allowGuests = false }: AttendanceVotingProps) {
   const [attendees, setAttendees] = useState<any[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isOpen, setIsOpen] = useState(false)
   const [showGuestDialog, setShowGuestDialog] = useState(false)
   const [guestName, setGuestName] = useState("")
   const [guestLevel, setGuestLevel] = useState<number>(7) // 기본값 아마추어3
@@ -42,10 +37,8 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
   const [guests, setGuests] = useState<any[]>([])
 
   useEffect(() => {
-    if (isOpen) {
-      fetchAttendees()
-    }
-  }, [isOpen, schedule.id])
+    fetchAttendees()
+  }, [schedule.id])
 
   const fetchAttendees = async () => {
     try {
@@ -69,6 +62,13 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
     } finally {
       setIsLoading(false)
     }
+  }
+
+  // 현재 사용자의 참석 상태 가져오기
+  const getCurrentUserStatus = () => {
+    if (!currentUser?.id) return 'PENDING'
+    const userAttendance = attendees.find(att => att.userId === currentUser.id)
+    return userAttendance?.status || 'PENDING'
   }
 
   const handleAttendanceVote = async (status: string) => {
@@ -110,7 +110,6 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
       // API에서 팀편성이 초기화되었음을 알림받았을 때 사용자에게 피드백 제공
       if (result.teamFormationReset) {
         console.log('✅ 팀편성이 자동으로 초기화되었습니다.')
-        // 추가적인 UI 피드백이 필요하다면 여기에 추가 (예: Toast 메시지)
       }
       
       // 상위 컴포넌트에 알림 (일정 목록 새로고침용)
@@ -119,6 +118,58 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
     } catch (error) {
       console.error('참석 투표 오류:', error)
       setError(error instanceof Error ? error.message : '참석 투표 중 오류가 발생했습니다.')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  // 게스트 초대 함수
+  const handleGuestInvite = async () => {
+    if (!guestName.trim()) {
+      setError('게스트 이름을 입력해주세요.')
+      return
+    }
+
+    setIsSubmitting(true)
+
+    try {
+      const response = await fetch('/api/schedule/guest', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          scheduleId: schedule.id,
+          guestName: guestName.trim(),
+          guestLevel,
+          guestPosition,
+          invitedByUserId: currentUser?.id
+        })
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || '게스트 초대 중 오류가 발생했습니다.')
+      }
+
+      console.log('게스트 초대 성공:', result)
+      
+      // 참석자 목록 새로고침
+      await fetchAttendees()
+      
+      // 게스트 초대 폼 초기화
+      setGuestName("")
+      setGuestLevel(7)
+      setGuestPosition("MC")
+      setShowGuestDialog(false)
+      
+      // 상위 컴포넌트에 알림
+      onAttendanceUpdate?.()
+
+    } catch (error) {
+      console.error('게스트 초대 오류:', error)
+      setError(error instanceof Error ? error.message : '게스트 초대 중 오류가 발생했습니다.')
     } finally {
       setIsSubmitting(false)
     }
@@ -140,414 +191,180 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "attending":
-        return <Check className="h-4 w-4 text-green-600" />
+        return <Check className="h-4 w-4" />
       case "not_attending":
-        return <X className="h-4 w-4 text-red-600" />
+        return <X className="h-4 w-4" />
+      case "pending":
+        return <Clock className="h-4 w-4" />
       default:
-        return <Clock className="h-4 w-4 text-yellow-600" />
+        return <Clock className="h-4 w-4" />
     }
   }
 
-  const getStatusLabel = (status: string) => {
+  const getStatusText = (status: string) => {
     switch (status) {
       case "attending":
         return "참석"
       case "not_attending":
         return "불참"
+      case "pending":
+        return "미정"
       default:
         return "미정"
     }
   }
 
-  // 포지션별 색상 분류
-  const getPositionColor = (position: string) => {
-    switch (position) {
-      // 골키퍼 - 노란색
-      case "GK":
-        return "bg-yellow-100 text-yellow-800 border-yellow-300"
-      
-      // 수비수 - 파란색  
-      case "DC":
-      case "DR": 
-      case "DL":
-      case "DRL":
-      case "DRLC":
-        return "bg-blue-100 text-blue-800 border-blue-300"
-      
-      // 미드필더 - 초록색
-      case "MC":
-      case "AMC":
-      case "DM":
-        return "bg-green-100 text-green-800 border-green-300"
-      
-      // 공격수 - 빨간색
-      case "ST":
-      case "CF":
-      case "SS":
-      case "LWF":
-      case "RWF":
-        return "bg-red-100 text-red-800 border-red-300"
-      
-      // 기타 - 회색
-      default:
-        return "bg-gray-100 text-gray-800 border-gray-300"
-    }
+  const getAttendanceStats = (attendees: any[]) => {
+    const attending = attendees.filter((a) => a.status === "attending" || a.status === "attended").length
+    const total = attendees.length
+    return { attending, total, percentage: Math.round((attending / total) * 100) }
   }
 
-  // 현재 사용자의 투표 상태 확인
-  const currentUserAttendance = attendees.find(a => a.userId === currentUser?.id)
-  const currentUserStatus = currentUserAttendance?.status || 'pending'
+  const currentUserStatus = getCurrentUserStatus()
+  const stats = getAttendanceStats(attendees)
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center p-2">
+        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+        <span className="ml-2 text-xs text-muted-foreground">로딩 중...</span>
+      </div>
+    )
+  }
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button size="sm" className="w-full sm:w-auto">
-          참석 투표
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>참석 투표</DialogTitle>
-          <DialogDescription>
-            {schedule.date} {schedule.time} | {schedule.location}
-          </DialogDescription>
-        </DialogHeader>
-
-        {/* 에러 표시 */}
-        {error && (
-          <div className="text-red-500 text-sm bg-red-50 p-3 rounded-lg">
-            {error}
-          </div>
-        )}
-
-        {/* 내 투표 상태 (모든 사용자) */}
-        <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg">내 참석 여부</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-center gap-2">
-                <Badge className={getStatusColor(currentUserStatus)} variant="secondary">
-                  {getStatusIcon(currentUserStatus)}
-                  <span className="ml-2">{getStatusLabel(currentUserStatus)}</span>
-                </Badge>
-                {currentUserStatus !== 'pending' && (
-                  <span className="text-xs text-muted-foreground">(재투표 가능)</span>
-                )}
-              </div>
-              
-              <div className="flex gap-2 justify-center">
-                <Button
-                  onClick={() => handleAttendanceVote('attending')}
-                  disabled={isSubmitting}
-                  variant={currentUserStatus === 'attending' ? 'default' : 'outline'}
-                  className="flex-1"
-                >
-                  <Check className="h-4 w-4 mr-2" />
-                  {currentUserStatus === 'attending' ? '참석 (선택됨)' : '참석'}
-                </Button>
-                <Button
-                  onClick={() => handleAttendanceVote('not_attending')}
-                  disabled={isSubmitting}
-                  variant={currentUserStatus === 'not_attending' ? 'destructive' : 'outline'}
-                  className="flex-1"
-                >
-                  <X className="h-4 w-4 mr-2" />
-                  {currentUserStatus === 'not_attending' ? '불참 (선택됨)' : '불참'}
-                </Button>
-              </div>
-
-              {/* 게스트 초대 버튼 (게스트 허용 시) */}
-              {allowGuests && (
-                <div className="mt-3">
-                  <Button
-                    onClick={() => setShowGuestDialog(true)}
-                    variant="outline"
-                    className="w-full bg-yellow-400"
-                  >
-                    <UserPlus className="h-4 w-4 mr-2" />
-                    게스트 초대
-                  </Button>
-                </div>
-              )}
-
-              {isSubmitting && (
-                <div className="text-center text-sm text-muted-foreground">
-                  투표 처리 중...
-                </div>
-              )}
-              
-              {currentUserStatus !== 'pending' && (
-                <div className="text-center text-xs text-blue-600 bg-blue-50 p-2 rounded">
-                  언제든지 투표를 변경할 수 있습니다
-                </div>
-              )}
-            </CardContent>
-        </Card>
-
-        <Separator />
-
-        {/* 참석자 현황 */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              <span className="font-semibold">참석자 현황</span>
-            </div>
-            <Button
-              onClick={fetchAttendees}
-              variant="ghost"
-              size="sm"
-              disabled={isLoading}
-            >
-              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-            </Button>
-          </div>
-
-          {isLoading ? (
-            <div className="space-y-2">
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg animate-pulse">
-                  <div className="h-8 w-8 bg-gray-200 rounded-full"></div>
-                  <div className="space-y-1 flex-1">
-                    <div className="h-4 bg-gray-200 rounded w-1/3"></div>
-                    <div className="h-3 bg-gray-200 rounded w-1/4"></div>
-                  </div>
-                  <div className="h-6 w-12 bg-gray-200 rounded"></div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <>
-              {/* 참석률 표시 */}
-              {attendees.length > 0 && (
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>참석률</span>
-                    <span>
-                      {attendees.filter(a => a.status === 'attending').length} / {attendees.length} 
-                      ({Math.round((attendees.filter(a => a.status === 'attending').length / attendees.length) * 100)}%)
-                    </span>
-                  </div>
-                  <Progress 
-                    value={(attendees.filter(a => a.status === 'attending').length / attendees.length) * 100} 
-                    className="h-2" 
-                  />
-                </div>
-              )}
-
-              {/* 참석자 목록 (카테고리별 그룹화) */}
-              <div className="space-y-3">
-                {['attending', 'pending', 'not_attending'].map(statusFilter => {
-                  const filteredAttendees = attendees.filter(a => a.status === statusFilter)
-                  
-                  if (filteredAttendees.length === 0) return null
-
-                  return (
-                    <div key={statusFilter}>
-                      <h4 className="font-medium text-sm mb-2 flex items-center gap-2">
-                        {getStatusIcon(statusFilter)}
-                        {getStatusLabel(statusFilter)} ({filteredAttendees.length}명)
-                      </h4>
-                      <div className="space-y-2">
-                        {filteredAttendees
-                          .sort((a, b) => {
-                            // 각 카테고리 내에서는 투표 시간순으로 정렬
-                            if (!a.updatedAt && !b.updatedAt) return 0
-                            if (!a.updatedAt) return 1
-                            if (!b.updatedAt) return -1
-                            return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-                          })
-                          .map((attendee) => (
-                          <div key={attendee.userId} className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg">
-                            {attendee.isGuest ? (
-                              <div className="h-8 w-8 bg-gray-200 rounded-full flex items-center justify-center">
-                                <span className="text-xs font-bold text-gray-600">G</span>
-                              </div>
-                            ) : (
-                              <Avatar className="h-8 w-8">
-                                <AvatarImage src={attendee.profileImage || "/placeholder.svg"} />
-                                <AvatarFallback className="text-xs">{attendee.name[0]}</AvatarFallback>
-                              </Avatar>
-                            )}
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm font-medium truncate">
-                                  {attendee.isGuest ? `${attendee.name} (초대: ${attendee.invitedBy})` : attendee.name}
-                                </span>
-                                <Badge className={`${getPositionColor(attendee.position)} text-xs`} variant="outline">
-                                  {attendee.position}
-                                </Badge>
-                                {/* {(attendee.level || attendee.isGuest) && (
-                                  <Badge
-                                    variant="secondary"
-                                    className={`text-xs px-1.5 py-0 ${(() => {
-                                      const level = attendee.level
-                                      if (level === 1) return 'bg-gray-100 text-gray-700'
-                                      if (level <= 4) return 'bg-green-100 text-green-700'
-                                      if (level <= 9) return 'bg-blue-100 text-blue-700'
-                                      if (level <= 12) return 'bg-purple-100 text-purple-700'
-                                      return 'bg-yellow-100 text-yellow-700'
-                                    })()}`}
-                                  >
-                                    {getLevelShortLabel(attendee.level)}
-                                  </Badge>
-                                )} */}
-                              </div>
-                              {/* {attendee.updatedAt && (
-                                <div className="text-xs text-muted-foreground">
-                                  투표: {new Date(attendee.updatedAt).toLocaleString('ko-KR', {
-                                    month: 'short',
-                                    day: 'numeric',
-                                    hour: '2-digit',
-                                    minute: '2-digit'
-                                  })}
-                                </div>
-                              )} */}
-                            </div>
-                            <Badge className={getStatusColor(attendee.status)} variant="secondary">
-                              {getStatusIcon(attendee.status)}
-                              <span className="ml-1">{getStatusLabel(attendee.status)}</span>
-                            </Badge>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </>
-          )}
+    <div className="space-y-2">
+      {/* 에러 메시지 */}
+      {error && (
+        <div className="p-2 bg-red-50 border border-red-200 rounded text-xs text-red-800">
+          {error}
         </div>
-      </DialogContent>
+      )}
 
-      {/* 게스트 초대 다이얼로그 */}
-      <Dialog open={showGuestDialog} onOpenChange={setShowGuestDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>게스트 초대</DialogTitle>
-            <DialogDescription>
-              게스트 정보를 입력해주세요.
-            </DialogDescription>
-          </DialogHeader>
+      {/* 참석 투표 버튼 (선수 모드) */}
+      {!isManagerMode && (
+        <div className="flex gap-1">
+          <Button
+            onClick={() => handleAttendanceVote('attending')}
+            disabled={isSubmitting}
+            className={`flex-1 ${
+              currentUserStatus === 'ATTENDING' 
+                ? 'bg-green-600 hover:bg-green-700 text-white' 
+                : 'bg-green-100 text-green-800 hover:bg-green-200'
+            }`}
+            size="sm"
+          >
+            <Check className="h-3 w-3 mr-1" />
+            참석
+          </Button>
+          <Button
+            onClick={() => handleAttendanceVote('not_attending')}
+            disabled={isSubmitting}
+            className={`flex-1 ${
+              currentUserStatus === 'NOT_ATTENDING' 
+                ? 'bg-red-600 hover:bg-red-700 text-white' 
+                : 'bg-red-100 text-red-800 hover:bg-red-200'
+            }`}
+            size="sm"
+          >
+            <X className="h-3 w-3 mr-1" />
+            불참
+          </Button>
+        </div>
+      )}
 
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>게스트 이름</Label>
-              <Input
-                value={guestName}
-                onChange={(e) => setGuestName(e.target.value)}
-                placeholder="게스트 이름을 입력하세요"
-              />
+      {/* 참석 현황 (총무 모드) */}
+      {isManagerMode && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">참석률</span>
+            <div className="flex items-center gap-1">
+              <Users className="h-3 w-3" />
+              <Badge variant="outline" className="text-xs">
+                {stats.attending}/{stats.total}명
+              </Badge>
             </div>
+          </div>
+        </div>
+      )}
 
-            <div className="space-y-2">
-              <Label>게스트 포지션</Label>
-              <Select
-                value={guestPosition}
-                onValueChange={(value) => setGuestPosition(value)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="GK">GK (골키퍼)</SelectItem>
-                  <SelectItem value="DC">DC (중앙 수비수)</SelectItem>
-                  <SelectItem value="DR">DR (오른쪽 풀백)</SelectItem>
-                  <SelectItem value="DL">DL (왼쪽 풀백)</SelectItem>
-                  <SelectItem value="DRL">DRL (양쪽 풀백)</SelectItem>
-                  <SelectItem value="DRLC">DRLC (멀티 수비수)</SelectItem>
-                  <SelectItem value="MC">MC (중앙 미드필더)</SelectItem>
-                  <SelectItem value="AMC">AMC (공격형 미드필더)</SelectItem>
-                  <SelectItem value="DM">DM (수비형 미드필더)</SelectItem>
-                  <SelectItem value="ST">ST (스트라이커)</SelectItem>
-                  <SelectItem value="CF">CF (중앙 공격수)</SelectItem>
-                  <SelectItem value="SS">SS (세컨드 스트라이커)</SelectItem>
-                  <SelectItem value="LWF">LWF (왼쪽 윙어)</SelectItem>
-                  <SelectItem value="RWF">RWF (오른쪽 윙어)</SelectItem>
-                </SelectContent>
-              </Select>
+      {/* 게스트 초대 (게스트 허용 시) */}
+      {allowGuests && (
+        <Dialog open={showGuestDialog} onOpenChange={setShowGuestDialog}>
+          <DialogTrigger asChild>
+            <Button variant="outline" size="sm" className="w-full">
+              <UserPlus className="h-3 w-3 mr-1" />
+              게스트 초대
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>게스트 초대</DialogTitle>
+              <DialogDescription>
+                게스트를 초대하여 경기에 참여시킬 수 있습니다.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="guestName">게스트 이름 *</Label>
+                <Input
+                  id="guestName"
+                  value={guestName}
+                  onChange={(e) => setGuestName(e.target.value)}
+                  placeholder="게스트 이름을 입력하세요"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="guestLevel">레벨</Label>
+                <Select value={guestLevel.toString()} onValueChange={(value) => setGuestLevel(Number(value))}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {LEVEL_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value.toString()}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="guestPosition">포지션</Label>
+                <Select value={guestPosition} onValueChange={setGuestPosition}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="GK">골키퍼 (GK)</SelectItem>
+                    <SelectItem value="DC">센터백 (DC)</SelectItem>
+                    <SelectItem value="DR">라이트백 (DR)</SelectItem>
+                    <SelectItem value="DL">레프트백 (DL)</SelectItem>
+                    <SelectItem value="DRL">윙백 (DRL)</SelectItem>
+                    <SelectItem value="DRLC">풀백 (DRLC)</SelectItem>
+                    <SelectItem value="MC">미드필더 (MC)</SelectItem>
+                    <SelectItem value="AMC">공격형 미드필더 (AMC)</SelectItem>
+                    <SelectItem value="DM">수비형 미드필더 (DM)</SelectItem>
+                    <SelectItem value="ST">스트라이커 (ST)</SelectItem>
+                    <SelectItem value="CF">센터포워드 (CF)</SelectItem>
+                    <SelectItem value="SS">세컨드 스트라이커 (SS)</SelectItem>
+                    <SelectItem value="LWF">레프트 윙어 (LWF)</SelectItem>
+                    <SelectItem value="RWF">라이트 윙어 (RWF)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-
-            <div className="space-y-2">
-              <Label>게스트 레벨</Label>
-              <Select
-                value={guestLevel.toString()}
-                onValueChange={(value) => setGuestLevel(parseInt(value))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {LEVEL_OPTIONS.map((level) => (
-                    <SelectItem key={level.value} value={level.value.toString()}>
-                      {level.label} ({level.shortLabel})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex gap-2 justify-end">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setShowGuestDialog(false)
-                  setGuestName("")
-                  setGuestLevel(7)
-                  setGuestPosition("MC")
-                }}
-              >
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setShowGuestDialog(false)}>
                 취소
               </Button>
-              <Button
-                onClick={async () => {
-                  if (!guestName.trim()) {
-                    alert("게스트 이름을 입력해주세요.")
-                    return
-                  }
-
-                  try {
-                    // 서버에 게스트 정보 저장
-                    const response = await fetch('/api/schedule/guest', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        scheduleId: schedule.id,
-                        guestName: guestName.trim(),
-                        guestLevel: guestLevel,
-                        guestPosition: guestPosition,
-                        invitedByUserId: currentUser.id
-                      })
-                    })
-
-                    if (response.ok) {
-                      const result = await response.json()
-
-                      // 참석자 목록 새로고침
-                      await fetchAttendees()
-
-                      setShowGuestDialog(false)
-                      setGuestName("")
-                      setGuestLevel(7)
-                      setGuestPosition("MC")
-                    } else {
-                      const error = await response.json()
-                      alert(error.error || '게스트 초대 중 오류가 발생했습니다.')
-                    }
-                  } catch (error) {
-                    console.error('게스트 초대 중 오류:', error)
-                    alert('게스트 초대 중 오류가 발생했습니다.')
-                  }
-                }}
-                disabled={!guestName.trim()}
-              >
-                확인
+              <Button onClick={handleGuestInvite} disabled={isSubmitting || !guestName.trim()}>
+                {isSubmitting ? '초대 중...' : '초대하기'}
               </Button>
             </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </Dialog>
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
   )
 }

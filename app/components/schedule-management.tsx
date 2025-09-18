@@ -1081,107 +1081,112 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                   <p className="text-sm text-muted-foreground text-center">{nextUpcomingSchedule.description}</p>
                 )}
 
-                {/* 액션 버튼들 */}
-                <div className="flex gap-2 pt-2">
-                  <div className="flex-1">
-                    <AttendanceVoting
-                      schedule={nextUpcomingSchedule}
-                      currentUser={currentUser}
-                      isManagerMode={isManagerMode}
-                      onAttendanceUpdate={fetchSchedules}
-                      allowGuests={nextUpcomingSchedule.allowGuests}
-                    />
-                  </div>
-                  {(() => {
-                    const daysLeft = calculateDaysLeft(nextUpcomingSchedule.date)
-                    return isManagerMode && daysLeft <= 2 && daysLeft >= 0 && (
-                      <Button
-                        onClick={async () => {
-                          setIsFormingTeams(true)
-                          try {
-                            const result = autoFormTeams(nextUpcomingSchedule)
-                            console.log('팀편성 결과:', result)
-                            if (result.message) {
-                              setFormationResults({ ...result, scheduleId: nextUpcomingSchedule.id })
-                            } else {
-                              setIsSavingFormation(true)
-                              const saveResponse = await fetch('/api/schedule/formation', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                  scheduleId: nextUpcomingSchedule.id,
-                                  yellowTeam: result.yellowTeam,
-                                  blueTeam: result.blueTeam,
-                                  yellowAverage: result.yellowAverage,
-                                  blueAverage: result.blueAverage,
-                                  levelDifference: result.levelDifference
-                                })
-                              })
+                 {/* 액션 버튼들 */}
+                 <div className="space-y-2 pt-2">
+                   {/* 참석 투표 */}
+                   <AttendanceVoting
+                     schedule={nextUpcomingSchedule}
+                     currentUser={currentUser}
+                     isManagerMode={isManagerMode}
+                     onAttendanceUpdate={() => {
+                       fetchSchedules()
+                       refreshFormationResults()
+                     }}
+                     allowGuests={nextUpcomingSchedule.allowGuests}
+                   />
+                   
+                   <div className="flex gap-2">
+                     {(() => {
+                       const daysLeft = calculateDaysLeft(nextUpcomingSchedule.date)
+                       return isManagerMode && daysLeft <= 2 && daysLeft >= 0 && (
+                         <Button
+                           onClick={async () => {
+                             setIsFormingTeams(true)
+                             try {
+                               const result = autoFormTeams(nextUpcomingSchedule)
+                               console.log('팀편성 결과:', result)
+                               if (result.message) {
+                                 setFormationResults({ ...result, scheduleId: nextUpcomingSchedule.id })
+                               } else {
+                                 setIsSavingFormation(true)
+                                 const saveResponse = await fetch('/api/schedule/formation', {
+                                   method: 'POST',
+                                   headers: { 'Content-Type': 'application/json' },
+                                   body: JSON.stringify({
+                                     scheduleId: nextUpcomingSchedule.id,
+                                     yellowTeam: result.yellowTeam,
+                                     blueTeam: result.blueTeam,
+                                     yellowAverage: result.yellowAverage,
+                                     blueAverage: result.blueAverage,
+                                     levelDifference: result.levelDifference
+                                   })
+                                 })
 
-                              if (saveResponse.ok) {
-                                setFormationResults({ ...result, scheduleId: nextUpcomingSchedule.id })
-                                fetchSchedules()
-                              } else {
-                                setFormationResults({
-                                  yellowTeam: [],
-                                  blueTeam: [],
-                                  message: '팀편성 저장에 실패했습니다.',
-                                  scheduleId: nextUpcomingSchedule.id
-                                })
-                              }
-                              setIsSavingFormation(false)
-                            }
-                          } catch (error) {
-                            console.error('팀편성 중 오류:', error)
-                            setFormationResults({
-                              yellowTeam: [],
-                              blueTeam: [],
-                              message: '팀편성 중 오류가 발생했습니다.',
-                              scheduleId: nextUpcomingSchedule.id
-                            })
-                          } finally {
-                            setIsFormingTeams(false)
-                          }
-                        }}
-                        className="bg-green-600 hover:bg-green-700"
-                        size="sm"
-                        disabled={isFormingTeams || isSavingFormation}
-                      >
-                        {isFormingTeams ? "편성 중..." : isSavingFormation ? "저장 중..." : "팀편성"}
-                      </Button>
-                    )
-                  })()}
+                                 if (saveResponse.ok) {
+                                   setFormationResults({ ...result, scheduleId: nextUpcomingSchedule.id })
+                                   fetchSchedules()
+                                 } else {
+                                   setFormationResults({
+                                     yellowTeam: [],
+                                     blueTeam: [],
+                                     message: '팀편성 저장에 실패했습니다.',
+                                     scheduleId: nextUpcomingSchedule.id
+                                   })
+                                 }
+                                 setIsSavingFormation(false)
+                               }
+                             } catch (error) {
+                               console.error('팀편성 중 오류:', error)
+                               setFormationResults({
+                                 yellowTeam: [],
+                                 blueTeam: [],
+                                 message: '팀편성 중 오류가 발생했습니다.',
+                                 scheduleId: nextUpcomingSchedule.id
+                               })
+                             } finally {
+                               setIsFormingTeams(false)
+                             }
+                           }}
+                           className="bg-green-600 hover:bg-green-700"
+                           size="sm"
+                           disabled={isFormingTeams || isSavingFormation}
+                         >
+                           {isFormingTeams ? "편성 중..." : isSavingFormation ? "저장 중..." : "팀편성"}
+                         </Button>
+                       )
+                     })()}
 
-                  {/* 게스트 허용 버튼 (총무 전용) */}
-                  {isManagerMode && nextUpcomingSchedule.type === "internal" && (
-                    <Button
-                      onClick={async () => {
-                        try {
-                          const response = await fetch('/api/schedule/toggle-guests', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                              scheduleId: nextUpcomingSchedule.id,
-                              userId: currentUser?.id,
-                              allowGuests: !nextUpcomingSchedule.allowGuests
-                            })
-                          })
+                     {/* 게스트 허용 버튼 (총무 전용) */}
+                     {isManagerMode && nextUpcomingSchedule.type === "internal" && (
+                       <Button
+                         onClick={async () => {
+                           try {
+                             const response = await fetch('/api/schedule/toggle-guests', {
+                               method: 'POST',
+                               headers: { 'Content-Type': 'application/json' },
+                               body: JSON.stringify({
+                                 scheduleId: nextUpcomingSchedule.id,
+                                 userId: currentUser?.id,
+                                 allowGuests: !nextUpcomingSchedule.allowGuests
+                               })
+                             })
 
-                          if (response.ok) {
-                            fetchSchedules() // 일정 목록 다시 불러오기
-                          }
-                        } catch (error) {
-                          console.error('게스트 허용 상태 변경 중 오류:', error)
-                        }
-                      }}
-                      variant={nextUpcomingSchedule.allowGuests ? "destructive" : "outline"}
-                      size="sm"
-                      className={nextUpcomingSchedule.allowGuests ? "ml-0" : "ml-0 bg-yellow-400"}
-                    >
-                      {nextUpcomingSchedule.allowGuests ? "게스트 중단" : "게스트 허용"}
-                    </Button>
-                  )}
-                </div>
+                             if (response.ok) {
+                               fetchSchedules() // 일정 목록 다시 불러오기
+                             }
+                           } catch (error) {
+                             console.error('게스트 허용 상태 변경 중 오류:', error)
+                           }
+                         }}
+                         variant={nextUpcomingSchedule.allowGuests ? "destructive" : "outline"}
+                         size="sm"
+                         className={nextUpcomingSchedule.allowGuests ? "ml-0" : "ml-0 bg-yellow-400"}
+                       >
+                         {nextUpcomingSchedule.allowGuests ? "게스트 중단" : "게스트 허용"}
+                       </Button>
+                     )}
+                   </div>
+                 </div>
               </div>
             </CardContent>
           </Card>
@@ -1495,22 +1500,21 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                       <p className="text-sm text-muted-foreground text-center">{schedule.description}</p>
                     )}
 
-                    {/* 참석 투표 */}
-                    {schedule.status === "scheduled" && (
-                      <div className="space-y-3 pt-2">
-                        <AttendanceVoting
-                          schedule={schedule}
-                          currentUser={currentUser}
-                          isManagerMode={isManagerMode}
-                          onAttendanceUpdate={() => {
-                            fetchSchedules()
-                            refreshFormationResults()
-                          }}
-                          allowGuests={schedule.allowGuests}
-                        />
-
-                      </div>
-                    )}
+                     {/* 참석 투표 */}
+                     {schedule.status === "scheduled" && (
+                       <div className="pt-2">
+                         <AttendanceVoting
+                           schedule={schedule}
+                           currentUser={currentUser}
+                           isManagerMode={isManagerMode}
+                           onAttendanceUpdate={() => {
+                             fetchSchedules()
+                             refreshFormationResults()
+                           }}
+                           allowGuests={schedule.allowGuests}
+                         />
+                       </div>
+                     )}
                   </div>
                 </CardContent>
               </Card>
