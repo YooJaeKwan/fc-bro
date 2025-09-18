@@ -1158,11 +1158,11 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                                setIsFormingTeams(false)
                              }
                            }}
-                           className="bg-green-600 hover:bg-green-700"
+                           className="flex-1 bg-green-600 hover:bg-green-700"
                            size="sm"
                            disabled={isFormingTeams || isSavingFormation}
                          >
-                           {isFormingTeams ? "편성 중..." : isSavingFormation ? "저장 중..." : "팀편성"}
+                           {isFormingTeams ? "편성 중..." : isSavingFormation ? "저장 중..." : "팀편성하기"}
                          </Button>
                        )
                      })()}
@@ -1191,7 +1191,7 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                          }}
                          variant={nextUpcomingSchedule.allowGuests ? "destructive" : "outline"}
                          size="sm"
-                         className={nextUpcomingSchedule.allowGuests ? "ml-0" : "ml-0 bg-yellow-400"}
+                         className={`flex-1 ${nextUpcomingSchedule.allowGuests ? "" : "bg-yellow-400"}`}
                        >
                          {nextUpcomingSchedule.allowGuests ? "게스트 중단" : "게스트 허용"}
                        </Button>

@@ -378,24 +378,6 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
           </Button>
         </div>
         
-        {/* 현재 투표 상태 표시 */}
-        {currentUserStatus !== 'PENDING' && (
-          <div className="text-center">
-            <Badge 
-              variant="outline" 
-              className={`text-xs font-medium ${
-                currentUserStatus === 'ATTENDING' 
-                  ? 'bg-green-100 text-green-800 border-green-400' 
-                  : currentUserStatus === 'NOT_ATTENDING'
-                  ? 'bg-red-100 text-red-800 border-red-400'
-                  : 'bg-yellow-100 text-yellow-800 border-yellow-400'
-              }`}
-            >
-              {getStatusIcon(currentUserStatus)}
-              <span className="ml-1">현재 투표: {getStatusText(currentUserStatus)}</span>
-            </Badge>
-          </div>
-        )}
       </div>
 
       {/* 참석 현황 (펼쳐서 볼 수 있음) */}
@@ -433,28 +415,28 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
                       </div>
                       <div className="space-y-1 ml-5">
                         {attending.map((attendee) => (
-                          <div key={attendee.userId || attendee.guestId} className="flex items-center justify-between text-xs">
+                          <div key={attendee.userId} className="flex items-center justify-between text-xs">
                             <div className="flex items-center gap-2">
                               <span className="font-medium">
-                                {attendee.isGuest ? attendee.guestName : (attendee.user?.realName || attendee.user?.nickname)}
+                                {attendee.name}
                               </span>
                               <span className="text-muted-foreground">
-                                ({attendee.isGuest ? attendee.guestPosition : (attendee.user?.preferredPosition || '미정')})
+                                ({attendee.position})
                               </span>
                               {attendee.isGuest && (
                                 <Badge variant="secondary" className="text-xs">
                                   게스트
                                 </Badge>
                               )}
-                              {attendee.isGuest && attendee.guestLevel && (
+                              {attendee.isGuest && attendee.level && (
                                 <Badge variant="outline" className="text-xs">
-                                  {getLevelShortLabel(attendee.guestLevel)}
+                                  {getLevelShortLabel(attendee.level)}
                                 </Badge>
                               )}
                             </div>
                             {attendee.isGuest && isManagerMode && (
                               <Button
-                                onClick={() => handleGuestRemove(attendee.guestId)}
+                                onClick={() => handleGuestRemove(attendee.userId)}
                                 disabled={isSubmitting}
                                 variant="ghost"
                                 size="sm"
@@ -478,28 +460,28 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
                       </div>
                       <div className="space-y-1 ml-5">
                         {notAttending.map((attendee) => (
-                          <div key={attendee.userId || attendee.guestId} className="flex items-center justify-between text-xs">
+                          <div key={attendee.userId} className="flex items-center justify-between text-xs">
                             <div className="flex items-center gap-2">
                               <span className="font-medium">
-                                {attendee.isGuest ? attendee.guestName : (attendee.user?.realName || attendee.user?.nickname)}
+                                {attendee.name}
                               </span>
                               <span className="text-muted-foreground">
-                                ({attendee.isGuest ? attendee.guestPosition : (attendee.user?.preferredPosition || '미정')})
+                                ({attendee.position})
                               </span>
                               {attendee.isGuest && (
                                 <Badge variant="secondary" className="text-xs">
                                   게스트
                                 </Badge>
                               )}
-                              {attendee.isGuest && attendee.guestLevel && (
+                              {attendee.isGuest && attendee.level && (
                                 <Badge variant="outline" className="text-xs">
-                                  {getLevelShortLabel(attendee.guestLevel)}
+                                  {getLevelShortLabel(attendee.level)}
                                 </Badge>
                               )}
                             </div>
                             {attendee.isGuest && isManagerMode && (
                               <Button
-                                onClick={() => handleGuestRemove(attendee.guestId)}
+                                onClick={() => handleGuestRemove(attendee.userId)}
                                 disabled={isSubmitting}
                                 variant="ghost"
                                 size="sm"
@@ -523,28 +505,28 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
                       </div>
                       <div className="space-y-1 ml-5">
                         {pending.map((attendee) => (
-                          <div key={attendee.userId || attendee.guestId} className="flex items-center justify-between text-xs">
+                          <div key={attendee.userId} className="flex items-center justify-between text-xs">
                             <div className="flex items-center gap-2">
                               <span className="font-medium">
-                                {attendee.isGuest ? attendee.guestName : (attendee.user?.realName || attendee.user?.nickname)}
+                                {attendee.name}
                               </span>
                               <span className="text-muted-foreground">
-                                ({attendee.isGuest ? attendee.guestPosition : (attendee.user?.preferredPosition || '미정')})
+                                ({attendee.position})
                               </span>
                               {attendee.isGuest && (
                                 <Badge variant="secondary" className="text-xs">
                                   게스트
                                 </Badge>
                               )}
-                              {attendee.isGuest && attendee.guestLevel && (
+                              {attendee.isGuest && attendee.level && (
                                 <Badge variant="outline" className="text-xs">
-                                  {getLevelShortLabel(attendee.guestLevel)}
+                                  {getLevelShortLabel(attendee.level)}
                                 </Badge>
                               )}
                             </div>
                             {attendee.isGuest && isManagerMode && (
                               <Button
-                                onClick={() => handleGuestRemove(attendee.guestId)}
+                                onClick={() => handleGuestRemove(attendee.userId)}
                                 disabled={isSubmitting}
                                 variant="ghost"
                                 size="sm"
