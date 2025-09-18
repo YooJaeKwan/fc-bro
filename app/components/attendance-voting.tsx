@@ -378,6 +378,24 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
           </Button>
         </div>
         
+        {/* 현재 투표 상태 표시 */}
+        {currentUserStatus !== 'PENDING' && (
+          <div className="text-center">
+            <Badge 
+              variant="outline" 
+              className={`text-xs font-medium ${
+                currentUserStatus === 'ATTENDING' 
+                  ? 'bg-green-100 text-green-800 border-green-400' 
+                  : currentUserStatus === 'NOT_ATTENDING'
+                  ? 'bg-red-100 text-red-800 border-red-400'
+                  : 'bg-yellow-100 text-yellow-800 border-yellow-400'
+              }`}
+            >
+              {getStatusIcon(currentUserStatus)}
+              <span className="ml-1">현재 투표: {getStatusText(currentUserStatus)}</span>
+            </Badge>
+          </div>
+        )}
       </div>
 
       {/* 참석 현황 (펼쳐서 볼 수 있음) */}
