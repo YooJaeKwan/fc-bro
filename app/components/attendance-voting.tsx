@@ -23,10 +23,11 @@ interface AttendanceVotingProps {
   currentUser: any
   isManagerMode: boolean
   onAttendanceUpdate?: () => void
+  onAttendanceStatsUpdate?: (scheduleId: string) => void
   allowGuests?: boolean
 }
 
-export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAttendanceUpdate, allowGuests = false }: AttendanceVotingProps) {
+export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAttendanceUpdate, onAttendanceStatsUpdate, allowGuests = false }: AttendanceVotingProps) {
   const [attendees, setAttendees] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
@@ -138,11 +139,14 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
       // 참석자 목록 새로고침
       await fetchAttendees()
       
-      // API에서 팀편성이 초기화되었음을 알림받았을 때 사용자에게 피드백 제공
+      // 개별 일정의 참석 현황 업데이트 (전체 페이지 리로딩 방지)
+      onAttendanceStatsUpdate?.(schedule.id)
+      
+      // API에서 팀편성이 초기화되었음을 알림받았을 때만 상위 컴포넌트에 알림
       if (result.teamFormationReset) {
         console.log('✅ 팀편성이 자동으로 초기화되었습니다.')
         showFormationResetAlert()
-        // 팀편성 초기화 알림을 상위 컴포넌트에 전달
+        // 팀편성 초기화 시에만 상위 컴포넌트에 알림 (전체 페이지 리로딩 방지)
         onAttendanceUpdate?.()
       }
 
@@ -194,13 +198,16 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
         await fetchGuests()
       }
       
+      // 개별 일정의 참석 현황 업데이트 (전체 페이지 리로딩 방지)
+      onAttendanceStatsUpdate?.(schedule.id)
+      
       // 게스트 초대 폼 초기화
       setGuestName("")
       setGuestLevel(7)
       setGuestPosition("MC")
       setShowGuestDialog(false)
       
-      // 팀편성 초기화 알림을 상위 컴포넌트에 전달
+      // 팀편성 초기화 시에만 상위 컴포넌트에 알림 (전체 페이지 리로딩 방지)
       if (result.teamFormationReset) {
         showFormationResetAlert()
         onAttendanceUpdate?.()
@@ -251,7 +258,10 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
         await fetchGuests()
       }
       
-      // 팀편성 초기화 알림을 상위 컴포넌트에 전달
+      // 개별 일정의 참석 현황 업데이트 (전체 페이지 리로딩 방지)
+      onAttendanceStatsUpdate?.(schedule.id)
+      
+      // 팀편성 초기화 시에만 상위 컴포넌트에 알림 (전체 페이지 리로딩 방지)
       if (result.teamFormationReset) {
         showFormationResetAlert()
         onAttendanceUpdate?.()

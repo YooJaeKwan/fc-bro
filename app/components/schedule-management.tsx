@@ -107,6 +107,28 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
     }
   }
 
+  // 개별 일정의 참석 현황 업데이트 함수
+  const updateScheduleAttendance = async (scheduleId: string) => {
+    try {
+      const response = await fetch(`/api/schedule/attendance?scheduleId=${scheduleId}`)
+      const result = await response.json()
+
+      if (response.ok) {
+        // 해당 일정의 참석 현황만 업데이트
+        setSchedules(prevSchedules => 
+          prevSchedules.map(schedule => 
+            schedule.id === scheduleId 
+              ? { ...schedule, attendanceStats: result.stats }
+              : schedule
+          )
+        )
+        console.log('참석 현황 업데이트 완료:', scheduleId)
+      }
+    } catch (error) {
+      console.error('참석 현황 업데이트 오류:', error)
+    }
+  }
+
   // 팀편성 결과 확인 및 초기화 함수
   const refreshFormationResults = () => {
     const nextSchedule = getNextUpcomingSchedule()
@@ -1103,9 +1125,9 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                      currentUser={currentUser}
                      isManagerMode={isManagerMode}
                      onAttendanceUpdate={() => {
-                       fetchSchedules()
                        refreshFormationResults()
                      }}
+                     onAttendanceStatsUpdate={updateScheduleAttendance}
                      allowGuests={nextUpcomingSchedule.allowGuests}
                    />
                    
@@ -1545,9 +1567,9 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                            currentUser={currentUser}
                            isManagerMode={isManagerMode}
                            onAttendanceUpdate={() => {
-                             fetchSchedules()
                              refreshFormationResults()
                            }}
+                           onAttendanceStatsUpdate={updateScheduleAttendance}
                            allowGuests={schedule.allowGuests}
                          />
                        </div>
