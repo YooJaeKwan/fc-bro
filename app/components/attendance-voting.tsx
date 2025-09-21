@@ -354,6 +354,9 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
 
   const currentUserStatus = getCurrentUserStatus()
   const stats = getAttendanceStats(attendees)
+  
+  // 디버깅을 위한 콘솔 출력
+  console.log('현재 사용자 상태:', currentUserStatus, '참석자 목록:', attendees)
 
   if (isLoading) {
     return (
@@ -385,7 +388,7 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
       <div className="space-y-2">
         <div className="flex gap-2">
           {/* 참석 상태일 때는 불참 버튼만 표시 */}
-          {currentUserStatus === 'ATTENDING' && (
+          {(currentUserStatus === 'ATTENDING' || currentUserStatus === 'attending') && (
             <Button
               onClick={() => handleAttendanceVote('not_attending')}
               disabled={isSubmitting}
@@ -398,7 +401,7 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
           )}
           
           {/* 불참 상태일 때는 참석 버튼만 표시 */}
-          {currentUserStatus === 'NOT_ATTENDING' && (
+          {(currentUserStatus === 'NOT_ATTENDING' || currentUserStatus === 'not_attending') && (
             <Button
               onClick={() => handleAttendanceVote('attending')}
               disabled={isSubmitting}
@@ -411,7 +414,7 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
           )}
           
           {/* 미정 상태일 때는 두 버튼 모두 표시 */}
-          {currentUserStatus === 'PENDING' && (
+          {(currentUserStatus === 'PENDING' || currentUserStatus === 'pending') && (
             <>
               <Button
                 onClick={() => handleAttendanceVote('attending')}
