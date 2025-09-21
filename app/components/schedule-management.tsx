@@ -1129,6 +1129,7 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                      }}
                      onAttendanceStatsUpdate={updateScheduleAttendance}
                      allowGuests={nextUpcomingSchedule.allowGuests}
+                     hasTeamFormation={!!formationResults}
                    />
                    
                    <div className="flex gap-2">
@@ -1507,11 +1508,6 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                         <Badge className={getTypeColor(schedule.type)} variant="secondary">
                           {schedule.type === "internal" ? "자체경기" : schedule.type === "match" ? "A매치" : "연습"}
                         </Badge>
-                        {isPastSchedule && (
-                          <Badge variant="outline" className="text-gray-500 border-gray-300">
-                            지난 경기
-                          </Badge>
-                        )}
                         {isManagerMode && (
                           <>
                             <Button
@@ -1588,6 +1584,7 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                            }}
                            onAttendanceStatsUpdate={updateScheduleAttendance}
                            allowGuests={schedule.allowGuests}
+                           hasTeamFormation={!!schedule.teamFormation}
                          />
                        </div>
                      )}
