@@ -129,6 +129,28 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
     }
   }
 
+  // 개별 일정의 게스트 허용 상태 업데이트 함수
+  const updateScheduleGuestStatus = async (scheduleId: string) => {
+    try {
+      const response = await fetch(`/api/schedule/list`)
+      const result = await response.json()
+
+      if (response.ok) {
+        // 해당 일정의 게스트 허용 상태만 업데이트
+        setSchedules(prevSchedules => 
+          prevSchedules.map(schedule => 
+            schedule.id === scheduleId 
+              ? { ...schedule, allowGuests: result.schedules.find((s: any) => s.id === scheduleId)?.allowGuests || false }
+              : schedule
+          )
+        )
+        console.log('게스트 허용 상태 업데이트 완료:', scheduleId)
+      }
+    } catch (error) {
+      console.error('게스트 허용 상태 업데이트 오류:', error)
+    }
+  }
+
   // 팀편성 결과 즉시 초기화 함수
   const handleFormationReset = () => {
     setFormationResults(null)
@@ -1135,6 +1157,7 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                      }}
                      onAttendanceStatsUpdate={updateScheduleAttendance}
                      onFormationReset={handleFormationReset}
+                     onGuestStatusUpdate={updateScheduleGuestStatus}
                      allowGuests={nextUpcomingSchedule.allowGuests}
                      hasTeamFormation={!!formationResults}
                    />
@@ -1217,7 +1240,8 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                              })
 
                              if (response.ok) {
-                               fetchSchedules() // 일정 목록 다시 불러오기
+                               // 해당 일정의 게스트 허용 상태만 업데이트 (전체 페이지 리로딩 방지)
+                               updateScheduleGuestStatus(nextUpcomingSchedule.id)
                              }
                            } catch (error) {
                              console.error('게스트 허용 상태 변경 중 오류:', error)
@@ -1591,6 +1615,7 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                            }}
                            onAttendanceStatsUpdate={updateScheduleAttendance}
                            onFormationReset={handleFormationReset}
+                           onGuestStatusUpdate={updateScheduleGuestStatus}
                            allowGuests={schedule.allowGuests}
                            hasTeamFormation={!!schedule.teamFormation}
                          />

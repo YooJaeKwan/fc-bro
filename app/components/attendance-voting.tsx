@@ -25,11 +25,12 @@ interface AttendanceVotingProps {
   onAttendanceUpdate?: () => void
   onAttendanceStatsUpdate?: (scheduleId: string) => void
   onFormationReset?: () => void
+  onGuestStatusUpdate?: (scheduleId: string) => void
   allowGuests?: boolean
   hasTeamFormation?: boolean
 }
 
-export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAttendanceUpdate, onAttendanceStatsUpdate, onFormationReset, allowGuests = false, hasTeamFormation = false }: AttendanceVotingProps) {
+export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAttendanceUpdate, onAttendanceStatsUpdate, onFormationReset, onGuestStatusUpdate, allowGuests = false, hasTeamFormation = false }: AttendanceVotingProps) {
   const [attendees, setAttendees] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
@@ -208,6 +209,9 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
       // 개별 일정의 참석 현황 업데이트 (전체 페이지 리로딩 방지)
       onAttendanceStatsUpdate?.(schedule.id)
       
+      // 게스트 상태 업데이트 (게스트 초대 버튼 활성화/비활성화)
+      onGuestStatusUpdate?.(schedule.id)
+      
       // 게스트 초대 폼 초기화
       setGuestName("")
       setGuestLevel(7)
@@ -272,6 +276,9 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
       
       // 개별 일정의 참석 현황 업데이트 (전체 페이지 리로딩 방지)
       onAttendanceStatsUpdate?.(schedule.id)
+      
+      // 게스트 상태 업데이트 (게스트 초대 버튼 활성화/비활성화)
+      onGuestStatusUpdate?.(schedule.id)
       
       // 팀편성 초기화 시에만 상위 컴포넌트에 알림 (전체 페이지 리로딩 방지)
       if (result.teamFormationReset) {
