@@ -151,6 +151,13 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
     }
   }
 
+  // 사용자의 투표 상태 가져오기 함수
+  const getUserAttendanceStatus = (schedule: any) => {
+    if (!currentUser?.id || !schedule.attendees) return null
+    const userAttendance = schedule.attendees.find((att: any) => att.userId === currentUser.id)
+    return userAttendance?.status || null
+  }
+
   // 팀편성 결과 즉시 초기화 함수
   const handleFormationReset = () => {
     setFormationResults(null)
@@ -1008,7 +1015,7 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
             <CardContent className="p-6">
               <div className="space-y-4">
                 {/* D-Day 표시와 액션 버튼 */}
-                <div className="flex items-center justify-center">
+                <div className="flex items-center justify-center gap-3">
                   <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-full font-semibold">
                     <CalendarIcon className="h-4 w-4" />
                     {(() => {
@@ -1019,6 +1026,25 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                       return "지난 경기"
                     })()}
                   </div>
+                  
+                  {/* 사용자 투표 상태 뱃지 */}
+                  {(() => {
+                    const userStatus = getUserAttendanceStatus(nextUpcomingSchedule)
+                    if (userStatus === 'attending' || userStatus === 'ATTENDING') {
+                      return (
+                        <Badge className="bg-green-100 text-green-800 border-green-300">
+                          참석예정
+                        </Badge>
+                      )
+                    } else if (userStatus === 'not_attending' || userStatus === 'NOT_ATTENDING') {
+                      return (
+                        <Badge className="bg-red-100 text-red-800 border-red-300">
+                          불참예정
+                        </Badge>
+                      )
+                    }
+                    return null
+                  })()}
                 </div>
 
                 {/* 일정 기본 정보 */}
@@ -1523,18 +1549,39 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                   <div className="space-y-4">
                     {/* 일정 기본 정보 */}
                     <div className="flex justify-between items-center">
-                      <h3 className={`text-lg font-semibold ${isPastSchedule ? 'text-gray-600' : ''}`}>
-                        {(() => {
-                          // 한국시간으로 저장된 날짜를 그대로 표시
-                          const [year, month, day] = schedule.date.split('-')
-                          const date = new Date(Number(year), Number(month) - 1, Number(day))
-                          return date.toLocaleDateString('ko-KR', {
-                            month: 'long',
-                            day: 'numeric',
-                            weekday: 'short'
-                          })
-                        })()} <span className={isPastSchedule ? 'text-gray-500' : 'text-blue-600'}>{schedule.time}</span>
-                      </h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className={`text-lg font-semibold ${isPastSchedule ? 'text-gray-600' : ''}`}>
+                          {(() => {
+                            // 한국시간으로 저장된 날짜를 그대로 표시
+                            const [year, month, day] = schedule.date.split('-')
+                            const date = new Date(Number(year), Number(month) - 1, Number(day))
+                            return date.toLocaleDateString('ko-KR', {
+                              month: 'long',
+                              day: 'numeric',
+                              weekday: 'short'
+                            })
+                          })()} <span className={isPastSchedule ? 'text-gray-500' : 'text-blue-600'}>{schedule.time}</span>
+                        </h3>
+                        
+                        {/* 사용자 투표 상태 뱃지 */}
+                        {!isPastSchedule && (() => {
+                          const userStatus = getUserAttendanceStatus(schedule)
+                          if (userStatus === 'attending' || userStatus === 'ATTENDING') {
+                            return (
+                              <Badge className="bg-green-100 text-green-800 border-green-300 text-xs">
+                                참석예정
+                              </Badge>
+                            )
+                          } else if (userStatus === 'not_attending' || userStatus === 'NOT_ATTENDING') {
+                            return (
+                              <Badge className="bg-red-100 text-red-800 border-red-300 text-xs">
+                                불참예정
+                              </Badge>
+                            )
+                          }
+                          return null
+                        })()}
+                      </div>
                       <div className="flex justify-center gap-2 flex-wrap">
                         <Badge className={getTypeColor(schedule.type)} variant="secondary">
                           {schedule.type === "internal" ? "자체경기" : schedule.type === "match" ? "A매치" : "연습"}
