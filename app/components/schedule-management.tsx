@@ -26,6 +26,7 @@ import { ko } from "date-fns/locale"
 import { cn } from "@/lib/utils"
 import { AttendanceVoting } from "./attendance-voting"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { Skeleton } from "@/components/ui/skeleton"
 
 interface ScheduleManagementProps {
   isManagerMode: boolean
@@ -50,6 +51,9 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
   const [isFormingTeams, setIsFormingTeams] = useState(false)
   const [isSavingFormation, setIsSavingFormation] = useState(false)
   const [isFormationOpen, setIsFormationOpen] = useState(false)
+
+  // 일정별 업데이트 상태 관리
+  const [updatingSchedules, setUpdatingSchedules] = useState<Set<string>>(new Set())
 
   const [newSchedule, setNewSchedule] = useState({
     type: "internal",
@@ -109,6 +113,7 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
 
   // 개별 일정의 참석 현황 업데이트 함수
   const updateScheduleAttendance = async (scheduleId: string) => {
+    startScheduleUpdate(scheduleId)
     try {
       const response = await fetch(`/api/schedule/attendance?scheduleId=${scheduleId}`)
       const result = await response.json()
@@ -126,11 +131,14 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
       }
     } catch (error) {
       console.error('참석 현황 업데이트 오류:', error)
+    } finally {
+      endScheduleUpdate(scheduleId)
     }
   }
 
   // 개별 일정의 게스트 허용 상태 업데이트 함수
   const updateScheduleGuestStatus = async (scheduleId: string) => {
+    startScheduleUpdate(scheduleId)
     try {
       const response = await fetch(`/api/schedule/list`)
       const result = await response.json()
@@ -148,6 +156,8 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
       }
     } catch (error) {
       console.error('게스트 허용 상태 업데이트 오류:', error)
+    } finally {
+      endScheduleUpdate(scheduleId)
     }
   }
 
@@ -157,6 +167,44 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
     const userAttendance = schedule.attendees.find((att: any) => att.userId === currentUser.id)
     return userAttendance?.status || null
   }
+
+  // 일정 업데이트 상태 관리 함수들
+  const startScheduleUpdate = (scheduleId: string) => {
+    setUpdatingSchedules(prev => new Set([...prev, scheduleId]))
+  }
+
+  const endScheduleUpdate = (scheduleId: string) => {
+    setUpdatingSchedules(prev => {
+      const newSet = new Set(prev)
+      newSet.delete(scheduleId)
+      return newSet
+    })
+  }
+
+  const isScheduleUpdating = (scheduleId: string) => {
+    return updatingSchedules.has(scheduleId)
+  }
+
+  // 스켈레톤 컴포넌트
+  const ScheduleSkeleton = () => (
+    <div className="space-y-4 p-6">
+      <div className="flex items-center justify-center">
+        <div className="flex items-center gap-2 bg-gray-100 text-gray-500 px-4 py-2 rounded-full">
+          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400"></div>
+          <span className="text-sm font-medium">일정 업데이트 중...</span>
+        </div>
+      </div>
+      <div className="space-y-3">
+        <Skeleton className="h-6 w-48 mx-auto" />
+        <Skeleton className="h-4 w-32 mx-auto" />
+        <Skeleton className="h-4 w-24 mx-auto" />
+      </div>
+      <div className="space-y-2">
+        <Skeleton className="h-8 w-full" />
+        <Skeleton className="h-8 w-full" />
+      </div>
+    </div>
+  )
 
   // 팀편성 결과 즉시 초기화 함수
   const handleFormationReset = () => {
@@ -1012,7 +1060,10 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                 다음 경기 정보
                 </CardTitle>
             </CardHeader> */}
-            <CardContent className="p-6">
+            {isScheduleUpdating(nextUpcomingSchedule.id) ? (
+              <ScheduleSkeleton />
+            ) : (
+              <CardContent className="p-6">
               <div className="space-y-4">
                 {/* D-Day 표시와 액션 버튼 */}
                 <div className="flex items-center justify-center gap-3">
@@ -1254,6 +1305,7 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                      {isManagerMode && nextUpcomingSchedule.type === "internal" && (
                        <Button
                          onClick={async () => {
+                           startScheduleUpdate(nextUpcomingSchedule.id)
                            try {
                              const response = await fetch('/api/schedule/toggle-guests', {
                                method: 'POST',
@@ -1267,23 +1319,30 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
 
                              if (response.ok) {
                                // 해당 일정의 게스트 허용 상태만 업데이트 (전체 페이지 리로딩 방지)
-                               updateScheduleGuestStatus(nextUpcomingSchedule.id)
+                               await updateScheduleGuestStatus(nextUpcomingSchedule.id)
                              }
                            } catch (error) {
                              console.error('게스트 허용 상태 변경 중 오류:', error)
+                           } finally {
+                             endScheduleUpdate(nextUpcomingSchedule.id)
                            }
                          }}
+                         disabled={isScheduleUpdating(nextUpcomingSchedule.id)}
                          variant={nextUpcomingSchedule.allowGuests ? "destructive" : "outline"}
                          size="sm"
                          className={`flex-1 ${nextUpcomingSchedule.allowGuests ? "" : "bg-yellow-400"}`}
                        >
-                         {nextUpcomingSchedule.allowGuests ? "게스트 중단" : "게스트 허용"}
+                         {isScheduleUpdating(nextUpcomingSchedule.id) 
+                           ? "업데이트 중..." 
+                           : nextUpcomingSchedule.allowGuests ? "게스트 중단" : "게스트 허용"
+                         }
                        </Button>
                      )}
                    </div>
                  </div>
               </div>
             </CardContent>
+            )}
           </Card>
         </div>
       )}
@@ -1545,37 +1604,39 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                   ? 'bg-gray-50 border-gray-200' 
                   : 'hover:shadow-lg'
               }`}>
-                <CardContent className={`p-6 ${isPastSchedule ? 'opacity-75' : ''}`}>
+                {isScheduleUpdating(schedule.id) ? (
+                  <ScheduleSkeleton />
+                ) : (
+                  <CardContent className={`p-6 ${isPastSchedule ? 'opacity-75' : ''}`}>
                   <div className="space-y-4">
-                    {/* 일정 기본 정보 */}
+                    {/* 일정 기본 정보 */}                    
+                    <h3 className={`text-base font-semibold ${isPastSchedule ? 'text-gray-600' : ''}`}>
+                      {(() => {
+                        // 한국시간으로 저장된 날짜를 그대로 표시
+                        const [year, month, day] = schedule.date.split('-')
+                        const date = new Date(Number(year), Number(month) - 1, Number(day))
+                        return date.toLocaleDateString('ko-KR', {
+                          month: 'long',
+                          day: 'numeric',
+                          weekday: 'short'
+                        })
+                      })()} <span className={isPastSchedule ? 'text-gray-500' : 'text-blue-600'}>{schedule.time}</span>
+                    </h3>
                     <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-2">
-                        <h3 className={`text-base font-semibold ${isPastSchedule ? 'text-gray-600' : ''}`}>
-                          {(() => {
-                            // 한국시간으로 저장된 날짜를 그대로 표시
-                            const [year, month, day] = schedule.date.split('-')
-                            const date = new Date(Number(year), Number(month) - 1, Number(day))
-                            return date.toLocaleDateString('ko-KR', {
-                              month: 'long',
-                              day: 'numeric',
-                              weekday: 'short'
-                            })
-                          })()} <span className={isPastSchedule ? 'text-gray-500' : 'text-blue-600'}>{schedule.time}</span>
-                        </h3>
-                        
+                      <div className="flex items-center gap-2">                        
                         {/* 사용자 투표 상태 뱃지 */}
                         {!isPastSchedule && (() => {
                           const userStatus = getUserAttendanceStatus(schedule)
                           if (userStatus === 'attending' || userStatus === 'ATTENDING') {
                             return (
                               <Badge className="bg-green-100 text-green-800 border-green-300 text-xs">
-                                참석
+                                참석예정
                               </Badge>
                             )
                           } else if (userStatus === 'not_attending' || userStatus === 'NOT_ATTENDING') {
                             return (
                               <Badge className="bg-red-100 text-red-800 border-red-300 text-xs">
-                                불참
+                                불참예정
                               </Badge>
                             )
                           }
@@ -1679,6 +1740,7 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                      )}
                   </div>
                 </CardContent>
+                )}
               </Card>
             )
           })
