@@ -1550,7 +1550,7 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                     {/* 일정 기본 정보 */}
                     <div className="flex justify-between items-center">
                       <div className="flex items-center gap-2">
-                        <h3 className={`text-lg font-semibold ${isPastSchedule ? 'text-gray-600' : ''}`}>
+                        <h3 className={`text-base font-semibold ${isPastSchedule ? 'text-gray-600' : ''}`}>
                           {(() => {
                             // 한국시간으로 저장된 날짜를 그대로 표시
                             const [year, month, day] = schedule.date.split('-')
@@ -1569,13 +1569,13 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                           if (userStatus === 'attending' || userStatus === 'ATTENDING') {
                             return (
                               <Badge className="bg-green-100 text-green-800 border-green-300 text-xs">
-                                참석예정
+                                참석
                               </Badge>
                             )
                           } else if (userStatus === 'not_attending' || userStatus === 'NOT_ATTENDING') {
                             return (
                               <Badge className="bg-red-100 text-red-800 border-red-300 text-xs">
-                                불참예정
+                                불참
                               </Badge>
                             )
                           }
@@ -1624,7 +1624,7 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                      </div>
 
                     {/* 참석 현황 */}
-                    <div className="space-y-2">
+                    {/* <div className="space-y-2">
                       <div className="flex items-center justify-between text-sm">
                         <span className={isPastSchedule ? 'text-gray-500' : 'text-muted-foreground'}>참석 현황</span>
                         <div className="flex items-center gap-2">
@@ -1641,7 +1641,7 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                         value={stats.percentage} 
                         className={`h-2 ${isPastSchedule ? 'opacity-50' : ''}`} 
                       />
-                    </div>
+                    </div> */}
 
                     {/* 설명 */}
                     {schedule.description && (
