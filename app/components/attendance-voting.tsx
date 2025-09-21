@@ -24,11 +24,12 @@ interface AttendanceVotingProps {
   isManagerMode: boolean
   onAttendanceUpdate?: () => void
   onAttendanceStatsUpdate?: (scheduleId: string) => void
+  onFormationReset?: () => void
   allowGuests?: boolean
   hasTeamFormation?: boolean
 }
 
-export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAttendanceUpdate, onAttendanceStatsUpdate, allowGuests = false, hasTeamFormation = false }: AttendanceVotingProps) {
+export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAttendanceUpdate, onAttendanceStatsUpdate, onFormationReset, allowGuests = false, hasTeamFormation = false }: AttendanceVotingProps) {
   const [attendees, setAttendees] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
@@ -149,6 +150,8 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
         // 팀편성 결과가 있을 때만 초기화 메시지 표시
         if (hasTeamFormation) {
           showFormationResetAlert()
+          // 팀편성 결과를 즉시 화면에서 제거
+          onFormationReset?.()
         }
         // 팀편성 초기화 시에만 상위 컴포넌트에 알림 (전체 페이지 리로딩 방지)
         onAttendanceUpdate?.()
@@ -216,6 +219,8 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
         // 팀편성 결과가 있을 때만 초기화 메시지 표시
         if (hasTeamFormation) {
           showFormationResetAlert()
+          // 팀편성 결과를 즉시 화면에서 제거
+          onFormationReset?.()
         }
         onAttendanceUpdate?.()
       }
@@ -273,6 +278,8 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
         // 팀편성 결과가 있을 때만 초기화 메시지 표시
         if (hasTeamFormation) {
           showFormationResetAlert()
+          // 팀편성 결과를 즉시 화면에서 제거
+          onFormationReset?.()
         }
         onAttendanceUpdate?.()
       }

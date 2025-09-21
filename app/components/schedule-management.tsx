@@ -129,6 +129,12 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
     }
   }
 
+  // 팀편성 결과 즉시 초기화 함수
+  const handleFormationReset = () => {
+    setFormationResults(null)
+    setIsFormationOpen(false)
+  }
+
   // 팀편성 결과 확인 및 초기화 함수
   const refreshFormationResults = () => {
     const nextSchedule = getNextUpcomingSchedule()
@@ -1012,7 +1018,7 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                     {nextUpcomingSchedule.location}
                   </h3>
                   <h3 className="flex gap-2 items-center justify-center text-xl font-bold">
-                    <div className="text-red-800 text-muted-foreground">집합 {nextUpcomingSchedule.gatherTime}</div>
+                    <div className="text-red-600 text-muted-foreground">집합 {nextUpcomingSchedule.gatherTime}</div>
                   </h3>
                 </div>
 
@@ -1059,7 +1065,7 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
 
                    {/* 쿼터 시간 표시 */}
                    {nextUpcomingSchedule.quarterTime && (
-                     <div className="space-y-2">
+                     <div className="flex gap-2 items-center space-y-2">
                        <CalendarIcon className="h-4 w-4 text-blue-500 flex-shrink-0" />
                        <div className="font-medium text-gray-600 text-left">경기 진행 시간</div>
                        <div className="bg-white rounded border p-2">
@@ -1128,6 +1134,7 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                        refreshFormationResults()
                      }}
                      onAttendanceStatsUpdate={updateScheduleAttendance}
+                     onFormationReset={handleFormationReset}
                      allowGuests={nextUpcomingSchedule.allowGuests}
                      hasTeamFormation={!!formationResults}
                    />
@@ -1583,6 +1590,7 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                              refreshFormationResults()
                            }}
                            onAttendanceStatsUpdate={updateScheduleAttendance}
+                           onFormationReset={handleFormationReset}
                            allowGuests={schedule.allowGuests}
                            hasTeamFormation={!!schedule.teamFormation}
                          />
