@@ -381,55 +381,59 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
         </div>
       )}
 
-      {/* 참석 투표 버튼 (모든 사용자) */}
+      {/* 참석 투표 버튼 (현재 상태에 따라 반대 버튼만 표시) */}
       <div className="space-y-2">
         <div className="flex gap-2">
-          <Button
-            onClick={() => handleAttendanceVote('attending')}
-            disabled={isSubmitting}
-            className={`flex-1 ${
-              currentUserStatus === 'ATTENDING' 
-                ? 'bg-green-600 hover:bg-green-700 text-white border-2 border-green-700 shadow-md' 
-                : 'bg-green-100 text-green-800 hover:bg-green-200 border border-green-300'
-            }`}
-            size="sm"
-          >
-            <Check className="h-3 w-3 mr-1" />
-            {currentUserStatus === 'ATTENDING' ? '✓ 참석' : '참석'}
-          </Button>
-          <Button
-            onClick={() => handleAttendanceVote('not_attending')}
-            disabled={isSubmitting}
-            className={`flex-1 ${
-              currentUserStatus === 'NOT_ATTENDING' 
-                ? 'bg-red-600 hover:bg-red-700 text-white border-2 border-red-700 shadow-md' 
-                : 'bg-red-100 text-red-800 hover:bg-red-200 border border-red-300'
-            }`}
-            size="sm"
-          >
-            <X className="h-3 w-3 mr-1" />
-            {currentUserStatus === 'NOT_ATTENDING' ? '✗ 불참' : '불참'}
-          </Button>
-        </div>
-        
-        {/* 현재 투표 상태 표시 */}
-        {currentUserStatus !== 'PENDING' && (
-          <div className="text-center">
-            <Badge 
-              variant="outline" 
-              className={`text-xs font-medium ${
-                currentUserStatus === 'ATTENDING' 
-                  ? 'bg-green-100 text-green-800 border-green-400' 
-                  : currentUserStatus === 'NOT_ATTENDING'
-                  ? 'bg-red-100 text-red-800 border-red-400'
-                  : 'bg-yellow-100 text-yellow-800 border-yellow-400'
-              }`}
+          {/* 참석 상태일 때는 불참 버튼만 표시 */}
+          {currentUserStatus === 'ATTENDING' && (
+            <Button
+              onClick={() => handleAttendanceVote('not_attending')}
+              disabled={isSubmitting}
+              className="flex-1 bg-red-100 text-red-800 hover:bg-red-200 border border-red-300"
+              size="sm"
             >
-              {getStatusIcon(currentUserStatus)}
-              <span className="ml-1">현재 투표: {getStatusText(currentUserStatus)}</span>
-            </Badge>
-          </div>
-        )}
+              <X className="h-3 w-3 mr-1" />
+              불참으로 변경
+            </Button>
+          )}
+          
+          {/* 불참 상태일 때는 참석 버튼만 표시 */}
+          {currentUserStatus === 'NOT_ATTENDING' && (
+            <Button
+              onClick={() => handleAttendanceVote('attending')}
+              disabled={isSubmitting}
+              className="flex-1 bg-green-100 text-green-800 hover:bg-green-200 border border-green-300"
+              size="sm"
+            >
+              <Check className="h-3 w-3 mr-1" />
+              참석으로 변경
+            </Button>
+          )}
+          
+          {/* 미정 상태일 때는 두 버튼 모두 표시 */}
+          {currentUserStatus === 'PENDING' && (
+            <>
+              <Button
+                onClick={() => handleAttendanceVote('attending')}
+                disabled={isSubmitting}
+                className="flex-1 bg-green-100 text-green-800 hover:bg-green-200 border border-green-300"
+                size="sm"
+              >
+                <Check className="h-3 w-3 mr-1" />
+                참석
+              </Button>
+              <Button
+                onClick={() => handleAttendanceVote('not_attending')}
+                disabled={isSubmitting}
+                className="flex-1 bg-red-100 text-red-800 hover:bg-red-200 border border-red-300"
+                size="sm"
+              >
+                <X className="h-3 w-3 mr-1" />
+                불참
+              </Button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* 참석 현황 (펼쳐서 볼 수 있음) */}
