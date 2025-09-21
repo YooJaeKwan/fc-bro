@@ -325,3 +325,4 @@ testOptimizedAttendance()
     console.error('스크립트 실행 중 오류:', error)
     process.exit(1)
   })
+
