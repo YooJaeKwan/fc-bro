@@ -1478,14 +1478,20 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
             .filter(schedule => schedule.id !== nextUpcomingSchedule?.id) // 다음 일정 제외
             .map((schedule) => {
             const stats = getAttendanceStats(schedule.attendees)
+            const daysLeft = calculateDaysLeft(schedule.date)
+            const isPastSchedule = daysLeft < 0
 
             return (
-              <Card key={schedule.id} className="hover:shadow-lg transition-shadow">
-                <CardContent className="p-6">
+              <Card key={schedule.id} className={`transition-shadow ${
+                isPastSchedule 
+                  ? 'bg-gray-50 border-gray-200' 
+                  : 'hover:shadow-lg'
+              }`}>
+                <CardContent className={`p-6 ${isPastSchedule ? 'opacity-75' : ''}`}>
                   <div className="space-y-4">
                     {/* 일정 기본 정보 */}
                     <div className="flex justify-between items-center">
-                      <h3 className="text-lg font-semibold">
+                      <h3 className={`text-lg font-semibold ${isPastSchedule ? 'text-gray-600' : ''}`}>
                         {(() => {
                           // 한국시간으로 저장된 날짜를 그대로 표시
                           const [year, month, day] = schedule.date.split('-')
@@ -1495,12 +1501,17 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                             day: 'numeric',
                             weekday: 'short'
                           })
-                        })()} <span className="text-blue-600">{schedule.time}</span>
+                        })()} <span className={isPastSchedule ? 'text-gray-500' : 'text-blue-600'}>{schedule.time}</span>
                       </h3>
                       <div className="flex justify-center gap-2 flex-wrap">
                         <Badge className={getTypeColor(schedule.type)} variant="secondary">
                           {schedule.type === "internal" ? "자체경기" : schedule.type === "match" ? "A매치" : "연습"}
                         </Badge>
+                        {isPastSchedule && (
+                          <Badge variant="outline" className="text-gray-500 border-gray-300">
+                            지난 경기
+                          </Badge>
+                        )}
                         {isManagerMode && (
                           <>
                             <Button
@@ -1508,6 +1519,7 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                               size="sm"
                               className="h-6 w-6 p-0"
                               onClick={() => handleEditSchedule(schedule)}
+                              disabled={isPastSchedule}
                             >
                               <Edit className="h-3 w-3" />
                             </Button>
@@ -1524,14 +1536,14 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                       </div>
                     </div>
 
-                     <div className="items-center gap-4 text-sm text-muted-foreground">
+                     <div className={`items-center gap-4 text-sm ${isPastSchedule ? 'text-gray-500' : 'text-muted-foreground'}`}>
                        <div className="flex items-center gap-1">
-                         <MapPin className="h-4 w-4" />
+                         <MapPin className={`h-4 w-4 ${isPastSchedule ? 'text-gray-400' : ''}`} />
                          <span>{schedule.location}</span>
                        </div>
                        {schedule.gatherTime && (
                          <div className="flex items-center gap-1">
-                           <Clock className="h-4 w-4" />
+                           <Clock className={`h-4 w-4 ${isPastSchedule ? 'text-gray-400' : ''}`} />
                            <span>집합: {schedule.gatherTime}</span>
                          </div>
                        )}
@@ -1540,27 +1552,32 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                     {/* 참석 현황 */}
                     <div className="space-y-2">
                       <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">참석 현황</span>
+                        <span className={isPastSchedule ? 'text-gray-500' : 'text-muted-foreground'}>참석 현황</span>
                         <div className="flex items-center gap-2">
-                          <Users className="h-4 w-4" />
-                          <Badge variant="outline" className="font-medium">
+                          <Users className={`h-4 w-4 ${isPastSchedule ? 'text-gray-400' : ''}`} />
+                          <Badge variant="outline" className={`font-medium ${isPastSchedule ? 'text-gray-500 border-gray-300' : ''}`}>
                             {stats.attending}/{stats.total}명
                           </Badge>
-                          <span className="text-xs text-muted-foreground">
+                          <span className={`text-xs ${isPastSchedule ? 'text-gray-400' : 'text-muted-foreground'}`}>
                             ({stats.percentage}%)
                           </span>
                         </div>
                       </div>
-                      <Progress value={stats.percentage} className="h-2" />
+                      <Progress 
+                        value={stats.percentage} 
+                        className={`h-2 ${isPastSchedule ? 'opacity-50' : ''}`} 
+                      />
                     </div>
 
                     {/* 설명 */}
                     {schedule.description && (
-                      <p className="text-sm text-muted-foreground text-center">{schedule.description}</p>
+                      <p className={`text-sm text-center ${isPastSchedule ? 'text-gray-500' : 'text-muted-foreground'}`}>
+                        {schedule.description}
+                      </p>
                     )}
 
                      {/* 참석 투표 */}
-                     {schedule.status === "scheduled" && (
+                     {schedule.status === "scheduled" && !isPastSchedule && (
                        <div className="pt-2">
                          <AttendanceVoting
                            schedule={schedule}
@@ -1572,6 +1589,15 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                            onAttendanceStatsUpdate={updateScheduleAttendance}
                            allowGuests={schedule.allowGuests}
                          />
+                       </div>
+                     )}
+                     
+                     {/* 지난 경기 안내 메시지 */}
+                     {isPastSchedule && (
+                       <div className="pt-2 p-3 bg-gray-100 rounded-lg text-center">
+                         <p className="text-sm text-gray-600">
+                           이 경기는 이미 종료되었습니다.
+                         </p>
                        </div>
                      )}
                   </div>
