@@ -1164,32 +1164,36 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
 
                    {/* 쿼터 시간 표시 */}
                    {nextUpcomingSchedule.quarterTime && (
-                     <div className="flex gap-2 items-center space-y-2">
-                       <CalendarIcon className="h-4 w-4 text-blue-500 flex-shrink-0" />
-                       <div className="font-medium text-gray-600 text-left">경기 진행 시간</div>
-                       <div className="bg-white rounded border p-2">
-                         <div className="grid grid-cols-4 gap-0 text-xs font-mono">
-                           {calculateQuarters(
-                             nextUpcomingSchedule.time,
-                             nextUpcomingSchedule.quarterTime || 25,
-                             nextUpcomingSchedule.restTime || 5
-                           ).map((quarter) => (
-                             <div key={quarter.quarter} className="text-center p-1">
-                               <div className="font-semibold text-blue-600 mb-1">{quarter.quarter}</div>
-                               <div className="text-xs text-muted-foreground whitespace-nowrap">
-                                 {quarter.start}
-                               </div>
-                               <div className="text-xs text-muted-foreground">
-                                 ~
-                               </div>
-                               <div className="text-xs text-muted-foreground whitespace-nowrap">
-                                 {quarter.end}
-                               </div>
-                             </div>
-                           ))}
-                         </div>
-                       </div>
-                     </div>
+                     <div>
+                      <div className="flex gap-2 items-center space-y-2">
+                        <CalendarIcon className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                        <div className="font-medium text-gray-600 text-left">경기 진행 시간</div>
+                      </div>
+                      <div>
+                        <div className="bg-white rounded border p-2">
+                          <div className="grid grid-cols-4 gap-0 text-xs font-mono">
+                            {calculateQuarters(
+                              nextUpcomingSchedule.time,
+                              nextUpcomingSchedule.quarterTime || 25,
+                              nextUpcomingSchedule.restTime || 5
+                            ).map((quarter) => (
+                              <div key={quarter.quarter} className="text-center p-1">
+                                <div className="font-semibold text-blue-600 mb-1">{quarter.quarter}</div>
+                                <div className="text-xs text-muted-foreground whitespace-nowrap">
+                                  {quarter.start}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  ~
+                                </div>
+                                <div className="text-xs text-muted-foreground whitespace-nowrap">
+                                  {quarter.end}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                     </div>  
                    )}
                  </div>
 
@@ -1622,7 +1626,7 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                         })
                       })()} <span className={isPastSchedule ? 'text-gray-500' : 'text-blue-600'}>{schedule.time}</span>
                     </h3>
-                    <div className="flex justify-between items-center">
+                    <div className="flex">
                       <div className="flex items-center gap-2">                        
                         {/* 사용자 투표 상태 뱃지 */}
                         {!isPastSchedule && (() => {
