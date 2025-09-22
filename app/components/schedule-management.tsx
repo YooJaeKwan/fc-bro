@@ -27,6 +27,7 @@ import { cn } from "@/lib/utils"
 import { AttendanceVoting } from "./attendance-voting"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Skeleton } from "@/components/ui/skeleton"
+import ScheduleCard from "./schedule-card"
 
 interface ScheduleManagementProps {
   isManagerMode: boolean
@@ -1589,117 +1590,25 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
               const dateB = new Date(Number(yearB), Number(monthB) - 1, Number(dayB))
               return dateA.getTime() - dateB.getTime()
             })
-            .map((schedule) => {
-            const stats = getAttendanceStats(schedule.attendees)
-            const daysLeft = calculateDaysLeft(schedule.date)
-            const isPastSchedule = daysLeft < 0
-
-            return (
-              <Card key={schedule.id} className={`transition-shadow ${
-                isPastSchedule 
-                  ? 'bg-gray-50 border-gray-200' 
-                  : 'hover:shadow-lg'
-              }`}>
-                {isScheduleUpdating(schedule.id) ? (
-                  <ScheduleSkeleton />
-                ) : (
-                  <CardContent className={`p-6 ${isPastSchedule ? 'opacity-75' : ''}`}>
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">                      
-                      {/* 일정 기본 정보 */}                    
-                      <h3 className={`text-base font-semibold ${isPastSchedule ? 'text-gray-600' : ''}`}>
-                        {(() => {
-                          // 한국시간으로 저장된 날짜를 그대로 표시
-                          const [year, month, day] = schedule.date.split('-')
-                          const date = new Date(Number(year), Number(month) - 1, Number(day))
-                          return date.toLocaleDateString('ko-KR', {
-                            month: 'long',
-                            day: 'numeric',
-                            weekday: 'short'
-                          })
-                        })()} <span className={isPastSchedule ? 'text-gray-500' : 'text-blue-600'}>{schedule.time}</span>
-                      </h3>
-                      <div className="flex justify-center gap-2 flex-wrap">
-                        <Badge className={getTypeColor(schedule.type)} variant="secondary">
-                          {schedule.type === "internal" ? "자체경기" : schedule.type === "match" ? "A매치" : "연습"}
-                        </Badge>
-                        {isManagerMode && (
-                          <>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 w-6 p-0"
-                              onClick={() => handleEditSchedule(schedule)}
-                              disabled={isPastSchedule}
-                            >
-                              <Edit className="h-3 w-3" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                              onClick={() => handleDeleteSchedule(schedule.id, `${schedule.location} ${schedule.time}`)}
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-
-                     <div className={`items-center gap-4 text-sm ${isPastSchedule ? 'text-gray-500' : 'text-muted-foreground'}`}>
-                       <div className="flex items-center gap-1">
-                         <MapPin className={`h-4 w-4 ${isPastSchedule ? 'text-gray-400' : ''}`} />
-                         <span>{schedule.location}</span>
-                       </div>
-                       {schedule.gatherTime && (
-                         <div className="flex items-center gap-1">
-                           <Clock className={`h-4 w-4 ${isPastSchedule ? 'text-gray-400' : ''}`} />
-                           <span>집합: {schedule.gatherTime}</span>
-                         </div>
-                       )}
-                     </div>
-
-                    {/* 설명 */}
-                    {schedule.description && (
-                      <p className={`text-sm text-center ${isPastSchedule ? 'text-gray-500' : 'text-muted-foreground'}`}>
-                        {schedule.description}
-                      </p>
-                    )}
-
-                     {/* 참석 투표 */}
-                     {schedule.status === "scheduled" && !isPastSchedule && (
-                       <div className="pt-2">
-                         <AttendanceVoting
-                           schedule={schedule}
-                           currentUser={currentUser}
-                           isManagerMode={isManagerMode}
-                           onAttendanceUpdate={() => {
-                             refreshFormationResults()
-                           }}
-                           onAttendanceStatsUpdate={updateScheduleAttendance}
-                           onFormationReset={handleFormationReset}
-                           onGuestStatusUpdate={updateScheduleGuestStatus}
-                           allowGuests={schedule.allowGuests}
-                           hasTeamFormation={!!schedule.teamFormation}
-                         />
-                       </div>
-                     )}
-                     
-                     {/* 지난 경기 안내 메시지 */}
-                     {isPastSchedule && (
-                       <div className="pt-2 p-3 bg-gray-100 rounded-lg text-center">
-                         <p className="text-sm text-gray-600">
-                           이 경기는 이미 종료되었습니다.
-                         </p>
-                       </div>
-                     )}
-                  </div>
-                </CardContent>
-                )}
-              </Card>
-            )
-          })
+            .map((schedule) => (
+              <ScheduleCard
+                key={schedule.id}
+                schedule={schedule}
+                currentUser={currentUser}
+                isManagerMode={isManagerMode}
+                isUpdating={isScheduleUpdating(schedule.id)}
+                onAttendanceUpdate={updateScheduleAttendance}
+                onAttendanceStatsUpdate={updateScheduleAttendance}
+                onFormationReset={handleFormationReset}
+                onGuestStatusUpdate={updateScheduleGuestStatus}
+                onDeleteSchedule={handleDeleteSchedule}
+                onEditSchedule={(schedule) => {
+                  setEditingSchedule(schedule)
+                  setIsEditingSchedule(true)
+                }}
+                hasTeamFormation={!!formationResults}
+              />
+            ))
         )}
       </div>
     </div>
