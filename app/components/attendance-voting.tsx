@@ -389,28 +389,38 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
         <div className="flex gap-2">
           {/* 참석 상태일 때는 불참 버튼만 표시 */}
           {(currentUserStatus === 'ATTENDING' || currentUserStatus === 'attending') && (
-            <Button
-              onClick={() => handleAttendanceVote('not_attending')}
-              disabled={isSubmitting}
-              className="flex-1 bg-red-100 text-red-800 hover:bg-red-200 border border-red-300"
-              size="sm"
-            >
-              <X className="h-3 w-3 mr-1" />
-              불참으로 변경
-            </Button>
+            <div>
+              <Badge className="bg-green-100 text-green-800 border-green-300">
+                참석예정
+              </Badge>
+              <Button
+                onClick={() => handleAttendanceVote('not_attending')}
+                disabled={isSubmitting}
+                className="flex-1 bg-red-100 text-red-800 hover:bg-red-200 border border-red-300"
+                size="sm"
+              >
+                <X className="h-3 w-3 mr-1" />
+                불참으로 변경
+              </Button>
+            </div>
           )}
           
           {/* 불참 상태일 때는 참석 버튼만 표시 */}
           {(currentUserStatus === 'NOT_ATTENDING' || currentUserStatus === 'not_attending') && (
-            <Button
-              onClick={() => handleAttendanceVote('attending')}
-              disabled={isSubmitting}
-              className="flex-1 bg-green-100 text-green-800 hover:bg-green-200 border border-green-300"
-              size="sm"
-            >
-              <Check className="h-3 w-3 mr-1" />
-              참석으로 변경
-            </Button>
+            <div>
+              <Badge className="bg-red-100 text-red-800 border-red-300">
+                불참예정
+              </Badge>
+              <Button
+                onClick={() => handleAttendanceVote('attending')}
+                disabled={isSubmitting}
+                className="flex-1 bg-green-100 text-green-800 hover:bg-green-200 border border-green-300"
+                size="sm"
+              >
+                <Check className="h-3 w-3 mr-1" />
+                참석으로 변경
+              </Button>
+            </div>
           )}
           
           {/* 미정 상태일 때는 두 버튼 모두 표시 */}
