@@ -191,7 +191,7 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
       <div className="flex items-center justify-center">
         <div className="flex items-center gap-2 bg-gray-100 text-gray-500 px-4 py-2 rounded-full">
           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400"></div>
-          <span className="text-sm font-medium">일정 업데이트 중...</span>
+          <span className="text-sm font-medium">참석현황 업데이트 중...</span>
         </div>
       </div>
       <div className="space-y-3">
@@ -1227,7 +1227,10 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                    <div className="flex gap-2">
                      {(() => {
                        const daysLeft = calculateDaysLeft(nextUpcomingSchedule.date)
-                       return isManagerMode && daysLeft <= 2 && daysLeft >= 0 && (
+                       const attendingCount = nextUpcomingSchedule.attendees?.filter((att: any) => 
+                         att.status === 'attending' || att.status === 'attended'
+                       ).length || 0
+                       return isManagerMode && daysLeft <= 2 && daysLeft >= 0 && attendingCount >= 6 && (
                          <Button
                            onClick={async () => {
                              setIsFormingTeams(true)
@@ -1578,6 +1581,14 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
         ) : (
           schedules
             .filter(schedule => schedule.id !== nextUpcomingSchedule?.id) // 다음 일정 제외
+            .sort((a, b) => {
+              // 날짜순으로 정렬 (오래된 일정이 아래쪽에)
+              const [yearA, monthA, dayA] = a.date.split('-')
+              const [yearB, monthB, dayB] = b.date.split('-')
+              const dateA = new Date(Number(yearA), Number(monthA) - 1, Number(dayA))
+              const dateB = new Date(Number(yearB), Number(monthB) - 1, Number(dayB))
+              return dateA.getTime() - dateB.getTime()
+            })
             .map((schedule) => {
             const stats = getAttendanceStats(schedule.attendees)
             const daysLeft = calculateDaysLeft(schedule.date)

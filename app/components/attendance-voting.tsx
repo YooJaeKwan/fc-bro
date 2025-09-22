@@ -389,8 +389,8 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
         <div className="flex gap-2">
           {/* 참석 상태일 때는 불참 버튼만 표시 */}
           {(currentUserStatus === 'ATTENDING' || currentUserStatus === 'attending') && (
-            <div>
-              <Badge className="bg-green-100 text-green-800 border-green-300">
+            <div className="flex items-center gap-3">
+              <Badge className="bg-green-100 text-green-800 border-green-300 flex-shrink-0">
                 참석예정
               </Badge>
               <Button
@@ -407,8 +407,8 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
           
           {/* 불참 상태일 때는 참석 버튼만 표시 */}
           {(currentUserStatus === 'NOT_ATTENDING' || currentUserStatus === 'not_attending') && (
-            <div>
-              <Badge className="bg-red-100 text-red-800 border-red-300">
+            <div className="flex items-center gap-3">
+              <Badge className="bg-red-100 text-red-800 border-red-300 flex-shrink-0">
                 불참예정
               </Badge>
               <Button
