@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { CalendarIcon, MapPinIcon, UsersIcon, ClockIcon, X, Check, UserPlus, UserMinus } from 'lucide-react'
 import { calculateDaysLeft } from '@/lib/utils'
-import AttendanceVoting from './attendance-voting'
+import { AttendanceVoting } from './attendance-voting'
 
 interface ScheduleCardProps {
   schedule: any
