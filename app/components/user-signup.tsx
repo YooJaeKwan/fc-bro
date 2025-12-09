@@ -514,7 +514,7 @@ export function UserSignup({ kakaoUserInfo, onSignupComplete, onBack }: UserSign
 
           {/* 주발 선택 */}
           <div className="space-y-2">
-            <Label>주발 (선택사항)</Label>
+            <Label>주발</Label>
             <Select
               value={formData.preferredFoot}
               onValueChange={(value) => handleInputChange('preferredFoot', value)}
