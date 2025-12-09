@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    console.log(`팀원 ${teamMembers.length}명 조회 완료`)
+    console.log(`팀원 ${teamMembers.length}명 조회 완료, 데이터 처리 시작`)
 
     // 임시 능력치 데이터 생성 함수
     const generateTempSkills = (position: string) => {
@@ -111,80 +111,140 @@ export async function GET(request: NextRequest) {
     const yearEnd = new Date(currentYear, 11, 31, 23, 59, 59)
 
     // 올해 전체 일정 수 조회
-    const totalSchedulesThisYear = await prisma.schedule.count({
-      where: {
-        matchDate: {
-          gte: yearStart,
-          lte: yearEnd
-        }
-      }
-    })
-
-    // 클라이언트에 전송할 데이터 구성
-    const membersWithTempData = await Promise.all(teamMembers.map(async (member, index) => {
-      const tempSkills = generateTempSkills(member.preferredPosition || "MC")
-      const overallRating = calculateOverallRating(tempSkills)
-
-      // 해당 사용자의 올해 참석 투표 조회
-      const attendedSchedules = await prisma.scheduleAttendance.findMany({
+    let totalSchedulesThisYear = 0
+    try {
+      totalSchedulesThisYear = await prisma.schedule.count({
         where: {
-          userId: member.id,
-          status: 'ATTENDING',
-          schedule: {
-            matchDate: {
-              gte: yearStart,
-              lte: yearEnd
-            }
-          }
-        },
-        include: {
-          schedule: {
-            select: {
-              matchDate: true
-            }
-          }
-        },
-        orderBy: {
-          schedule: {
-            matchDate: 'desc'
+          matchDate: {
+            gte: yearStart,
+            lte: yearEnd
           }
         }
       })
+    } catch (scheduleCountError) {
+      console.error('일정 수 조회 실패:', scheduleCountError)
+      // 일정 수 조회 실패해도 계속 진행
+    }
 
-      const attendedCount = attendedSchedules.length
-      const attendanceRate = totalSchedulesThisYear > 0 
-        ? Math.round((attendedCount / totalSchedulesThisYear) * 100) 
-        : 0
+    console.log(`팀원 ${teamMembers.length}명 데이터 처리 시작`)
 
-      // 가장 최근 참석한 경기 날짜
-      const lastAttendedDate = attendedSchedules.length > 0
-        ? attendedSchedules[0].schedule.matchDate.toLocaleDateString('ko-KR')
-        : null
+    // 클라이언트에 전송할 데이터 구성
+    const membersWithTempData = await Promise.all(teamMembers.map(async (member, index) => {
+      try {
+        const tempSkills = generateTempSkills(member.preferredPosition || "MC")
+        const overallRating = calculateOverallRating(tempSkills)
 
-      return {
-        id: member.id,
-        name: member.realName || member.nickname || '이름 없음',
-        nickname: member.nickname,
-        mainPosition: member.preferredPosition || 'MC',
-        subPositions: member.subPositions || [],
-        phone: member.phoneNumber || '정보 없음',
-        region: member.region || '정보 없음',
-        city: member.city || '정보 없음',
-        preferredFoot: member.preferredFoot,
-        jerseyNumber: member.jerseyNumber,
-        level: member.level || 1,
-        role: member.role || 'MEMBER',
-        isActive: member.isActive,
-        profileImage: member.image,
-        joinDate: member.createdAt.toLocaleDateString('ko-KR'),
-        attendanceRate,
-        attendedCount,
-        totalSchedules: totalSchedulesThisYear,
-        lastAttendedDate,
-        skills: tempSkills,
-        overallRating
+        // 해당 사용자의 올해 참석 투표 조회 (최적화: 필요한 필드만 조회)
+        let attendedSchedules: any[] = []
+        let attendedCount = 0
+        let lastAttendedDate: string | null = null
+        
+        try {
+          // 참석 정보를 한 번에 조회 (최신순으로 정렬)
+          const attendanceData = await prisma.scheduleAttendance.findMany({
+            where: {
+              userId: member.id,
+              status: 'ATTENDING',
+              schedule: {
+                matchDate: {
+                  gte: yearStart,
+                  lte: yearEnd
+                }
+              }
+            },
+            select: {
+              schedule: {
+                select: {
+                  matchDate: true
+                }
+              }
+            },
+            take: 1, // 가장 최근 것만 가져오기 (lastAttendedDate용)
+            orderBy: {
+              createdAt: 'desc' // 생성일 기준으로 정렬
+            }
+          })
+
+          // 전체 참석 수는 별도로 카운트
+          attendedCount = await prisma.scheduleAttendance.count({
+            where: {
+              userId: member.id,
+              status: 'ATTENDING',
+              schedule: {
+                matchDate: {
+                  gte: yearStart,
+                  lte: yearEnd
+                }
+              }
+            }
+          })
+
+          // 가장 최근 참석한 경기 날짜
+          if (attendanceData.length > 0 && attendanceData[0].schedule?.matchDate) {
+            lastAttendedDate = attendanceData[0].schedule.matchDate.toLocaleDateString('ko-KR')
+          }
+        } catch (attendanceError: any) {
+          console.error(`사용자 ${member.id}의 참석 정보 조회 실패:`, attendanceError?.message)
+          // 참석 정보 조회 실패해도 계속 진행
+        }
+
+        const attendanceRate = totalSchedulesThisYear > 0 
+          ? Math.round((attendedCount / totalSchedulesThisYear) * 100) 
+          : 0
+
+        return {
+          id: member.id,
+          name: member.realName || member.nickname || '이름 없음',
+          nickname: member.nickname,
+          mainPosition: member.preferredPosition || 'MC',
+          subPositions: member.subPositions || [],
+          phone: member.phoneNumber || '정보 없음',
+          region: member.region || '정보 없음',
+          city: member.city || '정보 없음',
+          preferredFoot: member.preferredFoot,
+          jerseyNumber: member.jerseyNumber,
+          level: member.level || 1,
+          role: member.role || 'MEMBER',
+          isActive: member.isActive,
+          profileImage: member.image,
+          joinDate: member.createdAt.toLocaleDateString('ko-KR'),
+          attendanceRate,
+          attendedCount,
+          totalSchedules: totalSchedulesThisYear,
+          lastAttendedDate,
+          skills: tempSkills,
+          overallRating
+        }
+      } catch (memberError: any) {
+        console.error(`사용자 ${member.id} 데이터 처리 실패:`, memberError)
+        // 개별 멤버 처리 실패 시 기본 데이터 반환
+        return {
+          id: member.id,
+          name: member.realName || member.nickname || '이름 없음',
+          nickname: member.nickname,
+          mainPosition: member.preferredPosition || 'MC',
+          subPositions: member.subPositions || [],
+          phone: member.phoneNumber || '정보 없음',
+          region: member.region || '정보 없음',
+          city: member.city || '정보 없음',
+          preferredFoot: member.preferredFoot,
+          jerseyNumber: member.jerseyNumber,
+          level: member.level || 1,
+          role: member.role || 'MEMBER',
+          isActive: member.isActive,
+          profileImage: member.image,
+          joinDate: member.createdAt.toLocaleDateString('ko-KR'),
+          attendanceRate: 0,
+          attendedCount: 0,
+          totalSchedules: totalSchedulesThisYear,
+          lastAttendedDate: null,
+          skills: generateTempSkills(member.preferredPosition || "MC"),
+          overallRating: 5.0
+        }
       }
     }))
+
+    console.log(`팀원 데이터 처리 완료: ${membersWithTempData.length}명`)
 
     return NextResponse.json({
       success: true,
@@ -192,11 +252,16 @@ export async function GET(request: NextRequest) {
       count: membersWithTempData.length
     })
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('팀원 목록 조회 중 오류:', error)
+    console.error('에러 상세:', error?.message)
+    console.error('에러 스택:', error?.stack)
     
     return NextResponse.json(
-      { error: '팀원 목록 조회 중 오류가 발생했습니다.' },
+      { 
+        error: '팀원 목록 조회 중 오류가 발생했습니다.',
+        details: process.env.NODE_ENV === 'development' ? error?.message : undefined
+      },
       { status: 500 }
     )
   }

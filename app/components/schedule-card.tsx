@@ -231,8 +231,8 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
               </div>
             )}
 
-            {/* 참석 투표 (지난 경기가 아닐 때만) */}
-            {!isPastSchedule && (
+            {/* 참석 투표 - 비활성화 */}
+            {/* {!isPastSchedule && (
               <AttendanceVoting
                 schedule={schedule}
                 currentUser={currentUser}
@@ -244,7 +244,7 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
                 allowGuests={schedule.allowGuests}
                 hasTeamFormation={hasTeamFormation}
               />
-            )}
+            )} */}
 
             {/* 관리자 버튼들 */}
             {isManagerMode && (

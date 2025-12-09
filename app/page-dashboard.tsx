@@ -11,9 +11,13 @@ import {
   User,
   Menu,
   LogOut,
+  BarChart3,
+  Calendar,
 } from "lucide-react"
 import { TeamManagement } from "./components/team-management"
 import { UserProfile } from "./components/user-profile"
+import { AttendanceStats } from "./components/attendance-stats"
+import { ScheduleManagement } from "./components/schedule-management"
 // import { useSession, signOut } from "next-auth/react" // NextAuth 제거됨
 
 // 기본 팀 정보 (고정값)
@@ -51,13 +55,15 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
     setIsManagerMode(user?.role === 'ADMIN')
   }, [user?.role])
 
-  const [activeTab, setActiveTab] = useState("team")
+  const [activeTab, setActiveTab] = useState("schedule")
   // 사용자 role 기반으로 관리자 모드 결정 (DB에서 ADMIN 권한 확인)
   const [isManagerMode, setIsManagerMode] = useState(user?.role === 'ADMIN')
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
 
   const tabItems = [
+    { value: "schedule", label: isManagerMode ? "일정 관리" : "경기일정", icon: Calendar },
+    { value: "dashboard", label: "대시보드 (임시)", icon: BarChart3 },
     { value: "team", label: "팀 멤버", icon: Users },
     { value: "profile", label: "내 정보", icon: User },
   ]
@@ -218,7 +224,7 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-3">
           {/* Desktop Tabs */}
           <div className="hidden lg:block">
-            <TabsList className="grid w-full grid-cols-2 lg:w-auto">
+            <TabsList className="grid w-full grid-cols-4 lg:w-auto">
               {tabItems.map((item) => {
                 const Icon = item.icon
                 return (
@@ -231,12 +237,20 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
             </TabsList>
           </div>
 
-          <TabsContent value="profile">
-            <UserProfile userInfo={user} onUserUpdate={handleUserUpdate} />
+          <TabsContent value="schedule">
+            <ScheduleManagement isManagerMode={isManagerMode} currentUser={user} />
+          </TabsContent>
+
+          <TabsContent value="dashboard">
+            <AttendanceStats isManagerMode={isManagerMode} />
           </TabsContent>
 
           <TabsContent value="team">
             <TeamManagement isManagerMode={isManagerMode} currentUser={user} />
+          </TabsContent>
+
+          <TabsContent value="profile">
+            <UserProfile userInfo={user} onUserUpdate={handleUserUpdate} />
           </TabsContent>
 
         </Tabs>

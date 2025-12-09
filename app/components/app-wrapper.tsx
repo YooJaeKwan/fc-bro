@@ -156,14 +156,14 @@ export function AppWrapper() {
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 w-16 h-16 rounded-full overflow-hidden bg-white border-2 border-blue-200 flex items-center justify-center">
+          {/* <div className="mx-auto mb-4 w-16 h-16 rounded-full overflow-hidden bg-white border-2 border-blue-200 flex items-center justify-center">
             <img 
               src="/fc-bro-emblem.jpg" 
               alt="FC BRO Logo" 
               className="w-full h-full object-cover"
             />
-          </div>
-          <CardTitle className="text-2xl">FC BRO</CardTitle>
+          </div> */}
+          <CardTitle className="text-2xl">New FC BRO</CardTitle>
           {/* <CardDescription>Football Club BRO</CardDescription> */}
         </CardHeader>
         <CardContent className="space-y-4">
@@ -183,8 +183,7 @@ export function AppWrapper() {
             {isLoading ? '로그인 중...' : !isKakaoReady ? 'SDK 로딩 중...' : '카카오로 시작하기'}
           </Button>
           <p className="text-xs text-center text-muted-foreground">
-            카카오 계정으로 로그인하면
-            <br />자동으로 팀 가입 화면으로 이동합니다
+            최초 로그인시 자동으로 팀 가입 화면으로 이동합니다
           </p>
         </CardContent>
       </Card>

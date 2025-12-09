@@ -716,7 +716,7 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
     <div className="space-y-6">
       {/* 헤더 */}
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">일정 관리</h2>
+        {/* <h2 className="text-2xl font-bold">일정 관리</h2> */}
         {isManagerMode && (
           <Dialog open={isAddingSchedule || isEditingSchedule} onOpenChange={(open) => {
             if (!open) resetScheduleForm()
@@ -1147,10 +1147,6 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                    {/* 쿼터 시간 표시 */}
                    {nextUpcomingSchedule.quarterTime && (
                      <div>
-                      <div className="flex gap-2 items-center space-y-2">
-                        <CalendarIcon className="h-4 w-4 text-blue-500 flex-shrink-0" />
-                        <div className="font-medium text-gray-600 text-left">경기 진행 시간</div>
-                      </div>
                       <div>
                         <div className="bg-white rounded border p-2">
                           <div className="grid grid-cols-4 gap-0 text-xs font-mono">
@@ -1210,8 +1206,8 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
 
                  {/* 액션 버튼들 */}
                  <div className="space-y-2 pt-2">
-                   {/* 참석 투표 */}
-                   <AttendanceVoting
+                   {/* 참석 투표 - 비활성화 */}
+                   {/* <AttendanceVoting
                      schedule={nextUpcomingSchedule}
                      currentUser={currentUser}
                      isManagerMode={isManagerMode}
@@ -1223,7 +1219,7 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                      onGuestStatusUpdate={updateScheduleGuestStatus}
                      allowGuests={nextUpcomingSchedule.allowGuests}
                      hasTeamFormation={!!formationResults}
-                   />
+                   /> */}
                    
                    <div className="flex gap-2">
                      {(() => {
@@ -1562,10 +1558,121 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
          </Card>
        )}
 
-      {/* 전체 일정 목록 */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold">전체 일정</h3>
-        {schedules.length === 0 ? (
+      {/* 일정 목록 - 이후 일정과 지난 일정으로 분류 */}
+      <div className="space-y-6">
+        {/* 이후 일정 */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">이후 일정</h3>
+          {(() => {
+            const now = new Date()
+            now.setHours(0, 0, 0, 0)
+            
+            const upcomingSchedules = schedules
+              .filter(schedule => {
+                if (schedule.id === nextUpcomingSchedule?.id) return false
+                const [year, month, day] = schedule.date.split('-')
+                const scheduleDate = new Date(Number(year), Number(month) - 1, Number(day))
+                scheduleDate.setHours(0, 0, 0, 0)
+                return scheduleDate >= now
+              })
+              .sort((a, b) => {
+                // 날짜순으로 정렬 (가까운 일정이 위쪽)
+                const [yearA, monthA, dayA] = a.date.split('-')
+                const [yearB, monthB, dayB] = b.date.split('-')
+                const dateA = new Date(Number(yearA), Number(monthA) - 1, Number(dayA))
+                const dateB = new Date(Number(yearB), Number(monthB) - 1, Number(dayB))
+                return dateA.getTime() - dateB.getTime() // 가까운 일정이 위에
+              })
+
+            if (upcomingSchedules.length === 0) {
+              return (
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-center">
+                      <div className="text-muted-foreground">이후 일정이 없습니다.</div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            }
+
+            return upcomingSchedules.map((schedule) => (
+              <ScheduleCard
+                key={schedule.id}
+                schedule={schedule}
+                currentUser={currentUser}
+                isManagerMode={isManagerMode}
+                isUpdating={isScheduleUpdating(schedule.id)}
+                onAttendanceUpdate={updateScheduleAttendance}
+                onAttendanceStatsUpdate={updateScheduleAttendance}
+                onFormationReset={handleFormationReset}
+                onGuestStatusUpdate={updateScheduleGuestStatus}
+                onDeleteSchedule={handleDeleteSchedule}
+                onEditSchedule={handleEditSchedule}
+                hasTeamFormation={!!formationResults}
+              />
+            ))
+          })()}
+        </div>
+
+        {/* 지난 일정 - admin 권한에서만 표시 */}
+        {isManagerMode && (
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">지난 일정</h3>
+            {(() => {
+              const now = new Date()
+              now.setHours(0, 0, 0, 0)
+              
+              const pastSchedules = schedules
+                .filter(schedule => {
+                  const [year, month, day] = schedule.date.split('-')
+                  const scheduleDate = new Date(Number(year), Number(month) - 1, Number(day))
+                  scheduleDate.setHours(0, 0, 0, 0)
+                  return scheduleDate < now
+                })
+                .sort((a, b) => {
+                  // 날짜순으로 정렬 (최근 일정이 위쪽, 오래된 일정이 아래쪽)
+                  const [yearA, monthA, dayA] = a.date.split('-')
+                  const [yearB, monthB, dayB] = b.date.split('-')
+                  const dateA = new Date(Number(yearA), Number(monthA) - 1, Number(dayA))
+                  const dateB = new Date(Number(yearB), Number(monthB) - 1, Number(dayB))
+                  return dateB.getTime() - dateA.getTime() // 최근 일정이 위에
+                })
+
+              if (pastSchedules.length === 0) {
+                return (
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="text-center">
+                        <div className="text-muted-foreground">지난 일정이 없습니다.</div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )
+              }
+
+              return pastSchedules.map((schedule) => (
+                <ScheduleCard
+                  key={schedule.id}
+                  schedule={schedule}
+                  currentUser={currentUser}
+                  isManagerMode={isManagerMode}
+                  isUpdating={isScheduleUpdating(schedule.id)}
+                  onAttendanceUpdate={updateScheduleAttendance}
+                  onAttendanceStatsUpdate={updateScheduleAttendance}
+                  onFormationReset={handleFormationReset}
+                  onGuestStatusUpdate={updateScheduleGuestStatus}
+                  onDeleteSchedule={handleDeleteSchedule}
+                  onEditSchedule={handleEditSchedule}
+                  hasTeamFormation={!!formationResults}
+                />
+              ))
+            })()}
+          </div>
+        )}
+
+        {/* 일정이 하나도 없는 경우 */}
+        {schedules.length === 0 && (
           <Card>
             <CardContent className="pt-6">
               <div className="text-center space-y-4">
@@ -1579,36 +1686,6 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
               </div>
             </CardContent>
           </Card>
-        ) : (
-          schedules
-            .filter(schedule => schedule.id !== nextUpcomingSchedule?.id) // 다음 일정 제외
-            .sort((a, b) => {
-              // 날짜순으로 정렬 (오래된 일정이 아래쪽에)
-              const [yearA, monthA, dayA] = a.date.split('-')
-              const [yearB, monthB, dayB] = b.date.split('-')
-              const dateA = new Date(Number(yearA), Number(monthA) - 1, Number(dayA))
-              const dateB = new Date(Number(yearB), Number(monthB) - 1, Number(dayB))
-              return dateA.getTime() - dateB.getTime()
-            })
-            .map((schedule) => (
-              <ScheduleCard
-                key={schedule.id}
-                schedule={schedule}
-                currentUser={currentUser}
-                isManagerMode={isManagerMode}
-                isUpdating={isScheduleUpdating(schedule.id)}
-                onAttendanceUpdate={updateScheduleAttendance}
-                onAttendanceStatsUpdate={updateScheduleAttendance}
-                onFormationReset={handleFormationReset}
-                onGuestStatusUpdate={updateScheduleGuestStatus}
-                onDeleteSchedule={handleDeleteSchedule}
-                onEditSchedule={(schedule) => {
-                  setEditingSchedule(schedule)
-                  setIsEditingSchedule(true)
-                }}
-                hasTeamFormation={!!formationResults}
-              />
-            ))
         )}
       </div>
     </div>
