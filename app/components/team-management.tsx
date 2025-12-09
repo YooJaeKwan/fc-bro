@@ -377,7 +377,13 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
       {/* 헤더 */}
       <div className="flex flex-col gap-3">
         {/* 정렬 필터 - SELECT 형태 (전체 너비) */}
-        <Select value={sortBy} onValueChange={(value: "name" | "position" | "level") => setSortBy(value)}>
+        <Select value={sortBy} onValueChange={(value: "name" | "position" | "level") => {
+          setSortBy(value)
+          // 정렬 방식이 변경되면 포지션 필터 초기화
+          if (value !== "position") {
+            setPositionFilter(null)
+          }
+        }}>
           <SelectTrigger className="w-full h-10">
             <SelectValue placeholder="정렬 방식" />
           </SelectTrigger>
@@ -849,6 +855,7 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                                   {editingMember?.id === member.id && (
                                     <div className="space-y-4 p-4 bg-white rounded-lg border-2 border-purple-200">
                                       <div className="space-y-3">
+                                        <Label>레벨 선택</Label>
                                         <Select
                                           value={tempLevel.toString()}
                                           onValueChange={(value) => {
@@ -857,27 +864,13 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                                           }}
                                         >
                                           <SelectTrigger className="w-full">
-                                            <SelectValue />
+                                            <SelectValue placeholder="레벨을 선택하세요" />
                                           </SelectTrigger>
-                                          <SelectContent className="max-h-60">
-                                            {LEVEL_CATEGORIES.map((category) => (
-                                              <div key={category.name}>
-                                                <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground bg-gray-50">
-                                                  {category.name}
-                                                </div>
-                                                {category.levels.map((levelValue) => (
-                                                  <SelectItem key={levelValue} value={levelValue.toString()}>
-                                                    <div className="flex items-center gap-3 py-1">
-                                                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${category.color}`}>
-                                                        {getLevelShortLabel(levelValue)}
-                                                      </span>
-                                                      <span className="text-sm">
-                                                        {getLevelLabel(levelValue)}
-                                                      </span>
-                                                    </div>
-                                                  </SelectItem>
-                                                ))}
-                                              </div>
+                                          <SelectContent>
+                                            {LEVEL_OPTIONS.map((option) => (
+                                              <SelectItem key={option.value} value={option.value.toString()}>
+                                                {option.label}
+                                              </SelectItem>
                                             ))}
                                           </SelectContent>
                                         </Select>
