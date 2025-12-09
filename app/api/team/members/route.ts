@@ -105,10 +105,61 @@ export async function GET(request: NextRequest) {
       return Number((values.reduce((sum: number, val: number) => sum + val, 0) / values.length).toFixed(1))
     }
 
+    // 현재 연도의 시작일과 종료일
+    const currentYear = new Date().getFullYear()
+    const yearStart = new Date(currentYear, 0, 1)
+    const yearEnd = new Date(currentYear, 11, 31, 23, 59, 59)
+
+    // 올해 전체 일정 수 조회
+    const totalSchedulesThisYear = await prisma.schedule.count({
+      where: {
+        matchDate: {
+          gte: yearStart,
+          lte: yearEnd
+        }
+      }
+    })
+
     // 클라이언트에 전송할 데이터 구성
-    const membersWithTempData = teamMembers.map((member, index) => {
+    const membersWithTempData = await Promise.all(teamMembers.map(async (member, index) => {
       const tempSkills = generateTempSkills(member.preferredPosition || "MC")
       const overallRating = calculateOverallRating(tempSkills)
+
+      // 해당 사용자의 올해 참석 투표 조회
+      const attendedSchedules = await prisma.scheduleAttendance.findMany({
+        where: {
+          userId: member.id,
+          status: 'ATTENDING',
+          schedule: {
+            matchDate: {
+              gte: yearStart,
+              lte: yearEnd
+            }
+          }
+        },
+        include: {
+          schedule: {
+            select: {
+              matchDate: true
+            }
+          }
+        },
+        orderBy: {
+          schedule: {
+            matchDate: 'desc'
+          }
+        }
+      })
+
+      const attendedCount = attendedSchedules.length
+      const attendanceRate = totalSchedulesThisYear > 0 
+        ? Math.round((attendedCount / totalSchedulesThisYear) * 100) 
+        : 0
+
+      // 가장 최근 참석한 경기 날짜
+      const lastAttendedDate = attendedSchedules.length > 0
+        ? attendedSchedules[0].schedule.matchDate.toLocaleDateString('ko-KR')
+        : null
 
       return {
         id: member.id,
@@ -126,11 +177,14 @@ export async function GET(request: NextRequest) {
         isActive: member.isActive,
         profileImage: member.image,
         joinDate: member.createdAt.toLocaleDateString('ko-KR'),
-        attendanceRate: Math.floor(Math.random() * 30) + 70, // 70-100% 랜덤
+        attendanceRate,
+        attendedCount,
+        totalSchedules: totalSchedulesThisYear,
+        lastAttendedDate,
         skills: tempSkills,
         overallRating
       }
-    })
+    }))
 
     return NextResponse.json({
       success: true,

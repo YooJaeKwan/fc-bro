@@ -215,7 +215,7 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-3">
           {/* Desktop Tabs */}
           <div className="hidden lg:block">
             <TabsList className="grid w-full grid-cols-2 lg:w-auto">
