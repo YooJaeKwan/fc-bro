@@ -389,9 +389,9 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
   const isTopAttender = (member: any) => {
     if (!member.attendanceRate || teamMembers.length < 3) return false
     
-    // 출석률 기준으로 정렬하여 상위 3명 찾기
+  // 참석률 기준으로 정렬하여 상위 3명 찾기
     const sortedByAttendance = [...teamMembers]
-      .filter(m => m.attendanceRate > 0) // 출석률이 0보다 큰 사람만
+      .filter(m => m.attendanceRate > 0) // 참석률이 0보다 큰 사람만
       .sort((a, b) => (b.attendanceRate || 0) - (a.attendanceRate || 0))
     
     // 상위 3명에 포함되는지 확인
@@ -399,7 +399,7 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
     return top3.some(m => m.id === member.id)
   }
 
-  // 출석우수 확인 함수 (출석률 80% 이상)
+  // 출석우수 확인 함수 (참석률 80% 이상)
   const isExcellentAttender = (member: any) => {
     return member.attendanceRate >= 80
   }
@@ -847,10 +847,10 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                                     </div>
                                   )}
 
-                                  {/* 출석률 */}
+                                  {/* 참석률 */}
                                   <div>
                                     <div className="flex items-center justify-between mb-2">
-                                      <Label className="text-xs font-medium text-gray-700">출석률</Label>
+                                      <Label className="text-xs font-medium text-gray-700">참석률</Label>
                                       <div className="flex items-center gap-1.5">
                                         <span className="text-xs text-muted-foreground">
                                           ({member.attendedCount || 0}/{member.totalSchedules || 0})
@@ -1001,7 +1001,7 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                               <CardContent>
                                 <div className="space-y-3">
                                   <div className="flex items-center justify-between">
-                                    <Label className="text-xs font-medium text-gray-700">전체 출석률</Label>
+                                    <Label className="text-xs font-medium text-gray-700">전체 참석률</Label>
                                     <div className="flex items-center gap-2">
                                       <Badge variant="outline" className="text-sm px-2 py-1 font-bold">
                                         {member.attendanceRate}%
@@ -1432,10 +1432,10 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                                     </div>
                                   )}
 
-                                  {/* 출석률 */}
+                                  {/* 참석률 */}
                                   <div>
                                     <div className="flex items-center justify-between mb-2">
-                                      <Label className="text-xs font-medium text-gray-700">출석률</Label>
+                                      <Label className="text-xs font-medium text-gray-700">참석률</Label>
                                       <div className="flex items-center gap-1.5">
                                         <span className="text-xs text-muted-foreground">
                                           ({member.attendedCount || 0}/{member.totalSchedules || 0})
@@ -1586,7 +1586,7 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                               <CardContent>
                                 <div className="space-y-3">
                                   <div className="flex items-center justify-between">
-                                    <Label className="text-xs font-medium text-gray-700">전체 출석률</Label>
+                                    <Label className="text-xs font-medium text-gray-700">전체 참석률</Label>
                                     <div className="flex items-center gap-2">
                                       <Badge variant="outline" className="text-sm px-2 py-1 font-bold">
                                         {member.attendanceRate}%
@@ -1757,10 +1757,10 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                     </div>
                   </div>
 
-                  {/* 출석률 */}
+                  {/* 참석률 */}
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <Label className="text-xs font-medium text-muted-foreground">출석률 (임시)</Label>
+                      <Label className="text-xs font-medium text-muted-foreground">참석률 (임시)</Label>
                       <div className="flex items-center gap-1.5">
                         <span className="text-xs text-muted-foreground">
                           ({member.attendedCount || 0}/{member.totalSchedules || 0})

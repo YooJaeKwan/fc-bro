@@ -128,65 +128,83 @@ export async function GET(request: NextRequest) {
 
     console.log(`팀원 ${teamMembers.length}명 데이터 처리 시작`)
 
-    // 클라이언트에 전송할 데이터 구성
-    const membersWithTempData = await Promise.all(teamMembers.map(async (member, index) => {
+    // 성능 최적화: 모든 참석 정보를 한 번에 조회
+    const memberIds = teamMembers.map(m => m.id).filter((id): id is string => id !== null)
+    let attendanceMap: Map<string, { count: number; lastDate: string | null }> = new Map()
+    
+    if (memberIds.length > 0) {
+      try {
+        // 모든 멤버의 올해 참석 정보를 한 번에 조회
+        const allAttendances = await prisma.scheduleAttendance.findMany({
+          where: {
+            userId: { in: memberIds },
+            status: 'ATTENDING',
+            schedule: {
+              matchDate: {
+                gte: yearStart,
+                lte: yearEnd
+              }
+            }
+          },
+          select: {
+            userId: true,
+            schedule: {
+              select: {
+                matchDate: true
+              }
+            },
+            createdAt: true
+          },
+          orderBy: {
+            createdAt: 'desc'
+          }
+        })
+
+        // 사용자별로 참석 정보 그룹화
+        const userAttendanceGroups = new Map<string, Array<{ matchDate: Date; createdAt: Date }>>()
+        
+        for (const attendance of allAttendances) {
+          if (!attendance.schedule?.matchDate || !attendance.userId) continue
+          
+          const userId = attendance.userId
+          if (!userAttendanceGroups.has(userId)) {
+            userAttendanceGroups.set(userId, [])
+          }
+          userAttendanceGroups.get(userId)!.push({
+            matchDate: attendance.schedule.matchDate,
+            createdAt: attendance.createdAt
+          })
+        }
+
+        // 각 사용자별 참석 수와 최근 참석 날짜 계산
+        for (const [userId, attendances] of userAttendanceGroups.entries()) {
+          const count = attendances.length
+          // 가장 최근 참석 날짜 (matchDate 기준)
+          const sortedByMatchDate = [...attendances].sort((a, b) => 
+            b.matchDate.getTime() - a.matchDate.getTime()
+          )
+          const lastDate = sortedByMatchDate.length > 0 
+            ? sortedByMatchDate[0].matchDate.toLocaleDateString('ko-KR')
+            : null
+          
+          attendanceMap.set(userId, { count, lastDate })
+        }
+      } catch (attendanceError: any) {
+        console.error('참석 정보 일괄 조회 실패:', attendanceError?.message)
+        // 참석 정보 조회 실패해도 계속 진행
+      }
+    }
+
+    // 클라이언트에 전송할 데이터 구성 (이제 비동기 작업 없음)
+    const membersWithTempData = teamMembers.map((member) => {
       try {
         const tempSkills = generateTempSkills(member.preferredPosition || "MC")
         const overallRating = calculateOverallRating(tempSkills)
 
-        // 해당 사용자의 올해 참석 투표 조회 (최적화: 필요한 필드만 조회)
-        let attendedSchedules: any[] = []
-        let attendedCount = 0
-        let lastAttendedDate: string | null = null
-        
-        try {
-          // 참석 정보를 한 번에 조회 (최신순으로 정렬)
-          const attendanceData = await prisma.scheduleAttendance.findMany({
-            where: {
-              userId: member.id,
-              status: 'ATTENDING',
-              schedule: {
-                matchDate: {
-                  gte: yearStart,
-                  lte: yearEnd
-                }
-              }
-            },
-            select: {
-              schedule: {
-                select: {
-                  matchDate: true
-                }
-              }
-            },
-            take: 1, // 가장 최근 것만 가져오기 (lastAttendedDate용)
-            orderBy: {
-              createdAt: 'desc' // 생성일 기준으로 정렬
-            }
-          })
-
-          // 전체 참석 수는 별도로 카운트
-          attendedCount = await prisma.scheduleAttendance.count({
-            where: {
-              userId: member.id,
-              status: 'ATTENDING',
-              schedule: {
-                matchDate: {
-                  gte: yearStart,
-                  lte: yearEnd
-                }
-              }
-            }
-          })
-
-          // 가장 최근 참석한 경기 날짜
-          if (attendanceData.length > 0 && attendanceData[0].schedule?.matchDate) {
-            lastAttendedDate = attendanceData[0].schedule.matchDate.toLocaleDateString('ko-KR')
-          }
-        } catch (attendanceError: any) {
-          console.error(`사용자 ${member.id}의 참석 정보 조회 실패:`, attendanceError?.message)
-          // 참석 정보 조회 실패해도 계속 진행
-        }
+        // 메모리에서 참석 정보 가져오기
+        const attendanceInfo = attendanceMap.get(member.id) || { count: 0, lastDate: null }
+        const attendedCount = attendanceInfo.count
+        const lastAttendedDate = attendanceInfo.lastDate
 
         const attendanceRate = totalSchedulesThisYear > 0 
           ? Math.round((attendedCount / totalSchedulesThisYear) * 100) 
@@ -242,7 +260,7 @@ export async function GET(request: NextRequest) {
           overallRating: 5.0
         }
       }
-    }))
+    })
 
     console.log(`팀원 데이터 처리 완료: ${membersWithTempData.length}명`)
 

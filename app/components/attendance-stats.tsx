@@ -68,9 +68,9 @@ export function AttendanceStats({ isManagerMode }: AttendanceStatsProps) {
     <div className="space-y-6">
       {/* 헤더 */}
       <div>
-        <h2 className="text-2xl font-bold">출석률 및 통계</h2>
+        <h2 className="text-2xl font-bold">참석률 및 통계</h2>
         <p className="text-muted-foreground">
-          {isManagerMode ? "팀원들의 출석률과 경기 통계를 확인하세요" : "팀의 출석률과 경기 통계를 확인하세요"}
+          {isManagerMode ? "팀원들의 참석률과 경기 통계를 확인하세요" : "팀의 참석률과 경기 통계를 확인하세요"}
         </p>
       </div>
 
@@ -78,7 +78,7 @@ export function AttendanceStats({ isManagerMode }: AttendanceStatsProps) {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">평균 출석률</CardTitle>
+            <CardTitle className="text-sm font-medium">평균 참석률</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -114,11 +114,11 @@ export function AttendanceStats({ isManagerMode }: AttendanceStatsProps) {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* 월별 출석률 추이 */}
+        {/* 월별 참석률 추이 */}
         <Card>
           <CardHeader>
-            <CardTitle>월별 출석률 추이</CardTitle>
-            <CardDescription>2025년 팀 전체 출석률 변화</CardDescription>
+            <CardTitle>월별 참석률 추이</CardTitle>
+            <CardDescription>2025년 팀 전체 참석률 변화</CardDescription>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -139,11 +139,11 @@ export function AttendanceStats({ isManagerMode }: AttendanceStatsProps) {
           </CardContent>
         </Card>
 
-        {/* 출석률 분포 */}
+        {/* 참석률 분포 */}
         <Card>
           <CardHeader>
-            <CardTitle>출석률 분포</CardTitle>
-            <CardDescription>팀원별 출석률 구간 분포</CardDescription>
+            <CardTitle>참석률 분포</CardTitle>
+            <CardDescription>팀원별 참석률 구간 분포</CardDescription>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -173,7 +173,7 @@ export function AttendanceStats({ isManagerMode }: AttendanceStatsProps) {
       <Card>
         <CardHeader>
           <CardTitle>개별 선수 통계</CardTitle>
-          <CardDescription>선수별 출석률, 경기 참여 및 기록 현황</CardDescription>
+          <CardDescription>선수별 참석률, 경기 참여 및 기록 현황</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -219,7 +219,7 @@ export function AttendanceStats({ isManagerMode }: AttendanceStatsProps) {
           </CardHeader>
           <CardContent>
             <p className="text-sm text-orange-700 mb-3">
-              다음 선수들의 출석률이 70% 미만입니다. 개별 상담을 통해 참여도를 높이거나 팀 정리를 고려해보세요.
+              다음 선수들의 참석률이 70% 미만입니다. 개별 상담을 통해 참여도를 높이거나 팀 정리를 고려해보세요.
             </p>
             <div className="flex flex-wrap gap-2">
               {lowAttendancePlayers.map((player, index) => (

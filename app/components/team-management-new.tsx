@@ -252,7 +252,7 @@ export function TeamManagement({ isManagerMode }: TeamManagementProps) {
                               </div>
                             )}
                             <div className="space-y-2">
-                              <Label>출석률 (임시)</Label>
+                              <Label>참석률 (임시)</Label>
                               <div className="flex items-center justify-between">
                                 <span className="text-sm">{member.attendanceRate}%</span>
                                 <Progress value={member.attendanceRate} className="h-2 flex-1 ml-4" />
@@ -279,7 +279,7 @@ export function TeamManagement({ isManagerMode }: TeamManagementProps) {
                       <span>가입일: {member.joinDate}</span>
                     </div>
                     <div className="flex items-center justify-between pt-2">
-                      <span className="text-sm text-muted-foreground">출석률 (임시)</span>
+                      <span className="text-sm text-muted-foreground">참석률 (임시)</span>
                       <span className="text-sm font-medium">{member.attendanceRate}%</span>
                     </div>
                     <Progress value={member.attendanceRate} className="h-2" />

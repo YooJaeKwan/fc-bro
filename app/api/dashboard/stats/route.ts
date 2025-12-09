@@ -38,7 +38,7 @@ export async function GET() {
       }
     })
 
-    // 3. 전체 출석률 계산 (모든 일정의 평균 출석률)
+    // 3. 전체 참석률 계산 (모든 일정의 평균 참석률)
     const allSchedules = await prisma.schedule.findMany({
       include: {
         attendances: true
@@ -76,7 +76,7 @@ export async function GET() {
       distinct: ['userId']
     })
 
-    // 5. 개별 사용자 출석률 계산 (우수 출석왕용)
+    // 5. 개별 사용자 참석률 계산 (우수 출석왕용)
     const userAttendanceStats = await prisma.user.findMany({
       include: {
         scheduleAttendances: {
@@ -103,7 +103,7 @@ export async function GET() {
         }
       })
       .filter(player => player.totalMatches > 0) // 참여한 일정이 있는 사용자만
-      .sort((a, b) => b.attendanceRate - a.attendanceRate) // 출석률 높은 순
+      .sort((a, b) => b.attendanceRate - a.attendanceRate) // 참석률 높은 순
       .slice(0, 5) // 상위 5명
 
     // 6. 다가오는 일정 정보 구성
