@@ -816,164 +816,126 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                               </CardContent>
                             </Card>
                             
-                            {/* 레벨 관리 카드 (총무 전용) */}
+                            {/* 레벨 관리 (총무 전용) */}
                             {isManagerMode && (
-                              <Card className="border-l-4 border-l-purple-500">
-                                <CardHeader className="pb-3">
-                                  <CardTitle className="text-sm flex items-center gap-2">
-                                    <Target className="h-4 w-4 text-purple-500" />
-                                    선수 레벨 관리
-                                    <Badge variant="secondary" className="text-xs">총무 전용</Badge>
-                                  </CardTitle>
-                                </CardHeader>
-                                <CardContent className="space-y-4">
-                                  <div className="flex items-center justify-between p-4 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border">
-                                    <div className="space-y-1">
-                                      <div className="flex items-center gap-2">
-                                        <Badge className="text-sm px-2 py-1 bg-purple-100 text-purple-800 border-purple-300">
-                                          {getLevelLabel(editingMember?.id === member.id ? tempLevel : member.level)}
-                                        </Badge>
-                                      </div>
+                              <div className="space-y-3">
+                                {editingMember?.id !== member.id ? (
+                                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-sm text-gray-600">레벨:</span>
+                                      <Badge className="text-sm px-2 py-1">
+                                        {getLevelLabel(member.level)}
+                                      </Badge>
                                     </div>
-                                    
-                                    {editingMember?.id !== member.id && (
+                                    <Button
+                                      onClick={() => {
+                                        setEditingMember(member)
+                                        setTempLevel(member.level || 1)
+                                        setSaveMessage("")
+                                      }}
+                                      variant="outline"
+                                      size="sm"
+                                    >
+                                      <Edit className="h-3 w-3 mr-1" />
+                                      수정
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <div className="space-y-3 p-3 bg-gray-50 rounded-lg border">
+                                    <div className="flex items-center gap-2">
+                                      <Label className="text-sm text-gray-700 min-w-[50px]">레벨:</Label>
+                                      <Select
+                                        value={tempLevel.toString()}
+                                        onValueChange={(value) => {
+                                          setTempLevel(parseInt(value))
+                                          setSaveMessage("")
+                                        }}
+                                      >
+                                        <SelectTrigger className="w-full">
+                                          <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {LEVEL_OPTIONS.map((option) => (
+                                            <SelectItem key={option.value} value={option.value.toString()}>
+                                              {option.label}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                    <div className="flex items-center gap-2">
                                       <Button
+                                        onClick={async () => {
+                                          setIsSaving(true)
+                                          setSaveMessage("")
+                                          try {
+                                            const response = await fetch('/api/user/update', {
+                                              method: 'PUT',
+                                              headers: { 'Content-Type': 'application/json' },
+                                              body: JSON.stringify({
+                                                userId: member.id,
+                                                level: tempLevel
+                                              })
+                                            })
+                                            if (response.ok) {
+                                              const updatedData = await response.json()
+                                              setSaveMessage("저장되었습니다")
+                                              
+                                              if (updatedData.user) {
+                                                setTeamMembers(prevMembers => 
+                                                  prevMembers.map(m => 
+                                                    m.id === member.id 
+                                                      ? { ...m, level: updatedData.user.level }
+                                                      : m
+                                                  )
+                                                )
+                                              }
+                                              
+                                              setTimeout(() => {
+                                                setEditingMember(null)
+                                                setSaveMessage("")
+                                              }, 1500)
+                                            } else {
+                                              setSaveMessage("저장 실패")
+                                            }
+                                          } catch (error) {
+                                            console.error('레벨 수정 오류:', error)
+                                            setSaveMessage("오류가 발생했습니다")
+                                          } finally {
+                                            setIsSaving(false)
+                                          }
+                                        }}
+                                        disabled={isSaving}
+                                        size="sm"
+                                        className="flex-1"
+                                      >
+                                        {isSaving ? "저장 중..." : "저장"}
+                                      </Button>
+                                      <Button
+                                        variant="outline"
                                         onClick={() => {
-                                          setEditingMember(member)
+                                          setEditingMember(null)
                                           setTempLevel(member.level || 1)
                                           setSaveMessage("")
                                         }}
-                                        variant="outline"
                                         size="sm"
-                                        className="bg-white hover:bg-gray-50"
+                                        className="flex-1"
                                       >
-                                        레벨 수정
+                                        취소
                                       </Button>
+                                    </div>
+                                    {saveMessage && (
+                                      <p className={`text-xs ${
+                                        saveMessage.includes('저장되었습니다') 
+                                          ? 'text-green-600' 
+                                          : 'text-red-600'
+                                      }`}>
+                                        {saveMessage}
+                                      </p>
                                     )}
                                   </div>
-
-                                  {editingMember?.id === member.id && (
-                                    <div className="space-y-4 p-4 bg-white rounded-lg border-2 border-purple-200">
-                                      <div className="space-y-3">
-                                        <Label>레벨 선택</Label>
-                                        <Select
-                                          value={tempLevel.toString()}
-                                          onValueChange={(value) => {
-                                            setTempLevel(parseInt(value))
-                                            setSaveMessage("")
-                                          }}
-                                        >
-                                          <SelectTrigger className="w-full">
-                                            <SelectValue placeholder="레벨을 선택하세요" />
-                                          </SelectTrigger>
-                                          <SelectContent>
-                                            {LEVEL_OPTIONS.map((option) => (
-                                              <SelectItem key={option.value} value={option.value.toString()}>
-                                                {option.label}
-                                              </SelectItem>
-                                            ))}
-                                          </SelectContent>
-                                        </Select>
-                                        
-                                        <div className="flex items-center gap-3 pt-2">
-                                          <Button
-                                            onClick={async () => {
-                                              setIsSaving(true)
-                                              setSaveMessage("")
-                                              try {
-                                                const response = await fetch('/api/user/update', {
-                                                  method: 'PUT',
-                                                  headers: { 'Content-Type': 'application/json' },
-                                                  body: JSON.stringify({
-                                                    userId: member.id,
-                                                    level: tempLevel
-                                                  })
-                                                })
-                                                if (response.ok) {
-                                                  const updatedData = await response.json()
-                                                  setSaveMessage("레벨이 성공적으로 저장되었습니다!")
-                                                  
-                                                  // 현재 멤버 정보 즉시 업데이트
-                                                  if (updatedData.user) {
-                                                    const updatedMember = {
-                                                      ...member,
-                                                      level: updatedData.user.level
-                                                    }
-                                                    // teamMembers state에서 해당 멤버 업데이트
-                                                    setTeamMembers(prevMembers => 
-                                                      prevMembers.map(m => 
-                                                        m.id === member.id 
-                                                          ? { ...m, level: updatedData.user.level }
-                                                          : m
-                                                      )
-                                                    )
-                                                  }
-                                                  
-                                                  // UI 정리
-                                                  setTimeout(() => {
-                                                    setEditingMember(null)
-                                                    setSaveMessage("")
-                                                  }, 1500)
-                                                } else {
-                                                  setSaveMessage("레벨 저장에 실패했습니다.")
-                                                }
-                                              } catch (error) {
-                                                console.error('레벨 수정 오류:', error)
-                                                setSaveMessage("레벨 저장 중 오류가 발생했습니다.")
-                                              } finally {
-                                                setIsSaving(false)
-                                              }
-                                            }}
-                                            disabled={isSaving}
-                                            className="bg-green-600 hover:bg-green-700 flex-1"
-                                            size="sm"
-                                          >
-                                            {isSaving ? (
-                                              <div className="flex items-center gap-2">
-                                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-                                                <span>저장 중...</span>
-                                              </div>
-                                            ) : (
-                                              <div className="flex items-center gap-2">
-                                                <span>레벨 저장</span>
-                                              </div>
-                                            )}
-                                          </Button>
-                                          <Button
-                                            variant="outline"
-                                            onClick={() => {
-                                              setEditingMember(null)
-                                              setTempLevel(member.level || 1)
-                                              setSaveMessage("")
-                                            }}
-                                            size="sm"
-                                            className="flex-1"
-                                          >
-                                            취소
-                                          </Button>
-                                        </div>
-                                        
-                                        {saveMessage && (
-                                          <div className={`p-3 rounded-lg border-l-4 ${
-                                            saveMessage.includes('성공') 
-                                              ? 'bg-green-50 border-l-green-400 text-green-700' 
-                                              : 'bg-red-50 border-l-red-400 text-red-700'
-                                          }`}>
-                                            <div className="flex items-center gap-2">
-                                              {saveMessage.includes('성공') ? (
-                                                <Target className="h-4 w-4 text-green-600" />
-                                              ) : (
-                                                <AlertCircle className="h-4 w-4 text-red-600" />
-                                              )}
-                                              <span className="text-sm font-medium">{saveMessage}</span>
-                                            </div>
-                                          </div>
-                                        )}
-                                      </div>
-                                    </div>
-                                  )}
-                                </CardContent>
-                              </Card>
+                                )}
+                              </div>
                             )}
                             {/* 출석 통계 카드 */}
                             <Card className="border-l-4 border-l-orange-500">
@@ -1459,170 +1421,126 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                               </CardContent>
                             </Card>
                             
-                            {/* 레벨 관리 카드 (총무 전용) */}
+                            {/* 레벨 관리 (총무 전용) */}
                             {isManagerMode && (
-                              <Card className="border-l-4 border-l-purple-500">
-                                <CardHeader className="pb-3">
-                                  <CardTitle className="text-sm flex items-center gap-2">
-                                    <Target className="h-4 w-4 text-purple-500" />
-                                    선수 레벨 관리
-                                    <Badge variant="secondary" className="text-xs">총무 전용</Badge>
-                                  </CardTitle>
-                                </CardHeader>
-                                <CardContent className="space-y-4">
-                                  <div className="flex items-center justify-between p-4 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border">
-                                    <div className="space-y-1">
-                                      <div className="flex items-center gap-2">
-                                        <Badge className="text-sm px-2 py-1 bg-purple-100 text-purple-800 border-purple-300">
-                                          {getLevelLabel(editingMember?.id === member.id ? tempLevel : member.level)}
-                                        </Badge>
-                                      </div>
+                              <div className="space-y-3">
+                                {editingMember?.id !== member.id ? (
+                                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-sm text-gray-600">레벨:</span>
+                                      <Badge className="text-sm px-2 py-1">
+                                        {getLevelLabel(member.level)}
+                                      </Badge>
                                     </div>
-                                    
-                                    {editingMember?.id !== member.id && (
+                                    <Button
+                                      onClick={() => {
+                                        setEditingMember(member)
+                                        setTempLevel(member.level || 1)
+                                        setSaveMessage("")
+                                      }}
+                                      variant="outline"
+                                      size="sm"
+                                    >
+                                      <Edit className="h-3 w-3 mr-1" />
+                                      수정
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <div className="space-y-3 p-3 bg-gray-50 rounded-lg border">
+                                    <div className="flex items-center gap-2">
+                                      <Label className="text-sm text-gray-700 min-w-[50px]">레벨:</Label>
+                                      <Select
+                                        value={tempLevel.toString()}
+                                        onValueChange={(value) => {
+                                          setTempLevel(parseInt(value))
+                                          setSaveMessage("")
+                                        }}
+                                      >
+                                        <SelectTrigger className="w-full">
+                                          <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {LEVEL_OPTIONS.map((option) => (
+                                            <SelectItem key={option.value} value={option.value.toString()}>
+                                              {option.label}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                    <div className="flex items-center gap-2">
                                       <Button
+                                        onClick={async () => {
+                                          setIsSaving(true)
+                                          setSaveMessage("")
+                                          try {
+                                            const response = await fetch('/api/user/update', {
+                                              method: 'PUT',
+                                              headers: { 'Content-Type': 'application/json' },
+                                              body: JSON.stringify({
+                                                userId: member.id,
+                                                level: tempLevel
+                                              })
+                                            })
+                                            if (response.ok) {
+                                              const updatedData = await response.json()
+                                              setSaveMessage("저장되었습니다")
+                                              
+                                              if (updatedData.user) {
+                                                setTeamMembers(prevMembers => 
+                                                  prevMembers.map(m => 
+                                                    m.id === member.id 
+                                                      ? { ...m, level: updatedData.user.level }
+                                                      : m
+                                                  )
+                                                )
+                                              }
+                                              
+                                              setTimeout(() => {
+                                                setEditingMember(null)
+                                                setSaveMessage("")
+                                              }, 1500)
+                                            } else {
+                                              setSaveMessage("저장 실패")
+                                            }
+                                          } catch (error) {
+                                            console.error('레벨 수정 오류:', error)
+                                            setSaveMessage("오류가 발생했습니다")
+                                          } finally {
+                                            setIsSaving(false)
+                                          }
+                                        }}
+                                        disabled={isSaving}
+                                        size="sm"
+                                        className="flex-1"
+                                      >
+                                        {isSaving ? "저장 중..." : "저장"}
+                                      </Button>
+                                      <Button
+                                        variant="outline"
                                         onClick={() => {
-                                          setEditingMember(member)
+                                          setEditingMember(null)
                                           setTempLevel(member.level || 1)
                                           setSaveMessage("")
                                         }}
-                                        variant="outline"
                                         size="sm"
-                                        className="bg-white hover:bg-gray-50"
+                                        className="flex-1"
                                       >
-                                        레벨 수정
+                                        취소
                                       </Button>
-                                    )}
-                                    
-                                    {editingMember?.id === member.id && (
-                                      <div className="space-y-4 p-4 bg-white rounded-lg border-2 border-purple-200">
-                                        <div className="space-y-3">
-                                          <Select
-                                            value={tempLevel.toString()}
-                                            onValueChange={(value) => {
-                                              setTempLevel(parseInt(value))
-                                              setSaveMessage("")
-                                            }}
-                                          >
-                                            <SelectTrigger className="w-full">
-                                              <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent className="max-h-60">
-                                              {LEVEL_CATEGORIES.map((category) => (
-                                                <div key={category.name}>
-                                                  <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground bg-gray-50">
-                                                    {category.name}
-                                                  </div>
-                                                  {category.levels.map((levelValue) => (
-                                                    <SelectItem key={levelValue} value={levelValue.toString()}>
-                                                      <div className="flex items-center gap-3 py-1">
-                                                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${category.color}`}>
-                                                          {getLevelShortLabel(levelValue)}
-                                                        </span>
-                                                        <span className="text-sm">
-                                                          {getLevelLabel(levelValue)}
-                                                        </span>
-                                                      </div>
-                                                    </SelectItem>
-                                                  ))}
-                                                </div>
-                                              ))}
-                                            </SelectContent>
-                                          </Select>
-                                          
-                                          <div className="flex items-center gap-3 pt-2">
-                                            <Button
-                                              onClick={async () => {
-                                                setIsSaving(true)
-                                                setSaveMessage("")
-                                                try {
-                                                  const response = await fetch('/api/user/update', {
-                                                    method: 'PUT',
-                                                    headers: { 'Content-Type': 'application/json' },
-                                                    body: JSON.stringify({
-                                                      userId: member.id,
-                                                      level: tempLevel
-                                                    })
-                                                  })
-                                                  if (response.ok) {
-                                                    const updatedData = await response.json()
-                                                    setSaveMessage("레벨이 성공적으로 저장되었습니다!")
-                                                    
-                                                    if (updatedData.user) {
-                                                      setTeamMembers(prevMembers => 
-                                                        prevMembers.map(m => 
-                                                          m.id === member.id 
-                                                            ? { ...m, level: updatedData.user.level }
-                                                            : m
-                                                        )
-                                                      )
-                                                    }
-                                                    
-                                                    setTimeout(() => {
-                                                      setEditingMember(null)
-                                                      setSaveMessage("")
-                                                    }, 1500)
-                                                  } else {
-                                                    setSaveMessage("레벨 저장에 실패했습니다.")
-                                                  }
-                                                } catch (error) {
-                                                  console.error('레벨 수정 오류:', error)
-                                                  setSaveMessage("레벨 저장 중 오류가 발생했습니다.")
-                                                } finally {
-                                                  setIsSaving(false)
-                                                }
-                                              }}
-                                              disabled={isSaving}
-                                              className="bg-green-600 hover:bg-green-700 flex-1"
-                                              size="sm"
-                                            >
-                                              {isSaving ? (
-                                                <div className="flex items-center gap-2">
-                                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-                                                  <span>저장 중...</span>
-                                                </div>
-                                              ) : (
-                                                <div className="flex items-center gap-2">
-                                                  <span>레벨 저장</span>
-                                                </div>
-                                              )}
-                                            </Button>
-                                            <Button
-                                              variant="outline"
-                                              onClick={() => {
-                                                setEditingMember(null)
-                                                setTempLevel(member.level || 1)
-                                                setSaveMessage("")
-                                              }}
-                                              size="sm"
-                                              className="flex-1"
-                                            >
-                                              취소
-                                            </Button>
-                                          </div>
-                                          
-                                          {saveMessage && (
-                                            <div className={`p-3 rounded-lg border-l-4 ${
-                                              saveMessage.includes('성공') 
-                                                ? 'bg-green-50 border-l-green-400 text-green-700' 
-                                                : 'bg-red-50 border-l-red-400 text-red-700'
-                                            }`}>
-                                              <div className="flex items-center gap-2">
-                                                {saveMessage.includes('성공') ? (
-                                                  <Target className="h-4 w-4 text-green-600" />
-                                                ) : (
-                                                  <AlertCircle className="h-4 w-4 text-red-600" />
-                                                )}
-                                                <span className="text-sm font-medium">{saveMessage}</span>
-                                              </div>
-                                            </div>
-                                          )}
-                                        </div>
-                                      </div>
+                                    </div>
+                                    {saveMessage && (
+                                      <p className={`text-xs ${
+                                        saveMessage.includes('저장되었습니다') 
+                                          ? 'text-green-600' 
+                                          : 'text-red-600'
+                                      }`}>
+                                        {saveMessage}
+                                      </p>
                                     )}
                                   </div>
-                                </CardContent>
-                              </Card>
+                                )}
+                              </div>
                             )}
                             {/* 출석 통계 카드 */}
                             <Card className="border-l-4 border-l-orange-500">
