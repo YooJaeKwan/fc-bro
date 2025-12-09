@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Progress } from "@/components/ui/progress"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
-import { Edit, Star, MapPin, Phone, Calendar, TrendingUp, Eye, Target, BarChart3, Shield, Award, Users, User, AlertCircle, UserMinus, UserX, Power, Footprints, Search } from 'lucide-react'
+import { Edit, Star, MapPin, Phone, Calendar, TrendingUp, Eye, Target, BarChart3, Shield, Award, Users, User, AlertCircle, UserMinus, UserX, Power, Footprints, Search, Loader2 } from 'lucide-react'
 import { Separator } from "@/components/ui/separator"
 import { LEVEL_OPTIONS, LEVEL_CATEGORIES, LEVEL_SYSTEM, getLevelLabel, getLevelShortLabel, getLevelColor } from '@/lib/level-system'
 
@@ -86,15 +86,54 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
   const [sortBy, setSortBy] = useState<"name" | "position" | "level">("name") // 기본: 가나다순
   const [searchQuery, setSearchQuery] = useState<string>("") // 이름 검색어
 
+  // 중복 호출 방지를 위한 ref
+  const fetchingRef = useRef(false)
+  const lastRequestRef = useRef<string>("")
+  const abortControllerRef = useRef<AbortController | null>(null)
+  const prevRequesterIdRef = useRef<string | undefined>(undefined)
+  const prevShowInactiveRef = useRef<boolean | undefined>(undefined)
+
   useEffect(() => {
-    let abortController = new AbortController()
+    // 현재 사용자 정보 가져오기
+    const user = currentUser || JSON.parse(sessionStorage.getItem('user') || '{}')
+    const requesterId = user?.id || ''
+
+    // 이전 요청과 동일한지 확인
+    const requesterIdChanged = prevRequesterIdRef.current !== requesterId
+    const showInactiveChanged = prevShowInactiveRef.current !== showInactive
+
+    // 변경사항이 없고 이미 요청 중이면 중단
+    if (!requesterIdChanged && !showInactiveChanged && fetchingRef.current) {
+      return
+    }
+
+    // 이전 요청 취소
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+    }
+
+    // 새로운 AbortController 생성
+    const abortController = new AbortController()
+    abortControllerRef.current = abortController
+
+    // 요청 키 생성
+    const requestKey = `${requesterId}-${showInactive}`
+    
+    // 동일한 요청이 이미 진행 중이면 중단
+    if (fetchingRef.current && lastRequestRef.current === requestKey) {
+      return
+    }
+
+    // ref 업데이트
+    prevRequesterIdRef.current = requesterId
+    prevShowInactiveRef.current = showInactive
+    lastRequestRef.current = requestKey
+    fetchingRef.current = true
 
     const fetchData = async () => {
       try {
         setIsLoading(true)
-        // 현재 사용자 정보 가져오기 (역할 확인용)
-        const user = currentUser || JSON.parse(sessionStorage.getItem('user') || '{}')
-        const requesterId = user?.id || ''
+        setError("")
 
         const queryParams = new URLSearchParams({
           requesterId,
@@ -105,20 +144,39 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
           signal: abortController.signal
         })
 
+        // 요청이 취소되었으면 중단
+        if (abortController.signal.aborted) {
+          return
+        }
+
         if (!response.ok) {
           const result = await response.json()
           throw new Error(result.error || '팀원 목록을 가져올 수 없습니다.')
         }
 
         const result = await response.json()
-        setTeamMembers(result.members)
-        setError("")
-      } catch (error) {
-        if (error.name !== 'AbortError') {
+        
+        // 요청이 취소되었으면 상태 업데이트 하지 않음
+        if (!abortController.signal.aborted) {
+          setTeamMembers(result.members)
+          setError("")
+        }
+      } catch (error: any) {
+        // AbortError는 무시
+        if (error?.name === 'AbortError') {
+          return
+        }
+        
+        // 요청이 취소되었으면 에러 설정하지 않음
+        if (!abortController.signal.aborted) {
           setError(error instanceof Error ? error.message : '팀원 목록 조회 중 오류가 발생했습니다.')
         }
       } finally {
-        setIsLoading(false)
+        // 요청이 취소되지 않았을 때만 로딩 상태 해제
+        if (!abortController.signal.aborted) {
+          setIsLoading(false)
+          fetchingRef.current = false
+        }
       }
     }
 
@@ -126,8 +184,9 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
 
     return () => {
       abortController.abort()
+      fetchingRef.current = false
     }
-  }, [showInactive])
+  }, [showInactive, currentUser?.id])
 
   const fetchTeamMembers = async (includeInactive = false) => {
     try {
@@ -349,8 +408,11 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <div className="text-center">
-          <p className="text-muted-foreground">팀원 정보를 불러오는 중...</p>
+        <div className="text-center py-8">
+          <div className="flex items-center justify-center gap-2">
+            <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+            <p className="text-muted-foreground">팀원 정보를 불러오는 중...</p>
+          </div>
         </div>
       </div>
     )
@@ -364,7 +426,7 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
           <CardContent className="pt-6">
             <div className="text-center space-y-4">
               <div className="text-red-500">{error}</div>
-              <Button onClick={fetchTeamMembers}>다시 시도</Button>
+              <Button onClick={() => fetchTeamMembers(showInactive)}>다시 시도</Button>
             </div>
           </CardContent>
         </Card>
@@ -620,15 +682,6 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                             <div className="space-y-1.5">
                               <div className="flex items-center gap-2 flex-wrap">
                                 <span className="font-bold text-gray-900">{member.name}</span>
-                                {/* 포지션 카테고리 배지 - 가나다순에서만 표시 */}
-                                {sortBy === "name" && (
-                                  <Badge 
-                                    variant="outline"
-                                    className={`text-xs border ${getCategoryColor(member.mainPosition || member.preferredPosition)}`}
-                                  >
-                                    {positionMapping[member.mainPosition || member.preferredPosition] || '미분류'}
-                                  </Badge>
-                                )}
                                 {/* 레벨 배지 */}
                                 <Badge
                                   variant="outline"
@@ -1109,7 +1162,7 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                         </div>
                       </div>
                       
-                  <div className="space-y-1.5 pb-1">
+                      <div className="space-y-1.5 pb-1">
                         <Label className="text-xs font-medium text-muted-foreground">부포지션</Label>
                         <div className="flex flex-wrap gap-1.5">
                           {member.subPositions && member.subPositions.length > 0 ? (
@@ -1126,26 +1179,6 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                           )}
                         </div>
                       </div>
-
-                      {/* 출석률 */}
-                      <div className="space-y-1.5">
-                        <div className="flex items-center justify-between">
-                          <Label className="text-xs font-medium text-muted-foreground">출석률</Label>
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-xs text-muted-foreground">
-                              ({member.attendedCount || 0}/{member.totalSchedules || 0})
-                            </span>
-                            <span className="text-sm font-semibold text-gray-900">
-                              {member.attendanceRate || 0}%
-                            </span>
-                          </div>
-                        </div>
-                        <Progress 
-                          value={member.attendanceRate || 0} 
-                          className="h-2 bg-gray-200" 
-                        />
-                      </div>
-
                 </div>
 
                 <Separator />
