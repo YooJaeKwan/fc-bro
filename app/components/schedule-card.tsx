@@ -211,7 +211,7 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
             {/* 참석 현황 */}
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm">
-                <span className={isPastSchedule ? 'text-gray-500' : 'text-muted-foreground'}>참석 현황</span>
+                <span className={isPastSchedule ? 'text-gray-500' : 'text-muted-foreground'}>참석 현황 (임시)</span>
                 <div className="flex items-center gap-2">
                   <UsersIcon className={`h-4 w-4 ${isPastSchedule ? 'text-gray-400' : ''}`} />
                   <Badge variant="outline" className={`font-medium ${isPastSchedule ? 'text-gray-500 border-gray-300' : ''}`}>

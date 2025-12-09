@@ -62,7 +62,7 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
 
 
   const tabItems = [
-    { value: "schedule", label: isManagerMode ? "일정 관리" : "경기일정", icon: Calendar },
+    { value: "schedule", label: isManagerMode ? "일정관리" : "경기일정", icon: Calendar },
     { value: "dashboard", label: "대시보드 (임시)", icon: BarChart3 },
     { value: "team", label: "팀 멤버", icon: Users },
     { value: "profile", label: "내 정보", icon: User },

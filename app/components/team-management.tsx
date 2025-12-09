@@ -1816,7 +1816,7 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                   {/* 출석률 */}
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <Label className="text-xs font-medium text-muted-foreground">출석률</Label>
+                      <Label className="text-xs font-medium text-muted-foreground">출석률 (임시)</Label>
                       <div className="flex items-center gap-1.5">
                         <span className="text-xs text-muted-foreground">
                           ({member.attendedCount || 0}/{member.totalSchedules || 0})

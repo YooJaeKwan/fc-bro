@@ -455,7 +455,7 @@ export function AttendanceVoting({ schedule, currentUser, isManagerMode, onAtten
           <Button variant="outline" size="sm" className="w-full justify-between">
             <div className="flex items-center gap-2">
               <Users className="h-3 w-3" />
-              <span>참석 현황</span>
+              <span>참석 현황 (임시)</span>
               <Badge variant="outline" className="text-xs">
                 {stats.attending}/{stats.total}명
               </Badge>
