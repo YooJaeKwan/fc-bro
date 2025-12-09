@@ -614,8 +614,8 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                             <div className="space-y-1.5">
                               <div className="flex items-center gap-2 flex-wrap">
                                 <span className="font-bold text-gray-900">{member.name}</span>
-                                {/* 포지션 카테고리 배지 - 포지션순/레벨순일 때 숨김 */}
-                                {sortBy !== "position" && sortBy !== "level" && (
+                                {/* 포지션 카테고리 배지 - 가나다순에서만 표시 */}
+                                {sortBy === "name" && (
                                   <Badge 
                                     variant="outline"
                                     className={`text-xs border ${getCategoryColor(member.mainPosition || member.preferredPosition)}`}
@@ -714,7 +714,7 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                               <div className="space-y-2">
                                     <Label className="text-xs font-medium text-gray-700">전화번호</Label>
                                     <div className="p-2 bg-gray-50 rounded-lg border flex items-center gap-2">
-                                      <span className="text-sm">{member.phone}</span>
+                                      <span className="text-sm">{formatPhoneNumber(member.phone)}</span>
                               </div>
                             </div>
                             <div className="space-y-2">
@@ -790,15 +790,21 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
 
                                   {/* 출석률 */}
                                   <div>
-                                    <Label className="text-xs font-medium text-gray-700 mb-2 block">출석률</Label>
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-sm font-semibold text-gray-900">
-                                        {member.attendanceRate || 0}%
-                                      </span>
-                                      <span className="text-xs text-muted-foreground">
-                                        ({member.attendedCount || 0}/{member.totalSchedules || 0})
-                                      </span>
+                                    <div className="flex items-center justify-between mb-2">
+                                      <Label className="text-xs font-medium text-gray-700">출석률</Label>
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="text-xs text-muted-foreground">
+                                          ({member.attendedCount || 0}/{member.totalSchedules || 0})
+                                        </span>
+                                        <span className="text-sm font-semibold text-gray-900">
+                                          {member.attendanceRate || 0}%
+                                        </span>
+                                      </div>
                                     </div>
+                                    <Progress 
+                                      value={member.attendanceRate || 0} 
+                                      className="h-2 bg-gray-200" 
+                                    />
                                   </div>
                                 </div>
                               </CardContent>
@@ -1168,15 +1174,21 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
 
                       {/* 출석률 */}
                       <div className="space-y-1.5">
-                        <Label className="text-xs font-medium text-muted-foreground">출석률</Label>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-semibold text-gray-900">
-                            {member.attendanceRate || 0}%
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            ({member.attendedCount || 0}/{member.totalSchedules || 0})
-                          </span>
+                        <div className="flex items-center justify-between">
+                          <Label className="text-xs font-medium text-muted-foreground">출석률</Label>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs text-muted-foreground">
+                              ({member.attendedCount || 0}/{member.totalSchedules || 0})
+                            </span>
+                            <span className="text-sm font-semibold text-gray-900">
+                              {member.attendanceRate || 0}%
+                            </span>
+                          </div>
                         </div>
+                        <Progress 
+                          value={member.attendanceRate || 0} 
+                          className="h-2 bg-gray-200" 
+                        />
                       </div>
 
                 </div>
@@ -1434,15 +1446,21 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
 
                                   {/* 출석률 */}
                                   <div>
-                                    <Label className="text-xs font-medium text-gray-700 mb-2 block">출석률</Label>
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-sm font-semibold text-gray-900">
-                                        {member.attendanceRate || 0}%
-                                      </span>
-                                      <span className="text-xs text-muted-foreground">
-                                        ({member.attendedCount || 0}/{member.totalSchedules || 0})
-                                      </span>
+                                    <div className="flex items-center justify-between mb-2">
+                                      <Label className="text-xs font-medium text-gray-700">출석률</Label>
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="text-xs text-muted-foreground">
+                                          ({member.attendedCount || 0}/{member.totalSchedules || 0})
+                                        </span>
+                                        <span className="text-sm font-semibold text-gray-900">
+                                          {member.attendanceRate || 0}%
+                                        </span>
+                                      </div>
                                     </div>
+                                    <Progress 
+                                      value={member.attendanceRate || 0} 
+                                      className="h-2 bg-gray-200" 
+                                    />
                                   </div>
                                 </div>
                               </CardContent>
@@ -1484,110 +1502,279 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                                     )}
                                     
                                     {editingMember?.id === member.id && (
-                                      <div className="flex items-center gap-2">
-                                        <Select
-                                          value={tempLevel.toString()}
-                                          onValueChange={(value) => setTempLevel(parseInt(value))}
-                                        >
-                                          <SelectTrigger className="w-32 bg-white">
-                                            <SelectValue />
-                                          </SelectTrigger>
-                                          <SelectContent>
-                                            {LEVEL_OPTIONS.map((option) => (
-                                              <SelectItem key={option.value} value={option.value.toString()}>
-                                                {option.label}
-                                              </SelectItem>
-                                            ))}
-                                          </SelectContent>
-                                        </Select>
-                                        
-                                        <Button
-                                          onClick={async () => {
-                                            setIsSaving(true)
-                                            setSaveMessage("")
-                                            
-                                            try {
-                                              const user = currentUser || JSON.parse(sessionStorage.getItem('user') || '{}')
-                                              
-                                              const response = await fetch('/api/user/update', {
-                                                method: 'PUT',
-                                                headers: { 'Content-Type': 'application/json' },
-                                                body: JSON.stringify({
-                                                  targetUserId: member.id,
-                                                  adminUserId: user.id,
-                                                  level: tempLevel
-                                                })
-                                              })
-                                              
-                                              if (response.ok) {
-                                                setTeamMembers(prevMembers =>
-                                                  prevMembers.map(m =>
-                                                    m.id === member.id ? { ...m, level: tempLevel } : m
-                                                  )
-                                                )
-                                                setSaveMessage('레벨이 성공적으로 저장되었습니다.')
+                                      <div className="space-y-4 p-4 bg-white rounded-lg border-2 border-purple-200">
+                                        <div className="space-y-3">
+                                          <Select
+                                            value={tempLevel.toString()}
+                                            onValueChange={(value) => {
+                                              setTempLevel(parseInt(value))
+                                              setSaveMessage("")
+                                            }}
+                                          >
+                                            <SelectTrigger className="w-full">
+                                              <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent className="max-h-60">
+                                              {LEVEL_CATEGORIES.map((category) => (
+                                                <div key={category.name}>
+                                                  <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground bg-gray-50">
+                                                    {category.name}
+                                                  </div>
+                                                  {category.levels.map((levelValue) => (
+                                                    <SelectItem key={levelValue} value={levelValue.toString()}>
+                                                      <div className="flex items-center gap-3 py-1">
+                                                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${category.color}`}>
+                                                          {getLevelShortLabel(levelValue)}
+                                                        </span>
+                                                        <span className="text-sm">
+                                                          {getLevelLabel(levelValue)}
+                                                        </span>
+                                                      </div>
+                                                    </SelectItem>
+                                                  ))}
+                                                </div>
+                                              ))}
+                                            </SelectContent>
+                                          </Select>
+                                          
+                                          <div className="flex items-center gap-3 pt-2">
+                                            <Button
+                                              onClick={async () => {
+                                                setIsSaving(true)
+                                                setSaveMessage("")
+                                                try {
+                                                  const response = await fetch('/api/user/update', {
+                                                    method: 'PUT',
+                                                    headers: { 'Content-Type': 'application/json' },
+                                                    body: JSON.stringify({
+                                                      userId: member.id,
+                                                      level: tempLevel
+                                                    })
+                                                  })
+                                                  if (response.ok) {
+                                                    const updatedData = await response.json()
+                                                    setSaveMessage("레벨이 성공적으로 저장되었습니다!")
+                                                    
+                                                    if (updatedData.user) {
+                                                      setTeamMembers(prevMembers => 
+                                                        prevMembers.map(m => 
+                                                          m.id === member.id 
+                                                            ? { ...m, level: updatedData.user.level }
+                                                            : m
+                                                        )
+                                                      )
+                                                    }
+                                                    
+                                                    setTimeout(() => {
+                                                      setEditingMember(null)
+                                                      setSaveMessage("")
+                                                    }, 1500)
+                                                  } else {
+                                                    setSaveMessage("레벨 저장에 실패했습니다.")
+                                                  }
+                                                } catch (error) {
+                                                  console.error('레벨 수정 오류:', error)
+                                                  setSaveMessage("레벨 저장 중 오류가 발생했습니다.")
+                                                } finally {
+                                                  setIsSaving(false)
+                                                }
+                                              }}
+                                              disabled={isSaving}
+                                              className="bg-green-600 hover:bg-green-700 flex-1"
+                                              size="sm"
+                                            >
+                                              {isSaving ? (
+                                                <div className="flex items-center gap-2">
+                                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                                                  <span>저장 중...</span>
+                                                </div>
+                                              ) : (
+                                                <div className="flex items-center gap-2">
+                                                  <span>레벨 저장</span>
+                                                </div>
+                                              )}
+                                            </Button>
+                                            <Button
+                                              variant="outline"
+                                              onClick={() => {
                                                 setEditingMember(null)
-                                                setTempLevel(1)
-                                              } else {
-                                                const error = await response.json()
-                                                setSaveMessage(error.error || '레벨 저장에 실패했습니다.')
-                                              }
-                                            } catch (error) {
-                                              console.error('레벨 저장 중 오류:', error)
-                                              setSaveMessage('레벨 저장 중 오류가 발생했습니다.')
-                                            } finally {
-                                              setIsSaving(false)
-                                            }
-                                          }}
-                                          size="sm"
-                                          disabled={isSaving}
-                                          className="bg-purple-600 hover:bg-purple-700 text-white"
-                                        >
-                                          {isSaving ? (
-                                            <div className="flex items-center gap-2">
-                                              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                              <span>저장 중...</span>
-                                            </div>
-                                          ) : (
-                                            <div className="flex items-center gap-2">
-                                              <span>레벨 저장</span>
+                                                setTempLevel(member.level || 1)
+                                                setSaveMessage("")
+                                              }}
+                                              size="sm"
+                                              className="flex-1"
+                                            >
+                                              취소
+                                            </Button>
+                                          </div>
+                                          
+                                          {saveMessage && (
+                                            <div className={`p-3 rounded-lg border-l-4 ${
+                                              saveMessage.includes('성공') 
+                                                ? 'bg-green-50 border-l-green-400 text-green-700' 
+                                                : 'bg-red-50 border-l-red-400 text-red-700'
+                                            }`}>
+                                              <div className="flex items-center gap-2">
+                                                {saveMessage.includes('성공') ? (
+                                                  <Target className="h-4 w-4 text-green-600" />
+                                                ) : (
+                                                  <AlertCircle className="h-4 w-4 text-red-600" />
+                                                )}
+                                                <span className="text-sm font-medium">{saveMessage}</span>
+                                              </div>
                                             </div>
                                           )}
-                                        </Button>
-                                        <Button
-                                          variant="outline"
-                                          onClick={() => {
-                                            setEditingMember(null)
-                                            setTempLevel(member.level || 1)
-                                            setSaveMessage("")
-                                          }}
-                                          size="sm"
-                                          className="flex-1"
-                                        >
-                                          취소
-                                        </Button>
-                                      </div>
-                                    )}
-                                    
-                                    {saveMessage && editingMember?.id === member.id && (
-                                      <div className={`p-3 rounded-lg border-l-4 ${
-                                        saveMessage.includes('성공') 
-                                          ? 'bg-green-50 border-l-green-400 text-green-700' 
-                                          : 'bg-red-50 border-l-red-400 text-red-700'
-                                      }`}>
-                                        <div className="flex items-center gap-2">
-                                          {saveMessage.includes('성공') ? (
-                                            <Target className="h-4 w-4 text-green-600" />
-                                          ) : (
-                                            <AlertCircle className="h-4 w-4 text-red-600" />
-                                          )}
-                                          <span className="text-sm font-medium">{saveMessage}</span>
                                         </div>
                                       </div>
                                     )}
                                   </div>
                                 </CardContent>
                               </Card>
+                            )}
+                            {/* 출석 통계 카드 */}
+                            <Card className="border-l-4 border-l-orange-500">
+                              <CardHeader className="pb-3">
+                                <CardTitle className="text-sm flex items-center gap-2">
+                                  <BarChart3 className="h-4 w-4 text-orange-500" />
+                                  출석 통계
+                                </CardTitle>
+                              </CardHeader>
+                              <CardContent>
+                                <div className="space-y-3">
+                                  <div className="flex items-center justify-between">
+                                    <Label className="text-xs font-medium text-gray-700">전체 출석률</Label>
+                                    <div className="flex items-center gap-2">
+                                      <Badge variant="outline" className="text-sm px-2 py-1 font-bold">
+                                        {member.attendanceRate}%
+                                      </Badge>
+                                    </div>
+                                  </div>
+                                  <div className="space-y-2">
+                                    <Progress 
+                                      value={member.attendanceRate} 
+                                      className="h-3 bg-gray-200" 
+                                    />
+                                    <div className="flex justify-between text-xs text-muted-foreground">
+                                      <span>0%</span>
+                                      <span>50%</span>
+                                      <span>100%</span>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-4 pt-2">
+                                    <div className="flex items-center gap-2">
+                                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                                      <span className="text-xs text-muted-foreground">
+                                        {member.attendanceRate >= 80 ? '우수' : 
+                                         member.attendanceRate >= 60 ? '양호' : '개선 필요'}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+
+                            {/* 관리 버튼들 (총무 전용) */}
+                            {isManagerMode && (
+                              <div className="flex flex-col gap-3 pt-4 border-t">
+                                {/* 비활성화/활성화 버튼 */}
+                                <Button
+                                  variant={member.isActive ? "outline" : "default"}
+                                  className={`w-full ${member.isActive ? 'text-orange-600 border-orange-300 hover:bg-orange-50' : 'bg-green-600 hover:bg-green-700 text-white'}`}
+                                  onClick={async () => {
+                                    try {
+                                      const user = currentUser || JSON.parse(sessionStorage.getItem('user') || '{}')
+
+                                      if (!user?.id) {
+                                        alert('로그인 정보를 찾을 수 없습니다. 다시 로그인해주세요.')
+                                        return
+                                      }
+
+                                      const endpoint = '/api/user/deactivate'
+                                      const method = member.isActive ? 'PUT' : 'POST'
+
+                                      const response = await fetch(endpoint, {
+                                        method,
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({
+                                          targetUserId: member.id,
+                                          adminUserId: user.id
+                                        })
+                                      })
+
+                                      if (response.ok) {
+                                        const updatedData = await response.json()
+                                        if (updatedData.user) {
+                                          setTeamMembers(prevMembers =>
+                                            prevMembers.map(m =>
+                                              m.id === member.id
+                                                ? { ...m, isActive: updatedData.user.isActive }
+                                                : m
+                                            )
+                                          )
+                                        }
+                                        alert(member.isActive ? '선수가 비활성화되었습니다.' : '선수가 활성화되었습니다.')
+                                      } else {
+                                        const error = await response.json()
+                                        alert(error.error || '상태 변경에 실패했습니다.')
+                                      }
+                                    } catch (error) {
+                                      console.error('상태 변경 중 오류:', error)
+                                      alert('상태 변경 중 오류가 발생했습니다.')
+                                    }
+                                  }}
+                                >
+                                  {member.isActive ? (
+                                    <>
+                                      <UserMinus className="h-4 w-4 mr-2" />
+                                      비활성화
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Power className="h-4 w-4 mr-2" />
+                                      활성화
+                                    </>
+                                  )}
+                                </Button>
+
+                                {/* 삭제 버튼 */}
+                                <Button
+                                  variant="destructive"
+                                  className="w-full"
+                                  onClick={async () => {
+                                    const confirmed = confirm(`${member.name} 선수를 완전히 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없으며, 해당 선수의 모든 데이터가 삭제됩니다.`)
+                                    if (!confirmed) return
+
+                                    try {
+                                      const user = currentUser || JSON.parse(sessionStorage.getItem('user') || '{}')
+                                      const response = await fetch('/api/user/delete', {
+                                        method: 'DELETE',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({
+                                          targetUserId: member.id,
+                                          adminUserId: user.id,
+                                          confirmDelete: true
+                                        })
+                                      })
+
+                                      if (response.ok) {
+                                        setTeamMembers(prevMembers =>
+                                          prevMembers.filter(m => m.id !== member.id)
+                                        )
+                                        alert('선수가 성공적으로 삭제되었습니다.')
+                                      } else {
+                                        const error = await response.json()
+                                        alert(error.error || '삭제에 실패했습니다.')
+                                      }
+                                    } catch (error) {
+                                      console.error('삭제 중 오류:', error)
+                                      alert('삭제 중 오류가 발생했습니다.')
+                                    }
+                                  }}
+                                >
+                                  <UserX className="h-4 w-4 mr-2" />
+                                  선수 삭제
+                                </Button>
+                              </div>
                             )}
                           </div>
                         </DialogContent>
@@ -1608,7 +1795,7 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                     </div>
                   </div>
                   
-                  <div className="space-y-1.5">
+                  <div className="space-y-1.5 pb-1">
                     <Label className="text-xs font-medium text-muted-foreground">부포지션</Label>
                     <div className="flex flex-wrap gap-1.5">
                       {member.subPositions && member.subPositions.length > 0 ? (
@@ -1621,9 +1808,28 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                           </span>
                         ))
                       ) : (
-                        <span className="text-xs text-muted-foreground">설정된 부포지션이 없습니다</span>
+                        <span className="text-xs text-muted-foreground">-</span>
                       )}
                     </div>
+                  </div>
+
+                  {/* 출석률 */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs font-medium text-muted-foreground">출석률</Label>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs text-muted-foreground">
+                          ({member.attendedCount || 0}/{member.totalSchedules || 0})
+                        </span>
+                        <span className="text-sm font-semibold text-gray-900">
+                          {member.attendanceRate || 0}%
+                        </span>
+                      </div>
+                    </div>
+                    <Progress 
+                      value={member.attendanceRate || 0} 
+                      className="h-2 bg-gray-200" 
+                    />
                   </div>
 
                 </div>
@@ -1664,7 +1870,7 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                   <div className="flex items-center gap-1.5 col-span-2">
                     <TrendingUp className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                     <span className="text-muted-foreground truncate">
-                      최근 참석: {member.lastAttendedDate || '참석 이력 없음'}
+                      최근 참석일: {member.lastAttendedDate || '참석 이력 없음'}
                     </span>
                   </div>
                 </div>

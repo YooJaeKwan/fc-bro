@@ -12,6 +12,29 @@ import { Separator } from "@/components/ui/separator"
 import { Users, AlertCircle, CheckCircle, Edit, Save, X, Target, MapPin } from "lucide-react"
 import { regionData, provinceOptions, footOptions } from "@/lib/region-data"
 
+// 커스텀 SoccerBall 아이콘 컴포넌트
+const SoccerBall = ({ className }: { className?: string }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" />
+    <path d="M12 2c-2.21 0-4.21.9-5.66 2.34L12 12l5.66-7.66C16.21 2.9 14.21 2 12 2z" />
+    <path d="M12 22c2.21 0 4.21-.9 5.66-2.34L12 12l-5.66 7.66C7.79 21.1 9.79 22 12 22z" />
+    <path d="M2 12h20" />
+    <path d="M12 2v20" />
+    <circle cx="12" cy="12" r="2" />
+  </svg>
+)
+
 interface UserProfileProps {
   userInfo: any
   onUserUpdate: (updatedUser: any) => void
@@ -595,7 +618,6 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
-                <Users className="h-5 w-5" />
                 <span>기본 정보</span>
               </CardTitle>
             </CardHeader>
@@ -645,7 +667,6 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
-                <Target className="h-5 w-5" />
                 <span>포지션 정보</span>
               </CardTitle>
             </CardHeader>
