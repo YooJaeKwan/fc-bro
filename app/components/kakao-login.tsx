@@ -13,6 +13,7 @@ declare global {
           success: (authObj: any) => void
           fail: (error: any) => void
           scope?: string
+          throughTalk?: boolean
         }) => void
         logout: (callback?: () => void) => void
       }
@@ -133,6 +134,21 @@ export function useKakaoLogin({ onSuccess, onError }: KakaoLoginHookProps) {
         success: (authObj: any) => {
           console.log('카카오 로그인 성공:', authObj)
           
+          // authObj에 error가 있는지 확인 (카카오가 200으로 에러를 반환하는 경우 대응)
+          if (authObj && authObj.error) {
+            console.error('인증 코드 획득 실패:', authObj)
+            let errorMessage = '로그인에 실패했습니다.'
+            
+            if (authObj.error === 'not_found_auth_code') {
+              errorMessage = '인증 코드를 받지 못했습니다. 로그인이 취소되었거나 권한이 거부되었습니다.'
+            } else if (authObj.error_description) {
+              errorMessage = `로그인 오류: ${authObj.error_description}`
+            }
+            
+            onError(errorMessage)
+            return
+          }
+          
           // 사용자 정보 요청
           window.Kakao.API.request({
             url: '/v2/user/me',
@@ -165,12 +181,16 @@ export function useKakaoLogin({ onSuccess, onError }: KakaoLoginHookProps) {
             errorMessage = '카카오 로그인 권한 설정에 문제가 있습니다.'
           } else if (error.error === 'access_denied') {
             errorMessage = '로그인이 취소되었습니다.'
+          } else if (error.error === 'not_found_auth_code') {
+            errorMessage = '인증 코드를 받지 못했습니다. 로그인이 취소되었거나 권한이 거부되었습니다.'
           } else if (error.error_description) {
             errorMessage = `로그인 오류: ${error.error_description}`
           }
           
           onError(errorMessage)
         },
+        // 카카오톡 앱 사용 안 함 - 웹 브라우저만 사용 (Windows 환경 대응)
+        throughTalk: false,
         // scope를 제거하여 기본 권한만 요청 (닉네임, 프로필사진 등)
         // 필요시 카카오 개발자 콘솔에서 동의항목 설정 후 추가
         // scope: 'profile_nickname,profile_image'

@@ -12,7 +12,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Progress } from "@/components/ui/progress"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
-import { Edit, Star, MapPin, Phone, Calendar, TrendingUp, Eye, Target, BarChart3, Shield, Award, Users, User, AlertCircle, UserMinus, UserX, Power } from 'lucide-react'
+import { Edit, Star, MapPin, Phone, Calendar, TrendingUp, Eye, Target, BarChart3, Shield, Award, Users, User, AlertCircle, UserMinus, UserX, Power, Footprints } from 'lucide-react'
+import { Separator } from "@/components/ui/separator"
 import { LEVEL_OPTIONS, LEVEL_CATEGORIES, getLevelLabel, getLevelShortLabel, getLevelColor } from '@/lib/level-system'
 
 // 포지션별 한국어 매핑
@@ -41,14 +42,29 @@ const positionFullNames: Record<string, string> = {
   "DL": "DL (좌측풀백)",
   "DRL": "DRL (우좌측풀백)",
   "DRLC": "DRLC (풀백/센터백)",
-  "MC": "MC (중앙미드필더)",
-  "AMC": "AMC (공격형미드필더)",
-  "DM": "DM (수비형미드필더)", 
+  "MC": "CM (중앙미드필더)",
+  "AMC": "CAM (공격형미드필더)",
+  "DM": "CDM (수비형미드필더)", 
   "ST": "ST (스트라이커)",
   "CF": "CF (센터포워드)",
   "SS": "SS (세컨드스트라이커)",
   "LWF": "LWF (좌측윙포워드)",
   "RWF": "RWF (우측윙포워드)"
+}
+
+// 전화번호 포맷팅 함수
+const formatPhoneNumber = (phone: string) => {
+  if (!phone) return '정보 없음'
+  const numbers = phone.replace(/[^0-9]/g, '')
+  
+  if (numbers.length === 11) {
+    return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7)}`
+  }
+  if (numbers.length === 10) {
+    return `${numbers.slice(0, 3)}-${numbers.slice(3, 6)}-${numbers.slice(6)}`
+  }
+  
+  return phone
 }
 
 interface TeamManagementProps {
@@ -66,7 +82,8 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
   const [isSaving, setIsSaving] = useState(false)
   const [saveMessage, setSaveMessage] = useState("")
   const [showInactive, setShowInactive] = useState(false)
-  const [positionFilter, setPositionFilter] = useState("all")
+  const [positionFilter, setPositionFilter] = useState<string | null>(null) // null = 전체 표시
+  const [sortBy, setSortBy] = useState<"name" | "position" | "level">("position") // 기본: 포지션순
 
   useEffect(() => {
     let abortController = new AbortController()
@@ -142,33 +159,63 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
   const getPositionColor = (position: string) => {
     const positionType = positionMapping[position] || position
     switch (positionType) {
-      case "골키퍼": return "bg-yellow-100 text-yellow-800"
-      case "수비수": return "bg-blue-100 text-blue-800"
-      case "미드필더": return "bg-green-100 text-green-800"
-      case "공격수": return "bg-red-100 text-red-800"
-      default: return "bg-gray-100 text-gray-800"
+      case "골키퍼": return "bg-yellow-50 text-yellow-700 border-yellow-200"
+      case "수비수": return "bg-blue-50 text-blue-700 border-blue-200"
+      case "미드필더": return "bg-green-50 text-green-700 border-green-200"
+      case "공격수": return "bg-red-50 text-red-700 border-red-200"
+      default: return "bg-gray-50 text-gray-700 border-gray-200"
     }
   }
 
-  // 포지션별 팀원 필터링
+  // 포지션별 팀원 필터링 및 정렬
   const getFilteredMembers = () => {
     let filtered = teamMembers
 
-    // 포지션 필터 적용
-    if (positionFilter !== "all") {
+    // 포지션 필터 적용 (null이면 전체 표시)
+    if (positionFilter) {
       filtered = filtered.filter(member => {
         const memberPositionType = positionMapping[member.mainPosition || member.preferredPosition] || (member.mainPosition || member.preferredPosition)
         return memberPositionType === positionFilter
       })
     }
 
-    return filtered
+    // 정렬 적용
+    const sorted = [...filtered].sort((a, b) => {
+      if (sortBy === "name") {
+        // 가나다순 (이름 기준)
+        return a.name.localeCompare(b.name, 'ko')
+      } else if (sortBy === "position") {
+        // 포지션순 (골키퍼 > 수비수 > 미드필더 > 공격수)
+        const positionOrder: { [key: string]: number } = { "골키퍼": 0, "수비수": 1, "미드필더": 2, "공격수": 3 }
+        const aPosition = positionMapping[a.mainPosition || a.preferredPosition] || "미분류"
+        const bPosition = positionMapping[b.mainPosition || b.preferredPosition] || "미분류"
+        const orderDiff = (positionOrder[aPosition] || 99) - (positionOrder[bPosition] || 99)
+        
+        // 같은 포지션이면 이름순
+        if (orderDiff === 0) {
+          return a.name.localeCompare(b.name, 'ko')
+        }
+        return orderDiff
+      } else if (sortBy === "level") {
+        // 레벨순 (높은 순 > 낮은 순)
+        const levelDiff = (b.level || 1) - (a.level || 1)
+        
+        // 같은 레벨이면 이름순
+        if (levelDiff === 0) {
+          return a.name.localeCompare(b.name, 'ko')
+        }
+        return levelDiff
+      }
+      return 0
+    })
+
+    return sorted
   }
 
   // 포지션 대분류로 멤버 그룹화
   const getGroupedMembers = () => {
     const filtered = getFilteredMembers()
-    const grouped = {
+    const grouped: { [key: string]: any[] } = {
       "공격수": [] as any[],
       "미드필더": [] as any[],
       "수비수": [] as any[],
@@ -182,16 +229,29 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
       }
     })
 
+    // 각 그룹 내에서도 이름순 정렬 (포지션순/레벨순일 때도 그룹 내 정렬)
+    Object.keys(grouped).forEach(key => {
+      grouped[key].sort((a, b) => a.name.localeCompare(b.name, 'ko'))
+    })
+
     return grouped
   }
 
   // 포지션별 카운트
   const getPositionCount = (positionType: string) => {
-    if (positionType === "all") return teamMembers.length
     return teamMembers.filter(member => {
       const memberPositionType = positionMapping[member.mainPosition || member.preferredPosition] || (member.mainPosition || member.preferredPosition)
       return memberPositionType === positionType
     }).length
+  }
+
+  // 포지션 필터 토글 함수
+  const togglePositionFilter = (position: string) => {
+    if (positionFilter === position) {
+      setPositionFilter(null) // 같은 필터 클릭 시 해제
+    } else {
+      setPositionFilter(position) // 다른 필터 선택
+    }
   }
 
   // 로딩 상태 표시
@@ -225,17 +285,21 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
     <div className="space-y-6">
       {/* 헤더 */}
       <div className="flex flex-col gap-4">
-        <div className="flex justify-between items-center ml-2">
-          <div className="flex items-center gap-3">
-            <Users className="h-5 w-5" />
-            <h2 className="text-lg font-semibold">팀 멤버</h2>
-            {/* <Badge variant="outline" className="ml-2">
-              총 {teamMembers.length}명
-            </Badge> */}
-          </div>
+        <div className="flex justify-between items-center">
+          {/* 정렬 필터 - SELECT 형태 */}
+          <Select value={sortBy} onValueChange={(value: "name" | "position" | "level") => setSortBy(value)}>
+            <SelectTrigger className="w-[180px] h-9">
+              <SelectValue placeholder="정렬 방식" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="name">가나다순</SelectItem>
+              <SelectItem value="position">포지션순</SelectItem>
+              {isManagerMode && <SelectItem value="level">레벨순</SelectItem>}
+            </SelectContent>
+          </Select>
 
-          {/* 비활성화 필터 - 우측 상단 */}
-          {isManagerMode && (
+          {/* 비활성화 필터 - 숨김 */}
+          {/* {isManagerMode && (
             <div className="flex items-center gap-2">
               <Switch
                 id="show-inactive"
@@ -246,136 +310,139 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                 비활성 멤버 포함
               </Label>
             </div>
-          )}
+          )} */}
         </div>
 
-        {/* 포지션 필터 탭 */}
-        <div className="bg-gray-50 p-1 rounded-lg">
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant={positionFilter === "all" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setPositionFilter("all")}
-              className={`flex items-center p-2 gap-0 ${positionFilter === "all" ? "" : "p-2 hover:bg-white"}`}
-            >
-              ALL
-              <Badge variant="secondary" className="text-xs ml-1 px-1 py-0">
-                {teamMembers.length}
-              </Badge>
-            </Button>
+        {/* 포지션 필터 탭 - 포지션순일 때만 표시 */}
+        {sortBy === "position" && (
+          <div className="bg-gray-50 p-1 rounded-lg">
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant={positionFilter === null ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setPositionFilter(null)}
+                className={`flex items-center p-2 gap-0 ${positionFilter === null ? "" : "p-2 hover:bg-white"}`}
+              >
+                전체
+                <Badge variant={positionFilter === null ? "secondary" : "outline"} className="text-xs ml-1 px-1 py-0">
+                  {teamMembers.length}
+                </Badge>
+              </Button>
 
-            <Button
-              variant={positionFilter === "공격수" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setPositionFilter("공격수")}
-              className={`flex items-center p-2 gap-0 ${positionFilter === "공격수" ? "p-2 bg-red-500 hover:bg-red-600" : "hover:bg-white"}`}
-            >
-              FW
-              <Badge variant={positionFilter === "공격수" ? "secondary" : "outline"} className="text-xs ml-1 px-1 py-0">
-                {getPositionCount("공격수")}
-              </Badge>
-            </Button>
+              <Button
+                variant={positionFilter === "공격수" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => togglePositionFilter("공격수")}
+                className={`flex items-center p-2 gap-0 ${positionFilter === "공격수" ? "p-2 bg-red-500 hover:bg-red-600" : "hover:bg-white"}`}
+              >
+                FW
+                <Badge variant={positionFilter === "공격수" ? "secondary" : "outline"} className="text-xs ml-1 px-1 py-0">
+                  {getPositionCount("공격수")}
+                </Badge>
+              </Button>
 
-            <Button
-              variant={positionFilter === "미드필더" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setPositionFilter("미드필더")}
-              className={`flex items-center p-2 gap-0 ${positionFilter === "미드필더" ? "p-2 bg-green-500 hover:bg-green-600" : "hover:bg-white"}`}
-            >
-              MF
-              <Badge variant={positionFilter === "미드필더" ? "secondary" : "outline"} className="text-xs ml-1 px-1 py-0">
-                {getPositionCount("미드필더")}
-              </Badge>
-            </Button>
+              <Button
+                variant={positionFilter === "미드필더" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => togglePositionFilter("미드필더")}
+                className={`flex items-center p-2 gap-0 ${positionFilter === "미드필더" ? "p-2 bg-green-500 hover:bg-green-600" : "hover:bg-white"}`}
+              >
+                MF
+                <Badge variant={positionFilter === "미드필더" ? "secondary" : "outline"} className="text-xs ml-1 px-1 py-0">
+                  {getPositionCount("미드필더")}
+                </Badge>
+              </Button>
 
-            <Button
-              variant={positionFilter === "수비수" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setPositionFilter("수비수")}
-              className={`flex items-center p-2 gap-0 ${positionFilter === "수비수" ? "p-2 bg-blue-500 hover:bg-blue-600" : "hover:bg-white"}`}
-            >
-              DF
-              <Badge variant={positionFilter === "수비수" ? "secondary" : "outline"} className="text-xs ml-1 px-1 py-0">
-                {getPositionCount("수비수")}
-              </Badge>
-            </Button>
+              <Button
+                variant={positionFilter === "수비수" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => togglePositionFilter("수비수")}
+                className={`flex items-center p-2 gap-0 ${positionFilter === "수비수" ? "p-2 bg-blue-500 hover:bg-blue-600" : "hover:bg-white"}`}
+              >
+                DF
+                <Badge variant={positionFilter === "수비수" ? "secondary" : "outline"} className="text-xs ml-1 px-1 py-0">
+                  {getPositionCount("수비수")}
+                </Badge>
+              </Button>
 
-            <Button
-              variant={positionFilter === "골키퍼" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setPositionFilter("골키퍼")}
-              className={`flex items-center p-2 gap-0 ${positionFilter === "골키퍼" ? "p-2 bg-yellow-500 hover:bg-yellow-600" : "hover:bg-white"}`}
-            >
-              GK
-              <Badge variant={positionFilter === "골키퍼" ? "secondary" : "outline"} className="text-xs ml-1 px-1 py-0">
-                {getPositionCount("골키퍼")}
-              </Badge>
-            </Button>
+              <Button
+                variant={positionFilter === "골키퍼" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => togglePositionFilter("골키퍼")}
+                className={`flex items-center p-2 gap-0 ${positionFilter === "골키퍼" ? "p-2 bg-yellow-500 hover:bg-yellow-600" : "hover:bg-white"}`}
+              >
+                GK
+                <Badge variant={positionFilter === "골키퍼" ? "secondary" : "outline"} className="text-xs ml-1 px-1 py-0">
+                  {getPositionCount("골키퍼")}
+                </Badge>
+              </Button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
-      {/* 포지션별 그룹화된 멤버 표시 */}
-      <div className="space-y-6">
-        {Object.entries(getGroupedMembers()).map(([positionType, members]) => {
-          if (members.length === 0) return null
+      {/* 멤버 표시 - 포지션순일 때만 그룹화 */}
+      {sortBy === "position" ? (
+        // 포지션별 그룹화된 멤버 표시
+        <div className="space-y-6">
+          {Object.entries(getGroupedMembers()).map(([positionType, members]) => {
+            if (members.length === 0) return null
 
-          const positionConfig = {
-            "공격수": {
-              icon: Target,
-              color: "text-red-600",
-              bgColor: "bg-gradient-to-r from-red-50 to-red-100/50",
-              borderColor: "border-red-300",
-              iconBg: "bg-red-100"
-            },
-            "미드필더": {
-              icon: BarChart3,
-              color: "text-green-600",
-              bgColor: "bg-gradient-to-r from-green-50 to-green-100/50",
-              borderColor: "border-green-300",
-              iconBg: "bg-green-100"
-            },
-            "수비수": {
-              icon: Shield,
-              color: "text-blue-600",
-              bgColor: "bg-gradient-to-r from-blue-50 to-blue-100/50",
-              borderColor: "border-blue-300",
-              iconBg: "bg-blue-100"
-            },
-            "골키퍼": {
-              icon: Award,
-              color: "text-yellow-600",
-              bgColor: "bg-gradient-to-r from-yellow-50 to-yellow-100/50",
-              borderColor: "border-yellow-300",
-              iconBg: "bg-yellow-100"
+            const positionConfig = {
+              "공격수": {
+                icon: BarChart3,
+                color: "text-red-600",
+                bgColor: "bg-gradient-to-r from-red-50 to-red-100/50",
+                borderColor: "border-red-300",
+                iconBg: "bg-red-100"
+              },
+              "미드필더": {
+                icon: BarChart3,
+                color: "text-green-600",
+                bgColor: "bg-gradient-to-r from-green-50 to-green-100/50",
+                borderColor: "border-green-300",
+                iconBg: "bg-green-100"
+              },
+              "수비수": {
+                icon: Shield,
+                color: "text-blue-600",
+                bgColor: "bg-gradient-to-r from-blue-50 to-blue-100/50",
+                borderColor: "border-blue-300",
+                iconBg: "bg-blue-100"
+              },
+              "골키퍼": {
+                icon: Award,
+                color: "text-yellow-600",
+                bgColor: "bg-gradient-to-r from-yellow-50 to-yellow-100/50",
+                borderColor: "border-yellow-300",
+                iconBg: "bg-yellow-100"
+              }
             }
-          }
 
-          const config = positionConfig[positionType] || {
-            icon: Users,
-            color: "text-gray-600",
-            bgColor: "bg-gradient-to-r from-gray-50 to-gray-100/50",
-            borderColor: "border-gray-300",
-            iconBg: "bg-gray-100"
-          }
-          const Icon = config.icon
+            const config = positionConfig[positionType] || {
+              icon: Users,
+              color: "text-gray-600",
+              bgColor: "bg-gradient-to-r from-gray-50 to-gray-100/50",
+              borderColor: "border-gray-300",
+              iconBg: "bg-gray-100"
+            }
+            const Icon = config.icon
 
-          return (
-            <div key={positionType} className="space-y-4">
-              {/* 포지션 헤더 */}
-              <div className={`flex items-center gap-3 px-4 py-3 rounded-xl ${config.bgColor} ${config.borderColor} border shadow-sm`}>
-                {/* <div className={`p-2 rounded-lg ${config.iconBg}`}>
-                  <Icon className={`h-5 w-5 ${config.color}`} />
-                </div> */}
-                <h3 className="font-bold text-lg text-gray-800">{positionType}</h3>
-                <Badge variant="outline" className="bg-gray-50 border-gray-500 text-gray-800 ml-auto font-semibold">
-                  {members.length}명
-                </Badge>
-              </div>
+            return (
+              <div key={positionType} className="space-y-4">
+                {/* 포지션 헤더 - 새 디자인 */}
+                <div className={`flex items-center gap-3 px-5 py-4 rounded-lg ${config.bgColor} border-l-4 ${config.borderColor} shadow-sm`}>
+                  <div className="flex-1">
+                    <h3 className={`font-bold text-lg ${config.color}`}>{positionType}</h3>
+                  </div>
+                  <Badge variant="secondary" className="bg-white/80 text-gray-700 font-semibold px-3 py-1">
+                    {members.length}명
+                  </Badge>
+                </div>
 
-              {/* 멤버 카드 그리드 */}
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
-                {members.map((member) => (
+                {/* 멤버 카드 그리드 */}
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
+                  {members.map((member) => (
                 <Card key={member.id} className={`hover:shadow-lg transition-all duration-200 hover:-translate-y-1 ${!member.isActive ? 'opacity-60 border-dashed border-gray-300' : 'hover:border-gray-300'}`}>
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
@@ -394,18 +461,28 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                           )}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <CardTitle className="text-base sm:text-lg flex flex-col gap-1">
-                            <div className="flex items-center gap-2">
+                          <CardTitle className="text-base sm:text-lg">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <span className="font-bold text-gray-900">{member.name}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Badge className={`${getPositionColor(member.mainPosition || member.preferredPosition)} text-xs`} variant="secondary">
-                                {member.mainPosition || member.preferredPosition}
-                              </Badge>
-                              {member.subPositions && member.subPositions.length > 0 && (
-                                <span className="text-xs text-muted-foreground">
-                                  {member.subPositions.map(pos => pos).join(' · ')}
-                                </span>
+                              {isManagerMode && (
+                                <Badge
+                                  variant="outline"
+                                  className={`text-xs ${(() => {
+                                    const level = member.level || 1
+                                    if (level === 1) return 'bg-gray-50 text-gray-600 border-gray-200'
+                                    if (level <= 4) return 'bg-green-50 text-green-600 border-green-200'
+                                    if (level <= 9) return 'bg-blue-50 text-blue-600 border-blue-200'
+                                    if (level <= 12) return 'bg-purple-50 text-purple-600 border-purple-200'
+                                    return 'bg-yellow-50 text-yellow-600 border-yellow-200'
+                                  })()}`}
+                                >
+                                  {getLevelLabel(member.level)}
+                                </Badge>
+                              )}
+                              {!member.isActive && (
+                                <Badge variant="destructive" className="text-xs">
+                                  비활성
+                                </Badge>
                               )}
                             </div>
                           </CardTitle>
@@ -873,42 +950,68 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                     </div>
                   </CardHeader>
                   <CardContent className="pt-3 pb-3 px-4 space-y-3">
-                    {/* 레벨과 주발 뱃지 */}
-                    <div className="flex items-center gap-2">
-                      {isManagerMode && (
-                        <Badge
-                          variant="outline"
-                          size="sm"
-                          className={`text-xs ${(() => {
-                            const level = member.level || 1
-                            if (level === 1) return 'bg-gray-50 text-gray-600 border-gray-200'
-                            if (level <= 4) return 'bg-green-50 text-green-600 border-green-200'
-                            if (level <= 9) return 'bg-blue-50 text-blue-600 border-blue-200'
-                            if (level <= 12) return 'bg-purple-50 text-purple-600 border-purple-200'
-                            return 'bg-yellow-50 text-yellow-600 border-yellow-200'
-                          })()}`}
-                        >
-                          {getLevelLabel(member.level)}
-                        </Badge>
-                      )}
-                      <Badge variant="outline" size="sm" className="text-xs">
-                        {member.preferredFoot === 'RIGHT' ? '오른발' :
-                         member.preferredFoot === 'LEFT' ? '왼발' :
-                         member.preferredFoot === 'BOTH' ? '양발' : '정보없음'}
-                      </Badge>
-                      {!member.isActive && (
-                        <Badge variant="destructive" size="sm" className="text-xs">
-                          비활성
-                        </Badge>
-                      )}
+                    {/* 포지션 정보 */}
+                    <div className="space-y-2">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-medium text-muted-foreground">주포지션</Label>
+                        <div>
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getPositionColor(member.mainPosition || member.preferredPosition)}`}>
+                            {positionFullNames[member.mainPosition || member.preferredPosition] || (member.mainPosition || member.preferredPosition)}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-medium text-muted-foreground">부포지션</Label>
+                        <div className="flex flex-wrap gap-1.5">
+                          {member.subPositions && member.subPositions.length > 0 ? (
+                            member.subPositions.map((pos: string, idx: number) => (
+                              <span
+                                key={idx}
+                                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getPositionColor(pos)}`}
+                              >
+                                {positionFullNames[pos] || pos}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="text-xs text-muted-foreground">설정된 부포지션이 없습니다</span>
+                          )}
+                        </div>
+                      </div>
                     </div>
 
-                    {/* 출석률 */}
-                    <div className="flex items-center justify-between pt-1">
-                      <span className="text-sm text-muted-foreground">출석률</span>
-                      <span className="text-sm font-medium">{member.attendanceRate}%</span>
+                    <Separator />
+
+                    {/* 세부정보 - 2열 그리드 */}
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      {/* 전화번호 */}
+                      <div className="flex items-center gap-1.5">
+                        <Phone className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                        <span className="text-muted-foreground truncate">{formatPhoneNumber(member.phone)}</span>
+                      </div>
+                      
+                      {/* 거주지역 */}
+                      <div className="flex items-center gap-1.5">
+                        <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                        <span className="text-muted-foreground truncate">{member.region} {member.city}</span>
+                      </div>
+
+                      {/* 주발 */}
+                      <div className="flex items-center gap-1.5">
+                        <Footprints className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                        <span className="text-muted-foreground">
+                          {member.preferredFoot === 'RIGHT' ? '오른발' :
+                           member.preferredFoot === 'LEFT' ? '왼발' :
+                           member.preferredFoot === 'BOTH' ? '양발' : '정보없음'}
+                        </span>
+                      </div>
+
+                      {/* 가입일 */}
+                      <div className="flex items-center gap-1.5">
+                        <Calendar className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                        <span className="text-muted-foreground truncate">{member.joinDate}</span>
+                      </div>
                     </div>
-                    <Progress value={member.attendanceRate} className="h-2" />
                   </CardContent>
                 </Card>
               ))}
@@ -917,6 +1020,130 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
           )
         })}
       </div>
+      ) : (
+        // 가나다순/레벨순일 때는 그룹화 없이 단순 리스트
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
+          {getFilteredMembers().map((member) => (
+            <Card key={member.id} className={`hover:shadow-lg transition-all duration-200 hover:-translate-y-1 ${!member.isActive ? 'opacity-60 border-dashed border-gray-300' : 'hover:border-gray-300'}`}>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="relative">
+                      <Avatar className="h-12 w-12 ring-2 ring-white shadow-md">
+                        <AvatarImage src={member.profileImage || "/placeholder.svg"} />
+                        <AvatarFallback className="bg-gradient-to-br from-blue-400 to-blue-600 text-white font-semibold">
+                          {member.name[0]}
+                        </AvatarFallback>
+                      </Avatar>
+                      {member.jerseyNumber && (
+                        <div className="absolute -bottom-1 -right-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white text-xs rounded-full h-6 w-6 flex items-center justify-center font-bold shadow-md border-2 border-white">
+                          {member.jerseyNumber}
+                        </div>
+                      )}
+                    </div>
+                     <div className="min-w-0 flex-1">
+                       <CardTitle className="text-base sm:text-lg">
+                         <div className="flex items-center gap-2 flex-wrap">
+                           <span className="font-bold text-gray-900">{member.name}</span>
+                           {isManagerMode && (
+                             <Badge
+                               variant="outline"
+                               className={`text-xs ${(() => {
+                                 const level = member.level || 1
+                                 if (level === 1) return 'bg-gray-50 text-gray-600 border-gray-200'
+                                 if (level <= 4) return 'bg-green-50 text-green-600 border-green-200'
+                                 if (level <= 9) return 'bg-blue-50 text-blue-600 border-blue-200'
+                                 if (level <= 12) return 'bg-purple-50 text-purple-600 border-purple-200'
+                                 return 'bg-yellow-50 text-yellow-600 border-yellow-200'
+                               })()}`}
+                             >
+                               {getLevelLabel(member.level)}
+                             </Badge>
+                           )}
+                           {!member.isActive && (
+                             <Badge variant="destructive" className="text-xs">
+                               비활성
+                             </Badge>
+                           )}
+                         </div>
+                       </CardTitle>
+                     </div>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button variant="ghost" size="sm" className="flex-shrink-0">
+                      {isManagerMode ? <Edit className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-3 pb-3 px-4 space-y-3">
+                {/* 포지션 정보 */}
+                <div className="space-y-2">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium text-muted-foreground">주포지션</Label>
+                    <div>
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getPositionColor(member.mainPosition || member.preferredPosition)}`}>
+                        {positionFullNames[member.mainPosition || member.preferredPosition] || (member.mainPosition || member.preferredPosition)}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium text-muted-foreground">부포지션</Label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {member.subPositions && member.subPositions.length > 0 ? (
+                        member.subPositions.map((pos: string, idx: number) => (
+                          <span
+                            key={idx}
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getPositionColor(pos)}`}
+                          >
+                            {positionFullNames[pos] || pos}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-xs text-muted-foreground">설정된 부포지션이 없습니다</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* 세부정보 - 2열 그리드 */}
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  {/* 전화번호 */}
+                  <div className="flex items-center gap-1.5">
+                    <Phone className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                    <span className="text-muted-foreground truncate">{formatPhoneNumber(member.phone)}</span>
+                  </div>
+                  
+                  {/* 거주지역 */}
+                  <div className="flex items-center gap-1.5">
+                    <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                    <span className="text-muted-foreground truncate">{member.region} {member.city}</span>
+                  </div>
+
+                  {/* 주발 */}
+                  <div className="flex items-center gap-1.5">
+                    <Footprints className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                    <span className="text-muted-foreground">
+                      {member.preferredFoot === 'RIGHT' ? '오른발' :
+                       member.preferredFoot === 'LEFT' ? '왼발' :
+                       member.preferredFoot === 'BOTH' ? '양발' : '정보없음'}
+                    </span>
+                  </div>
+
+                  {/* 가입일 */}
+                  <div className="flex items-center gap-1.5">
+                    <Calendar className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                    <span className="text-muted-foreground truncate">{member.joinDate}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

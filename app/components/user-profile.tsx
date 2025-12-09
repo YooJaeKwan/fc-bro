@@ -48,9 +48,9 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
     midfielder: {
       name: "미드필더",
       positions: [
-        { value: "AMC", label: "AMC (공격형 중앙 미드필더)" },
-        { value: "MC", label: "MC (중앙 미드필더)" },
-        { value: "DM", label: "DM (수비형 미드필더)" }
+        { value: "AMC", label: "CAM (공격형 중앙 미드필더)" },
+        { value: "MC", label: "CM (중앙 미드필더)" },
+        { value: "DM", label: "CDM (수비형 미드필더)" }
       ]
     },
     defender: {

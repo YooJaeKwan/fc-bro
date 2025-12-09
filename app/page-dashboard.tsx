@@ -76,11 +76,14 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
                 <AvatarFallback>FC</AvatarFallback>
               </Avatar>
               <div className="hidden sm:block">
-                <h1 className="text-xl font-bold text-gray-900">{defaultTeamInfo.name}</h1>
-                {/* <p className="text-sm text-gray-500">팀 관리 플랫폼</p> */}
+                <h1 className="text-xl font-bold text-gray-900">
+                  {tabItems.find(item => item.value === activeTab)?.label || defaultTeamInfo.name}
+                </h1>
               </div>
               <div className="sm:hidden">
-                <h1 className="text-lg font-bold text-gray-900">FC BRO</h1>
+                <h1 className="text-lg font-bold text-gray-900">
+                  {tabItems.find(item => item.value === activeTab)?.label || "FC BRO"}
+                </h1>
               </div>
             </div>
 
