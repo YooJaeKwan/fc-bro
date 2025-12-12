@@ -13,170 +13,94 @@ enum Role {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  email         String?   @unique
-  name          String?
-  image         String?
-  provider      String
-  providerId    String
+  id         String  @id @default(cuid())
+  email      String? @unique
+  name       String?
+  image      String?
+  provider   String
+  providerId String
 
   // 추가 회원 정보
-  kakaoId       String?   @unique
-  nickname      String?
-  realName      String?
-  phoneNumber   String?
-  region        String?
-  city          String?
-  birthYear     String
-  preferredFoot String?
-  jerseyNumber  Int?      // 등번호
-  mainPosition     String?
+  kakaoId           String?  @unique
+  nickname          String?
+  realName          String?
+  phoneNumber       String?
+  region            String?
+  city              String?
+  birthYear         String
+  preferredFoot     String?
+  jerseyNumber      Int? // 등번호
+  mainPosition      String?
   preferredPosition String?
-  subPositions     String[]
-  role             Role      @default(MEMBER)
-  level            Int?      @default(1) // 선수 레벨 (1-10, 총무만 수정 가능)
-  isActive         Boolean   @default(true) // 활성 상태 (총무가 비활성화 가능)
+  subPositions      String[]
+  role              Role     @default(MEMBER)
+  level             Int?     @default(1) // 선수 레벨 (1-10, 총무만 수정 가능)
+  isActive          Boolean  @default(true) // 활성 상태 (총무가 비활성화 가능)
 
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  teams         TeamMember[]
-  createdTeams  Team[]
-  posts           Post[]
-  comments        Comment[]
-  notifications   Notification[]
-  createdSchedules Schedule[]     @relation("ScheduleCreator")
+  createdSchedules    Schedule[]           @relation("ScheduleCreator")
   scheduleAttendances ScheduleAttendance[]
-  playerStats      SchedulePlayerStat[]
-  invitedGuests    ScheduleAttendance[] @relation("InvitedGuests")
+  playerStats         SchedulePlayerStat[]
+  invitedGuests       ScheduleAttendance[] @relation("InvitedGuests")
 
   @@unique([provider, providerId])
 }
 
-model Team {
-  id          String       @id @default(cuid())
-  name        String
-  description String?
-  logo        String?
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  creatorId   String
-  creator     User         @relation(fields: [creatorId], references: [id])
+model Schedule {
+  id              String   @id @default(cuid())
+  title           String // 자동 생성되는 제목
+  type            String // internal, match, training
+  matchDate       DateTime
+  startTime       String // "19:00"
+  gatherTime      String // "18:30"
+  location        String
+  quarterTime     Int      @default(20)
+  restTime        Int      @default(10)
+  description     String?
+  opponentTeam    String? // A매치용 상대팀명
+  trainingContent String? // 연습용 연습내용
+  status          String   @default("SCHEDULED") // SCHEDULED, ONGOING, COMPLETED, CANCELLED
 
-  members     TeamMember[]
-  posts       Post[]
-}
+  // 경기 결과 관련 필드 (Match 테이블 기능 통합)
+  ourScore      Int? // 우리팀 점수
+  opponentScore Int? // 상대팀 점수
+  mvpUserId     String? // MVP 선정
+  matchSummary  String? // 경기 요약/후기
 
-model TeamMember {
-  id        String   @id @default(cuid())
-  userId    String
-  teamId    String
-  role      String   @default("MEMBER") // ADMIN, MEMBER
-  joinedAt  DateTime @default(now())
+  // 게스트 허용 여부
+  allowGuests Boolean @default(false)
 
-  user      User     @relation(fields: [userId], references: [id])
-  team      Team     @relation(fields: [teamId], references: [id])
-
-  @@unique([userId, teamId])
-}
-
-
-model Post {
-  id          String    @id @default(cuid())
-  title       String
-  content     String
-  type        String    // NOTICE, DISCUSSION, PHOTO
-  authorId    String
-  teamId      String
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  author      User      @relation(fields: [authorId], references: [id])
-  team        Team      @relation(fields: [teamId], references: [id])
-  comments    Comment[]
-}
-
-model Comment {
-  id        String   @id @default(cuid())
-  content   String
-  postId    String
-  authorId  String
+  createdBy String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  post      Post     @relation(fields: [postId], references: [id])
-  author    User     @relation(fields: [authorId], references: [id])
-}
-
-model Notification {
-  id        String   @id @default(cuid())
-  userId    String
-  type      String   // MATCH_REMINDER, TEAM_INVITE, POST_COMMENT
-  title     String
-  content   String
-  read      Boolean  @default(false)
-  createdAt DateTime @default(now())
-
-  user      User     @relation(fields: [userId], references: [id])
-}
-
-model Schedule {
-  id              String    @id @default(cuid())
-  title           String    // 자동 생성되는 제목
-  type            String    // internal, match, training
-  matchDate       DateTime
-  startTime       String    // "19:00"
-  gatherTime      String    // "18:30"
-  location        String
-  quarterTime     Int       @default(20)
-  restTime        Int       @default(10)
-  description     String?
-  opponentTeam    String?   // A매치용 상대팀명
-  trainingContent String?   // 연습용 연습내용
-  status          String    @default("SCHEDULED") // SCHEDULED, ONGOING, COMPLETED, CANCELLED
-
-  // 경기 결과 관련 필드 (Match 테이블 기능 통합)
-  ourScore        Int?      // 우리팀 점수
-  opponentScore   Int?      // 상대팀 점수
-  mvpUserId       String?   // MVP 선정
-  matchSummary    String?   // 경기 요약/후기
-
-  // 팀편성 결과 저장
-  teamFormation   Json?     // 팀편성 결과 (노랑팀/파랑팀 정보)
-  formationDate   DateTime? // 팀편성 생성 일시
-
-  // 게스트 허용 여부
-  allowGuests     Boolean   @default(false)
-
-  createdBy       String
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-
-  creator      User      @relation("ScheduleCreator", fields: [createdBy], references: [id])
-  attendances  ScheduleAttendance[]
-  playerStats  SchedulePlayerStat[]  // 개별 선수 통계
+  creator     User                 @relation("ScheduleCreator", fields: [createdBy], references: [id])
+  attendances ScheduleAttendance[]
+  playerStats SchedulePlayerStat[] // 개별 선수 통계
 }
 
 model ScheduleAttendance {
-  id         String   @id @default(cuid())
+  id         String  @id @default(cuid())
   scheduleId String
-  userId     String?  // 게스트의 경우 null일 수 있음
-  status     String   @default("PENDING") // PENDING, ATTENDING, NOT_ATTENDING
+  userId     String? // 게스트의 경우 null일 수 있음
+  status     String  @default("PENDING") // PENDING, ATTENDING, NOT_ATTENDING
 
   // 게스트 관련 필드
-  isGuest    Boolean  @default(false)
-  guestName  String?  // 게스트 이름
-  guestLevel Int?     // 게스트 레벨
-  guestPosition String? // 게스트 포지션
-  guestId    String?  // 게스트 고유 ID
+  isGuest         Boolean @default(false)
+  guestName       String? // 게스트 이름
+  guestLevel      Int? // 게스트 레벨
+  guestPosition   String? // 게스트 포지션
+  guestId         String? // 게스트 고유 ID
   invitedByUserId String? // 초대한 사용자 ID
 
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  schedule   Schedule @relation(fields: [scheduleId], references: [id])
-  user       User?    @relation(fields: [userId], references: [id])
-  invitedBy  User?    @relation("InvitedGuests", fields: [invitedByUserId], references: [id])
+  schedule  Schedule @relation(fields: [scheduleId], references: [id])
+  user      User?    @relation(fields: [userId], references: [id])
+  invitedBy User?    @relation("InvitedGuests", fields: [invitedByUserId], references: [id])
 
   @@unique([scheduleId, userId])
   @@unique([scheduleId, guestId])
@@ -186,18 +110,18 @@ model SchedulePlayerStat {
   id         String   @id @default(cuid())
   scheduleId String
   userId     String
-  position   String?  // 해당 경기에서의 포지션
+  position   String? // 해당 경기에서의 포지션
   goals      Int      @default(0)
   assists    Int      @default(0)
   yellowCard Boolean  @default(false)
   redCard    Boolean  @default(false)
-  rating     Float?   // 개별 평점 (1.0-10.0)
-  comment    String?  // 개별 코멘트
+  rating     Float? // 개별 평점 (1.0-10.0)
+  comment    String? // 개별 코멘트
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  schedule   Schedule @relation(fields: [scheduleId], references: [id])
-  user       User     @relation(fields: [userId], references: [id])
+  schedule Schedule @relation(fields: [scheduleId], references: [id])
+  user     User     @relation(fields: [userId], references: [id])
 
   @@unique([scheduleId, userId])
 }

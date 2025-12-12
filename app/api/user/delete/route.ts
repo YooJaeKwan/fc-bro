@@ -58,34 +58,14 @@ export async function DELETE(request: NextRequest) {
         where: { userId: targetUserId }
       })
 
-      // 3. 팀 멤버십 삭제
-      await tx.teamMember.deleteMany({
-        where: { userId: targetUserId }
-      })
-
-      // 4. 알림 삭제
-      await tx.notification.deleteMany({
-        where: { userId: targetUserId }
-      })
-
-      // 5. 댓글 삭제
-      await tx.comment.deleteMany({
-        where: { userId: targetUserId }
-      })
-
-      // 6. 게시글 삭제
-      await tx.post.deleteMany({
-        where: { userId: targetUserId }
-      })
-
-      // 7. 생성한 일정 삭제 (다른 사람이 참석한 경우 문제가 될 수 있으므로 주의)
+      // 3. 생성한 일정 삭제 (다른 사람이 참석한 경우 문제가 될 수 있으므로 주의)
       // 일정은 삭제하지 않고 creatorId만 null로 설정
       await tx.schedule.updateMany({
         where: { creatorId: targetUserId },
         data: { creatorId: null }
       })
 
-      // 8. 사용자 삭제
+      // 4. 사용자 삭제
       await tx.user.delete({
         where: { id: targetUserId }
       })

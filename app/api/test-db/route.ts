@@ -8,7 +8,6 @@ export async function GET() {
     
     // 2. 테이블별 레코드 수 확인
     const userCount = await prisma.user.count()
-    const teamCount = await prisma.team.count()
     const scheduleCount = await prisma.schedule.count()
     
     // 3. 샘플 사용자 데이터 가져오기
@@ -29,7 +28,6 @@ export async function GET() {
     return NextResponse.json({
       connected: true,
       userCount,
-      teamCount,
       scheduleCount,
       sampleUsers,
       message: 'NeonDB 연결 성공!'

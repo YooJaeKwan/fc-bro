@@ -19,10 +19,6 @@ async function testDatabaseConnection() {
     const userCount = await prisma.user.count()
     console.log(`✅ User 테이블: ${userCount}개 레코드`)
     
-    // Team 테이블 카운트
-    const teamCount = await prisma.team.count()
-    console.log(`✅ Team 테이블: ${teamCount}개 레코드`)
-    
     // Schedule 테이블 카운트  
     const scheduleCount = await prisma.schedule.count()
     console.log(`✅ Schedule 테이블: ${scheduleCount}개 레코드\n`)

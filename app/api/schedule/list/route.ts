@@ -135,8 +135,6 @@ export async function GET() {
         trainingContent: schedule.trainingContent,
         status: schedule.status.toLowerCase(), // SCHEDULED -> scheduled
         attendees: finalAttendees.map(addTempRating),
-        teamFormation: schedule.teamFormation, // 팀편성 결과 포함
-        formationDate: schedule.formationDate?.toISOString() || null,
         allowGuests: schedule.allowGuests || false, // 게스트 허용 상태
         createdBy: {
           id: schedule.creator.id,
