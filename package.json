@@ -14,7 +14,8 @@
     "seed:dev": "node scripts/seed-dev-data.js",
     "quick-setup:dev": "node scripts/setup-dev-db.js && node scripts/seed-dev-data.js --force",
     "init:db": "node scripts/init-new-db.js",
-    "init:db:full": "node scripts/init-new-db.js && node scripts/seed-dev-data.js --force"
+    "init:db:full": "node scripts/init-new-db.js && node scripts/seed-dev-data.js --force",
+    "update:positions": "node scripts/update-position-names.js"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.10.0",
