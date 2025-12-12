@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { CalendarIcon, MapPinIcon, ClockIcon, X, Check, UserPlus, UserMinus } from 'lucide-react'
 import { calculateDaysLeft } from '@/lib/utils'
+import { AttendanceVoting } from './attendance-voting'
 
 interface ScheduleCardProps {
   schedule: any
@@ -16,6 +17,7 @@ interface ScheduleCardProps {
   onGuestStatusUpdate: (scheduleId: string) => void
   onDeleteSchedule: (scheduleId: string) => void
   onEditSchedule: (schedule: any) => void
+  onVoteUpdate?: () => void
 }
 
 const ScheduleCard: React.FC<ScheduleCardProps> = ({
@@ -25,7 +27,8 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
   isUpdating,
   onGuestStatusUpdate,
   onDeleteSchedule,
-  onEditSchedule
+  onEditSchedule,
+  onVoteUpdate
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -160,6 +163,17 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
               </div>
             )}
 
+            {/* 참석 투표 섹션 (지난 일정이 아니고 사용자가 로그인한 경우) */}
+            {!isPastSchedule && currentUser?.id && (
+              <div className="pt-4 border-t">
+                <AttendanceVoting
+                  scheduleId={schedule.id}
+                  currentUserId={currentUser.id}
+                  isPastSchedule={isPastSchedule}
+                  onVoteUpdate={onVoteUpdate}
+                />
+              </div>
+            )}
 
             {/* 관리자 버튼들 */}
             {isManagerMode && (

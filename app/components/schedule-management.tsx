@@ -25,6 +25,7 @@ import { ko } from "date-fns/locale"
 import { cn } from "@/lib/utils"
 import { Skeleton } from "@/components/ui/skeleton"
 import ScheduleCard from "./schedule-card"
+import { AttendanceVoting } from "./attendance-voting"
 
 interface ScheduleManagementProps {
   isManagerMode: boolean
@@ -82,6 +83,12 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
     } finally {
       setIsLoading(false)
     }
+  }
+
+  // 투표 업데이트 핸들러
+  const handleVoteUpdate = () => {
+    // 투표가 업데이트되면 일정 목록을 다시 불러옴
+    fetchSchedules()
   }
 
   // 개별 일정의 게스트 허용 상태 업데이트 함수
@@ -976,6 +983,22 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                   <p className="text-sm text-muted-foreground text-center">{nextUpcomingSchedule.description}</p>
                 )}
 
+                 {/* 참석 투표 섹션 (지난 일정이 아니고 사용자가 로그인한 경우) */}
+                 {(() => {
+                   const daysLeft = calculateDaysLeft(nextUpcomingSchedule.date)
+                   const isPastSchedule = daysLeft < 0
+                   return !isPastSchedule && currentUser?.id && (
+                     <div className="pt-4 border-t">
+                       <AttendanceVoting
+                         scheduleId={nextUpcomingSchedule.id}
+                         currentUserId={currentUser.id}
+                         isPastSchedule={isPastSchedule}
+                         onVoteUpdate={handleVoteUpdate}
+                       />
+                     </div>
+                   )
+                 })()}
+
                  {/* 액션 버튼들 */}
                  <div className="space-y-2 pt-2">
                    <div className="flex gap-2">
@@ -1073,6 +1096,7 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                 onGuestStatusUpdate={updateScheduleGuestStatus}
                 onDeleteSchedule={handleDeleteSchedule}
                 onEditSchedule={handleEditSchedule}
+                onVoteUpdate={handleVoteUpdate}
               />
             ))
           })()}
@@ -1121,9 +1145,10 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                   currentUser={currentUser}
                   isManagerMode={isManagerMode}
                   isUpdating={isScheduleUpdating(schedule.id)}
-                onGuestStatusUpdate={updateScheduleGuestStatus}
-                onDeleteSchedule={handleDeleteSchedule}
-                onEditSchedule={handleEditSchedule}
+                  onGuestStatusUpdate={updateScheduleGuestStatus}
+                  onDeleteSchedule={handleDeleteSchedule}
+                  onEditSchedule={handleEditSchedule}
+                  onVoteUpdate={handleVoteUpdate}
                 />
               ))
             })()}
