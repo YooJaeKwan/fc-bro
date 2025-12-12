@@ -367,7 +367,9 @@ export function UserRegistration({ kakaoUserInfo, onRegistrationComplete }: User
           kakaoId: kakaoUserInfo.id,
           email: kakaoUserInfo.kakao_account?.email || '',
           nickname: kakaoUserInfo.properties?.nickname || '사용자',
-          profileImage: kakaoUserInfo.properties?.profile_image || '',
+          profileImage: kakaoUserInfo.properties?.profile_image
+            ? kakaoUserInfo.properties.profile_image.replace("http://", "https://")
+            : '',
           registeredAt: new Date().toISOString(),
         }
 
@@ -429,7 +431,9 @@ export function UserRegistration({ kakaoUserInfo, onRegistrationComplete }: User
             <div className="p-4 bg-yellow-50 rounded-lg">
               <div className="flex items-center gap-3">
                 <Avatar>
-                  <AvatarImage src={kakaoUserInfo?.properties?.profile_image || "/placeholder.svg"} />
+                  <AvatarImage src={(kakaoUserInfo?.properties?.profile_image || "").startsWith("http://") 
+                    ? kakaoUserInfo.properties.profile_image.replace("http://", "https://") 
+                    : kakaoUserInfo?.properties?.profile_image || "/placeholder.svg"} />
                   <AvatarFallback>{kakaoUserInfo?.properties?.nickname?.[0] || "K"}</AvatarFallback>
                 </Avatar>
                 <div>

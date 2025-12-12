@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Progress } from "@/components/ui/progress"
 import { Edit, Star, MapPin, Phone, Calendar, TrendingUp, Eye, Target, BarChart3, Shield, Award, Users } from 'lucide-react'
@@ -160,7 +160,7 @@ export function TeamManagement({ isManagerMode }: TeamManagementProps) {
                       <div className="flex items-center gap-3">
                         <div className="relative">
                           <Avatar className="h-10 w-10 sm:h-12 sm:w-12">
-                            <AvatarImage src={member.profileImage || "/placeholder.svg"} />
+                            <AvatarImage src={(member.profileImage?.startsWith("http://") ? member.profileImage.replace("http://", "https://") : member.profileImage) || "/placeholder.svg"} />
                             <AvatarFallback>{member.name[0]}</AvatarFallback>
                           </Avatar>
                           {member.jerseyNumber && (
@@ -203,6 +203,9 @@ export function TeamManagement({ isManagerMode }: TeamManagementProps) {
                         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                           <DialogHeader>
                             <DialogTitle>{member.name} 상세 정보</DialogTitle>
+                            <DialogDescription className="sr-only">
+                              선수 상세 정보를 확인할 수 있습니다.
+                            </DialogDescription>
                           </DialogHeader>
                           <div className="space-y-4">
                             <div className="grid grid-cols-2 gap-4">

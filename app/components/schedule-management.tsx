@@ -1400,7 +1400,9 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                           <Avatar className="h-6 w-6">
                             {player.profileImage || player.image ? (
                               <img
-                                src={player.profileImage || player.image}
+                                src={(player.profileImage || player.image || "").toString().startsWith("http://") 
+                                  ? (player.profileImage || player.image || "").toString().replace("http://", "https://") 
+                                  : player.profileImage || player.image}
                                 alt={player.name}
                                 className="h-full w-full object-cover rounded-full"
                                 onError={(e) => {
@@ -1480,7 +1482,9 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                           <Avatar className="h-6 w-6">
                             {player.profileImage || player.image ? (
                               <img
-                                src={player.profileImage || player.image}
+                                src={(player.profileImage || player.image || "").toString().startsWith("http://") 
+                                  ? (player.profileImage || player.image || "").toString().replace("http://", "https://") 
+                                  : player.profileImage || player.image}
                                 alt={player.name}
                                 className="h-full w-full object-cover rounded-full"
                                 onError={(e) => {

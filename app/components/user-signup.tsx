@@ -190,7 +190,9 @@ export function UserSignup({ kakaoUserInfo, onSignupComplete, onBack }: UserSign
         // 카카오 정보
         kakaoId: kakaoUserInfo.id,
         nickname: kakaoUserInfo.properties?.nickname || '카카오 사용자',
-        profileImage: kakaoUserInfo.properties?.profile_image || null,
+        profileImage: kakaoUserInfo.properties?.profile_image
+          ? kakaoUserInfo.properties.profile_image.replace("http://", "https://")
+          : null,
         
         // 입력 정보
         realName: formData.realName.trim(),

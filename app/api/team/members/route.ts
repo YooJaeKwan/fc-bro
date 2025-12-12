@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
+// 이미지 URL을 HTTPS로 강제 변환
+const ensureHttps = (url?: string | null) => {
+  if (!url) return url || undefined
+  return url.startsWith("http://") ? url.replace("http://", "https://") : url
+}
+
 export async function GET(request: NextRequest) {
   try {
     console.log('팀원 목록 조회 요청')
@@ -224,7 +230,7 @@ export async function GET(request: NextRequest) {
           level: member.level || 1,
           role: member.role || 'MEMBER',
           isActive: member.isActive,
-          profileImage: member.image,
+          profileImage: ensureHttps(member.image),
           joinDate: member.createdAt.toLocaleDateString('ko-KR'),
           attendanceRate,
           attendedCount,
@@ -250,7 +256,7 @@ export async function GET(request: NextRequest) {
           level: member.level || 1,
           role: member.role || 'MEMBER',
           isActive: member.isActive,
-          profileImage: member.image,
+          profileImage: ensureHttps(member.image),
           joinDate: member.createdAt.toLocaleDateString('ko-KR'),
           attendanceRate: 0,
           attendedCount: 0,

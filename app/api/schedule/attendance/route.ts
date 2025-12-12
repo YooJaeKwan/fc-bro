@@ -1,3 +1,9 @@
+// 이미지 URL을 HTTPS로 강제 변환
+const ensureHttps = (url?: string | null) => {
+  if (!url) return url || undefined
+  return url.startsWith("http://") ? url.replace("http://", "https://") : url
+}
+
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
@@ -203,7 +209,7 @@ export async function GET(request: NextRequest) {
         status: attendance?.status.toLowerCase() || 'pending',
         rating: generateTempRating(user.preferredPosition || 'MC'),
         level: user.level || 1,
-        profileImage: user.image,
+        profileImage: ensureHttps(user.image),
         updatedAt: attendance?.updatedAt.toISOString() || null,
         isGuest: false
       }

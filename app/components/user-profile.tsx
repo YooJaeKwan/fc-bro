@@ -267,7 +267,7 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
           {/* 프로필 이미지와 기본 정보 */}
           <div className="flex items-center space-x-4">
             <Avatar className="h-16 w-16">
-              <AvatarImage src={userInfo?.profileImage || "/placeholder.svg"} />
+              <AvatarImage src={(userInfo?.profileImage?.startsWith("http://") ? userInfo.profileImage.replace("http://", "https://") : userInfo?.profileImage) || "/placeholder.svg"} />
               <AvatarFallback className="text-lg">
                 {(userInfo?.realName || userInfo?.nickname)?.[0] || 'U'}
               </AvatarFallback>

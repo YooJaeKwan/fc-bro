@@ -97,7 +97,7 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
             <div className="hidden lg:flex items-center space-x-4">
               <div className="flex items-center space-x-3">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src={user?.profileImage || "/placeholder.svg"} />
+                  <AvatarImage src={(user?.profileImage?.startsWith("http://") ? user.profileImage.replace("http://", "https://") : user?.profileImage) || "/placeholder.svg"} />
                   <AvatarFallback>{(user?.realName || user?.nickname)?.[0] || 'U'}</AvatarFallback>
                 </Avatar>
                 <div className="text-sm">
@@ -145,7 +145,7 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
                     {/* User Info */}
                     <div className="flex items-center space-x-3 pb-4 border-b">
                       <Avatar>
-                        <AvatarImage src={user?.profileImage || "/placeholder.svg"} />
+                        <AvatarImage src={(user?.profileImage?.startsWith("http://") ? user.profileImage.replace("http://", "https://") : user?.profileImage) || "/placeholder.svg"} />
                         <AvatarFallback>{(user?.realName || user?.nickname)?.[0] || 'U'}</AvatarFallback>
                       </Avatar>
                       <div>

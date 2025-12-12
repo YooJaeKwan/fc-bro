@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Progress } from "@/components/ui/progress"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -50,6 +50,12 @@ const positionFullNames: Record<string, string> = {
   "SS": "SS (세컨드스트라이커)",
   "LWF": "LWF (좌측윙포워드)",
   "RWF": "RWF (우측윙포워드)"
+}
+
+// 이미지 URL을 HTTPS로 강제 변환
+const ensureHttps = (url?: string | null) => {
+  if (!url) return url || undefined
+  return url.startsWith("http://") ? url.replace("http://", "https://") : url
 }
 
 // 전화번호 포맷팅 함수
@@ -666,7 +672,7 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                       <div className="flex items-center gap-3">
                         <div className="relative">
                           <Avatar className="h-12 w-12 ring-2 ring-white shadow-md">
-                            <AvatarImage src={member.profileImage || "/placeholder.svg"} />
+                            <AvatarImage src={ensureHttps(member.profileImage) || "/placeholder.svg"} />
                             <AvatarFallback className="bg-gradient-to-br from-blue-400 to-blue-600 text-white font-semibold">
                               {member.name[0]}
                             </AvatarFallback>
@@ -733,7 +739,7 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                             <div className="flex items-center gap-4">
                               <Avatar className="h-16 w-16">
                                 {member.profileImage ? (
-                                  <img src={member.profileImage} alt={member.name} className="h-full w-full object-cover" />
+                                  <img src={ensureHttps(member.profileImage)} alt={member.name} className="h-full w-full object-cover" />
                                 ) : (
                                   <AvatarFallback className="text-2xl font-bold bg-blue-100 text-blue-600">
                                     {member.name[0]}
@@ -747,7 +753,9 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                                     <Badge variant="destructive" className="text-xs">비활성</Badge>
                                   )}
                                 </DialogTitle>
-                                {/* <p className="text-muted-foreground mt-1">선수 상세 정보</p> */}
+                                <DialogDescription className="sr-only">
+                                  선수 상세 정보
+                                </DialogDescription>
                               </div>
                             </div>
                           </DialogHeader>
@@ -1243,7 +1251,7 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                   <div className="flex items-center gap-3">
                     <div className="relative">
                       <Avatar className="h-12 w-12 ring-2 ring-white shadow-md">
-                        <AvatarImage src={member.profileImage || "/placeholder.svg"} />
+                        <AvatarImage src={ensureHttps(member.profileImage) || "/placeholder.svg"} />
                         <AvatarFallback className="bg-gradient-to-br from-blue-400 to-blue-600 text-white font-semibold">
                           {member.name[0]}
                         </AvatarFallback>
@@ -1319,7 +1327,7 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                             <div className="flex items-center gap-4">
                               <Avatar className="h-16 w-16">
                                 {member.profileImage ? (
-                                  <img src={member.profileImage} alt={member.name} className="h-full w-full object-cover" />
+                                  <img src={ensureHttps(member.profileImage)} alt={member.name} className="h-full w-full object-cover" />
                                 ) : (
                                   <AvatarFallback className="text-2xl font-bold bg-blue-100 text-blue-600">
                                     {member.name[0]}
@@ -1333,6 +1341,9 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                                     <Badge variant="destructive" className="text-xs">비활성</Badge>
                                   )}
                                 </DialogTitle>
+                                <DialogDescription className="sr-only">
+                                  선수 상세 정보
+                                </DialogDescription>
                               </div>
                             </div>
                           </DialogHeader>
