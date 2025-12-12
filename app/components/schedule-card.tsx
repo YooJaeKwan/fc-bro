@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { CalendarIcon, MapPinIcon, ClockIcon, X, Check, UserPlus, UserMinus } from 'lucide-react'
+import { CalendarIcon, MapPinIcon, ClockIcon, X, Check, UserPlus, UserMinus, Edit, Trash2 } from 'lucide-react'
 import { calculateDaysLeft } from '@/lib/utils'
 import { AttendanceVoting } from './attendance-voting'
 
@@ -138,8 +138,29 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
                   return "지난 경기"
                 })()}
               </div>
-
             </div>
+
+            {/* 관리자 버튼들 (D-Day 아래) */}
+            {isManagerMode && !isPastSchedule && (
+              <div className="flex items-center justify-center gap-2">
+                <Button
+                  onClick={() => onEditSchedule(schedule)}
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                >
+                  <Edit className="h-4 w-4" />
+                </Button>
+                <Button
+                  onClick={() => onDeleteSchedule(schedule.id)}
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
 
             {/* 장소 정보 */}
             {schedule.location && (
@@ -170,33 +191,12 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
                   scheduleId={schedule.id}
                   currentUserId={currentUser.id}
                   isPastSchedule={isPastSchedule}
+                  allowGuests={schedule.allowGuests}
                   onVoteUpdate={onVoteUpdate}
                 />
               </div>
             )}
 
-            {/* 관리자 버튼들 */}
-            {isManagerMode && (
-              <div className="flex gap-2 pt-2 border-t">
-                <Button
-                  onClick={() => onEditSchedule(schedule)}
-                  variant="outline"
-                  size="sm"
-                  disabled={isPastSchedule}
-                  className="flex-1"
-                >
-                  수정
-                </Button>
-                <Button
-                  onClick={() => onDeleteSchedule(schedule.id)}
-                  variant="outline"
-                  size="sm"
-                  className="flex-1 text-red-600 hover:text-red-700 hover:bg-red-50"
-                >
-                  삭제
-                </Button>
-              </div>
-            )}
           </div>
         </CardContent>
       )}

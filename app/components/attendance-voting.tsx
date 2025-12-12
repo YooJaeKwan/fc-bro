@@ -14,11 +14,17 @@ import {
 } from '@/components/ui/dialog'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
+import { UserPlus } from 'lucide-react'
 
 interface AttendanceVotingProps {
   scheduleId: string
   currentUserId: string
   isPastSchedule: boolean
+  allowGuests?: boolean
   onVoteUpdate?: () => void
 }
 
@@ -36,12 +42,14 @@ interface Attendee {
   position?: string
   profileImage?: string | null
   isGuest?: boolean
+  invitedBy?: string
 }
 
 export function AttendanceVoting({
   scheduleId,
   currentUserId,
   isPastSchedule,
+  allowGuests = false,
   onVoteUpdate
 }: AttendanceVotingProps) {
   const [myStatus, setMyStatus] = useState<'attending' | 'not_attending' | 'pending'>('pending')
@@ -55,6 +63,75 @@ export function AttendanceVoting({
   const [attendees, setAttendees] = useState<Attendee[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [detailDialogType, setDetailDialogType] = useState<'attending' | 'not_attending' | 'pending' | null>(null)
+  const [isGuestDialogOpen, setIsGuestDialogOpen] = useState(false)
+  const [guestName, setGuestName] = useState('')
+  const [guestLevel, setGuestLevel] = useState<string>('')
+  const [guestPositions, setGuestPositions] = useState<string[]>([])
+  const [isPositionAny, setIsPositionAny] = useState(false)
+  const [isAddingGuest, setIsAddingGuest] = useState(false)
+
+  // 포지션 카테고리 정의
+  const positionCategories = {
+    attacker: {
+      name: '공격수',
+      positions: [
+        { value: 'ST', label: 'ST (스트라이커)' },
+        { value: 'CF', label: 'CF (센터 포워드)' },
+        { value: 'SS', label: 'SS (세컨드 스트라이커)' },
+        { value: 'LWF', label: 'LWF (좌측 윙 포워드)' },
+        { value: 'RWF', label: 'RWF (우측 윙 포워드)' }
+      ]
+    },
+    midfielder: {
+      name: '미드필더',
+      positions: [
+        { value: 'CAM', label: 'CAM (공격형 미드필더)' },
+        { value: 'CM', label: 'CM (중앙 미드필더)' },
+        { value: 'CDM', label: 'CDM (수비형 미드필더)' }
+      ]
+    },
+    defender: {
+      name: '수비수',
+      positions: [
+        { value: 'CB', label: 'CB (센터백)' },
+        { value: 'RB', label: 'RB (우측 풀백)' },
+        { value: 'LB', label: 'LB (좌측 풀백)' },
+        { value: 'DRL', label: 'DRL (양쪽 풀백 가능)' },
+        { value: 'DRLC', label: 'DRLC (멀티 수비수)' }
+      ]
+    },
+    goalkeeper: {
+      name: '골키퍼',
+      positions: [
+        { value: 'GK', label: 'GK (골키퍼)' }
+      ]
+    }
+  }
+
+  // 포지션 선택 핸들러
+  const handlePositionToggle = (position: string) => {
+    if (isPositionAny) return // 포지션 무관이 선택되어 있으면 무시
+
+    if (guestPositions.includes(position)) {
+      // 이미 선택된 포지션이면 제거
+      setGuestPositions(guestPositions.filter(p => p !== position))
+    } else {
+      // 최대 3개까지만 선택 가능
+      if (guestPositions.length < 3) {
+        setGuestPositions([...guestPositions, position])
+      } else {
+        alert('포지션은 최대 3개까지 선택할 수 있습니다.')
+      }
+    }
+  }
+
+  // 포지션 무관 토글
+  const handlePositionAnyToggle = (checked: boolean) => {
+    setIsPositionAny(checked)
+    if (checked) {
+      setGuestPositions([]) // 포지션 무관 선택 시 다른 포지션 모두 해제
+    }
+  }
 
   // 투표 현황 조회
   const fetchAttendance = async () => {
@@ -128,6 +205,69 @@ export function AttendanceVoting({
     }
   }
 
+  // 게스트 참석 추가
+  const handleAddGuest = async () => {
+    if (!guestName.trim() || !guestLevel) {
+      alert('게스트 이름과 레벨을 입력해주세요.')
+      return
+    }
+
+    if (!isPositionAny && guestPositions.length === 0) {
+      alert('포지션을 선택하거나 포지션 무관을 선택해주세요.')
+      return
+    }
+
+    setIsAddingGuest(true)
+    try {
+      // 레벨 매핑: 미숙=1, 보통=2, 잘함=3
+      const levelMap: { [key: string]: number } = {
+        '미숙': 1,
+        '보통': 2,
+        '잘함': 3
+      }
+
+      // 포지션 처리: 포지션 무관이면 'ANY', 아니면 선택된 포지션들을 콤마로 구분
+      const guestPosition = isPositionAny 
+        ? 'ANY' 
+        : guestPositions.join(',')
+
+      const response = await fetch('/api/schedule/guest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          scheduleId,
+          guestName: guestName.trim(),
+          guestLevel: levelMap[guestLevel],
+          guestPosition: guestPosition,
+          invitedByUserId: currentUserId
+        })
+      })
+
+      const result = await response.json()
+
+      if (response.ok && result.success) {
+        // 게스트 추가 성공
+        setGuestName('')
+        setGuestLevel('')
+        setGuestPositions([])
+        setIsPositionAny(false)
+        setIsGuestDialogOpen(false)
+        // 현황 다시 조회
+        await fetchAttendance()
+        // 상위 컴포넌트에 알림
+        onVoteUpdate?.()
+      } else {
+        console.error('게스트 추가 실패:', result.error)
+        alert(result.error || '게스트 추가 중 오류가 발생했습니다.')
+      }
+    } catch (error) {
+      console.error('게스트 추가 오류:', error)
+      alert('게스트 추가 중 오류가 발생했습니다.')
+    } finally {
+      setIsAddingGuest(false)
+    }
+  }
+
   // 상태별 색상
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -183,35 +323,177 @@ export function AttendanceVoting({
 
       {/* 투표 버튼 (지난 일정이 아닐 때만) */}
       {!isPastSchedule && (
-        <div className="flex gap-2">
-          <Button
-            onClick={() => handleVote('ATTENDING')}
-            disabled={isSubmitting || myStatus === 'attending'}
-            variant={myStatus === 'attending' ? 'default' : 'outline'}
-            className={`flex-1 ${
-              myStatus === 'attending' 
-                ? 'bg-green-600 hover:bg-green-700 text-white' 
-                : 'hover:bg-green-50 hover:text-green-700'
-            }`}
-            size="sm"
-          >
-            <Check className="h-4 w-4 mr-1" />
-            참석
-          </Button>
-          <Button
-            onClick={() => handleVote('NOT_ATTENDING')}
-            disabled={isSubmitting || myStatus === 'not_attending'}
-            variant={myStatus === 'not_attending' ? 'default' : 'outline'}
-            className={`flex-1 ${
-              myStatus === 'not_attending' 
-                ? 'bg-red-600 hover:bg-red-700 text-white' 
-                : 'hover:bg-red-50 hover:text-red-700'
-            }`}
-            size="sm"
-          >
-            <X className="h-4 w-4 mr-1" />
-            불참
-          </Button>
+        <div className="space-y-2">
+          <div className="flex gap-2">
+            <Button
+              onClick={() => handleVote('ATTENDING')}
+              disabled={isSubmitting || myStatus === 'attending'}
+              variant={myStatus === 'attending' ? 'default' : 'outline'}
+              className={`flex-1 ${
+                myStatus === 'attending' 
+                  ? 'bg-green-600 hover:bg-green-700 text-white' 
+                  : 'hover:bg-green-50 hover:text-green-700'
+              }`}
+              size="sm"
+            >
+              <Check className="h-4 w-4 mr-1" />
+              참석
+            </Button>
+            <Button
+              onClick={() => handleVote('NOT_ATTENDING')}
+              disabled={isSubmitting || myStatus === 'not_attending'}
+              variant={myStatus === 'not_attending' ? 'default' : 'outline'}
+              className={`flex-1 ${
+                myStatus === 'not_attending' 
+                  ? 'bg-red-600 hover:bg-red-700 text-white' 
+                  : 'hover:bg-red-50 hover:text-red-700'
+              }`}
+              size="sm"
+            >
+              <X className="h-4 w-4 mr-1" />
+              불참
+            </Button>
+          </div>
+
+          {/* 게스트 참석 버튼 (게스트 허용된 일정일 때만) */}
+          {allowGuests && (
+            <Dialog open={isGuestDialogOpen} onOpenChange={setIsGuestDialogOpen}>
+              <DialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  disabled={isPastSchedule}
+                >
+                  <UserPlus className="h-4 w-4 mr-1" />
+                  게스트 참석
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>게스트 참석 등록</DialogTitle>
+                  <DialogDescription>
+                    게스트의 이름과 레벨을 입력해주세요.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="guestName">게스트 이름</Label>
+                    <Input
+                      id="guestName"
+                      placeholder="게스트 이름을 입력하세요"
+                      value={guestName}
+                      onChange={(e) => setGuestName(e.target.value)}
+                      disabled={isAddingGuest}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="guestLevel">게스트 레벨</Label>
+                    <Select
+                      value={guestLevel}
+                      onValueChange={setGuestLevel}
+                      disabled={isAddingGuest}
+                    >
+                      <SelectTrigger id="guestLevel">
+                        <SelectValue placeholder="레벨을 선택하세요" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="미숙">미숙</SelectItem>
+                        <SelectItem value="보통">보통</SelectItem>
+                        <SelectItem value="잘함">잘함</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>게스트 포지션 (최대 3개)</Label>
+                    <div className="space-y-3">
+                      {/* 포지션 무관 체크박스 */}
+                      <div className="flex items-center space-x-2 p-2 rounded border">
+                        <Checkbox
+                          id="position-any"
+                          checked={isPositionAny}
+                          onCheckedChange={handlePositionAnyToggle}
+                          disabled={isAddingGuest}
+                        />
+                        <label
+                          htmlFor="position-any"
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                        >
+                          포지션 무관
+                        </label>
+                      </div>
+
+                      {/* 포지션 카테고리별 선택 */}
+                      {!isPositionAny && (
+                        <div className="space-y-3 max-h-[300px] overflow-y-auto border rounded-lg p-3">
+                          {Object.entries(positionCategories).map(([key, category]) => (
+                            <div key={key} className="space-y-2">
+                              <div className="text-sm font-semibold text-gray-700">
+                                {category.name}
+                              </div>
+                              <div className="grid grid-cols-2 gap-2">
+                                {category.positions.map((pos) => (
+                                  <div
+                                    key={pos.value}
+                                    className="flex items-center space-x-2"
+                                  >
+                                    <Checkbox
+                                      id={`position-${pos.value}`}
+                                      checked={guestPositions.includes(pos.value)}
+                                      onCheckedChange={() => handlePositionToggle(pos.value)}
+                                      disabled={isAddingGuest || (guestPositions.length >= 3 && !guestPositions.includes(pos.value))}
+                                    />
+                                    <label
+                                      htmlFor={`position-${pos.value}`}
+                                      className={`text-sm leading-none cursor-pointer ${
+                                        guestPositions.length >= 3 && !guestPositions.includes(pos.value)
+                                          ? 'opacity-50 cursor-not-allowed'
+                                          : ''
+                                      }`}
+                                    >
+                                      {pos.value}
+                                    </label>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                          {guestPositions.length > 0 && (
+                            <div className="text-xs text-gray-500 pt-2 border-t">
+                              선택된 포지션: {guestPositions.join(', ')} ({guestPositions.length}/3)
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex gap-2 pt-2">
+                    <Button
+                      onClick={handleAddGuest}
+                      disabled={isAddingGuest || !guestName.trim() || !guestLevel || (!isPositionAny && guestPositions.length === 0)}
+                      className="flex-1"
+                    >
+                      {isAddingGuest ? '등록 중...' : '등록'}
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        setIsGuestDialogOpen(false)
+                        setGuestName('')
+                        setGuestLevel('')
+                        setGuestPositions([])
+                        setIsPositionAny(false)
+                      }}
+                      variant="outline"
+                      disabled={isAddingGuest}
+                      className="flex-1"
+                    >
+                      취소
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
         </div>
       )}
 
@@ -251,7 +533,12 @@ export function AttendanceVoting({
                         <AvatarFallback>{attendee.name[0]}</AvatarFallback>
                       </Avatar>
                       <div className="flex-1">
-                        <p className="text-sm font-medium">{attendee.name}</p>
+                        <p className="text-sm font-medium">
+                          {attendee.name}
+                          {attendee.isGuest && attendee.invitedBy && (
+                            <span className="text-gray-500 font-normal"> ({attendee.invitedBy} 지인)</span>
+                          )}
+                        </p>
                         {attendee.position && (
                           <p className="text-xs text-gray-500">{attendee.position}</p>
                         )}
@@ -299,7 +586,12 @@ export function AttendanceVoting({
                         <AvatarFallback>{attendee.name[0]}</AvatarFallback>
                       </Avatar>
                       <div className="flex-1">
-                        <p className="text-sm font-medium">{attendee.name}</p>
+                        <p className="text-sm font-medium">
+                          {attendee.name}
+                          {attendee.isGuest && attendee.invitedBy && (
+                            <span className="text-gray-500 font-normal"> ({attendee.invitedBy} 지인)</span>
+                          )}
+                        </p>
                         {attendee.position && (
                           <p className="text-xs text-gray-500">{attendee.position}</p>
                         )}
@@ -347,7 +639,12 @@ export function AttendanceVoting({
                         <AvatarFallback>{attendee.name[0]}</AvatarFallback>
                       </Avatar>
                       <div className="flex-1">
-                        <p className="text-sm font-medium">{attendee.name}</p>
+                        <p className="text-sm font-medium">
+                          {attendee.name}
+                          {attendee.isGuest && attendee.invitedBy && (
+                            <span className="text-gray-500 font-normal"> ({attendee.invitedBy} 지인)</span>
+                          )}
+                        </p>
                         {attendee.position && (
                           <p className="text-xs text-gray-500">{attendee.position}</p>
                         )}

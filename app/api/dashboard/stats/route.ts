@@ -96,7 +96,7 @@ export async function GET() {
         
         return {
           name: user.realName || user.nickname || '이름 없음',
-          position: user.preferredPosition || 'MC',
+          position: user.preferredPosition || 'CM',
           attendanceRate,
           totalMatches: totalSchedules,
           userId: user.id

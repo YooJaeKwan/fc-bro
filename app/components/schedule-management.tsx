@@ -498,8 +498,8 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
   const getPositionColor = (position: string) => {
     switch (position) {
       case "GK": return "bg-yellow-100 text-yellow-800 border-yellow-300"
-      case "DC": case "DR": case "DL": case "DRL": case "DRLC": return "bg-blue-100 text-blue-800 border-blue-300"
-      case "MC": case "AMC": case "DM": return "bg-green-100 text-green-800 border-green-300"
+      case "CB": case "RB": case "LB": case "DRL": case "DRLC": return "bg-blue-100 text-blue-800 border-blue-300"
+      case "CM": case "CAM": case "CDM": return "bg-green-100 text-green-800 border-green-300"
       case "ST": case "CF": case "SS": case "LWF": case "RWF": return "bg-red-100 text-red-800 border-red-300"
       default: return "bg-gray-100 text-gray-800 border-gray-300"
     }
@@ -993,6 +993,7 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                          scheduleId={nextUpcomingSchedule.id}
                          currentUserId={currentUser.id}
                          isPastSchedule={isPastSchedule}
+                         allowGuests={nextUpcomingSchedule.allowGuests}
                          onVoteUpdate={handleVoteUpdate}
                        />
                      </div>

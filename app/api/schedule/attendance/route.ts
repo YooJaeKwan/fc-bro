@@ -181,10 +181,10 @@ export async function GET(request: NextRequest) {
       return {
         userId: user.id,
         name: user.realName || user.nickname || '이름 없음',
-        position: user.preferredPosition || 'MC',
+        position: user.preferredPosition || 'CM',
         subPositions: user.subPositions || [],
         status: attendance?.status.toLowerCase() || 'pending',
-        rating: generateTempRating(user.preferredPosition || 'MC'),
+        rating: generateTempRating(user.preferredPosition || 'CM'),
         level: user.level || 1,
         profileImage: ensureHttps(user.image),
         updatedAt: attendance?.updatedAt.toISOString() || null,
@@ -199,7 +199,7 @@ export async function GET(request: NextRequest) {
         userId: att.guestId || att.userId,  // guestId를 우선 사용
         name: att.guestName || '게스트',
         invitedBy: att.invitedBy?.realName || att.invitedBy?.nickname || '알 수 없음',
-        position: att.guestPosition || 'MC',  // 게스트 포지션
+        position: att.guestPosition || 'CM',  // 게스트 포지션
         subPositions: [],
         status: att.status.toLowerCase(),
         rating: 5.0, // 게스트 기본 능력치

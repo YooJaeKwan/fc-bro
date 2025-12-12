@@ -77,7 +77,7 @@ export async function GET() {
           return {
             name: attendance.guestName || '게스트',
             status: attendance.status.toLowerCase(),
-            position: attendance.guestPosition || 'MC',
+            position: attendance.guestPosition || 'CM',
             subPositions: [],
             userId: attendance.guestId || attendance.userId,
             level: attendance.guestLevel || 7,  // 게스트 레벨 추가
@@ -88,7 +88,7 @@ export async function GET() {
         return {
           name: attendance.user?.realName || attendance.user?.nickname || '이름 없음',
           status: attendance.status.toLowerCase(),
-          position: attendance.user?.preferredPosition || 'MC',
+          position: attendance.user?.preferredPosition || 'CM',
           subPositions: attendance.user?.subPositions || [],
           userId: attendance.user?.id || attendance.userId,
           isGuest: false
@@ -105,7 +105,7 @@ export async function GET() {
         return {
           name: user.realName || user.nickname || '이름 없음',
           status: 'pending',
-          position: user.preferredPosition || 'MC',
+          position: user.preferredPosition || 'CM',
           subPositions: user.subPositions || [],
           userId: user.id,
           isGuest: false
