@@ -40,6 +40,7 @@ interface Attendee {
   name: string
   status: 'attending' | 'not_attending' | 'pending'
   position?: string
+  subPositions?: string[]
   profileImage?: string | null
   isGuest?: boolean
   invitedBy?: string
@@ -539,9 +540,14 @@ export function AttendanceVoting({
                             <span className="text-gray-500 font-normal"> ({attendee.invitedBy} 지인)</span>
                           )}
                         </p>
-                        {attendee.position && (
-                          <p className="text-xs text-gray-500">{attendee.position}</p>
-                        )}
+                         {attendee.position && (
+                           <p className="text-xs text-gray-500">
+                             {attendee.position}
+                             {attendee.subPositions && attendee.subPositions.length > 0 && (
+                               <span className="ml-1">(+{attendee.subPositions.join(', ')})</span>
+                             )}
+                           </p>
+                         )}
                       </div>
                       {attendee.isGuest && (
                         <Badge variant="outline" className="text-xs">게스트</Badge>
@@ -592,9 +598,14 @@ export function AttendanceVoting({
                             <span className="text-gray-500 font-normal"> ({attendee.invitedBy} 지인)</span>
                           )}
                         </p>
-                        {attendee.position && (
-                          <p className="text-xs text-gray-500">{attendee.position}</p>
-                        )}
+                         {attendee.position && (
+                           <p className="text-xs text-gray-500">
+                             {attendee.position}
+                             {attendee.subPositions && attendee.subPositions.length > 0 && (
+                               <span className="ml-1">(+{attendee.subPositions.join(', ')})</span>
+                             )}
+                           </p>
+                         )}
                       </div>
                       {attendee.isGuest && (
                         <Badge variant="outline" className="text-xs">게스트</Badge>
@@ -645,9 +656,14 @@ export function AttendanceVoting({
                             <span className="text-gray-500 font-normal"> ({attendee.invitedBy} 지인)</span>
                           )}
                         </p>
-                        {attendee.position && (
-                          <p className="text-xs text-gray-500">{attendee.position}</p>
-                        )}
+                         {attendee.position && (
+                           <p className="text-xs text-gray-500">
+                             {attendee.position}
+                             {attendee.subPositions && attendee.subPositions.length > 0 && (
+                               <span className="ml-1">(+{attendee.subPositions.join(', ')})</span>
+                             )}
+                           </p>
+                         )}
                       </div>
                       {attendee.isGuest && (
                         <Badge variant="outline" className="text-xs">게스트</Badge>
