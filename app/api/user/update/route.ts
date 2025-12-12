@@ -126,12 +126,12 @@ export async function PUT(request: NextRequest) {
 
     // 레벨이 제공된 경우에만 업데이트 (총무가 수정할 때)
     if (level !== null && level !== undefined) {
-      if (typeof level === 'number' && level >= 1 && level <= 13) {
+      if (typeof level === 'number' && level >= 1 && level <= 10) {
         updateData.level = level
         console.log('레벨 업데이트 데이터에 추가:', level)
       } else {
         return NextResponse.json(
-          { error: '레벨은 1-13 사이의 숫자여야 합니다.' },
+          { error: '레벨은 1-10 사이의 숫자여야 합니다.' },
           { status: 400 }
         )
       }

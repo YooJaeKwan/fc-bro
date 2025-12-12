@@ -19,26 +19,53 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Calendar as CalendarIcon, Clock, MapPin, Users, Plus, Edit, Trash2, Timer, Coffee, Target, UserPlus } from "lucide-react"
+import { Calendar as CalendarIcon, Clock, MapPin, Users, Plus, Edit, Trash2, Timer, Coffee, Target, UserPlus, UsersRound, Share2 } from "lucide-react"
 import { format } from "date-fns"
 import { ko } from "date-fns/locale"
 import { cn } from "@/lib/utils"
 import { Skeleton } from "@/components/ui/skeleton"
 import ScheduleCard from "./schedule-card"
 import { AttendanceVoting } from "./attendance-voting"
+import { TeamFormation } from "./team-formation"
+import { shareToKakaoTalk, copyToClipboard } from "@/lib/kakao-share"
 
 interface ScheduleManagementProps {
   isManagerMode: boolean
   currentUser?: any
+  isAddingSchedule?: boolean
+  setIsAddingSchedule?: (value: boolean) => void
+  isEditingSchedule?: boolean
+  setIsEditingSchedule?: (value: boolean) => void
+  editingScheduleId?: string | null
+  setEditingScheduleId?: (id: string | null) => void
+  resetScheduleForm?: () => void
 }
 
-export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManagementProps) {
+export function ScheduleManagement({ 
+  isManagerMode, 
+  currentUser,
+  isAddingSchedule: externalIsAddingSchedule,
+  setIsAddingSchedule: externalSetIsAddingSchedule,
+  isEditingSchedule: externalIsEditingSchedule,
+  setIsEditingSchedule: externalSetIsEditingSchedule,
+  editingScheduleId: externalEditingScheduleId,
+  setEditingScheduleId: externalSetEditingScheduleId,
+  resetScheduleForm: externalResetScheduleForm
+}: ScheduleManagementProps) {
   const [schedules, setSchedules] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
-  const [isAddingSchedule, setIsAddingSchedule] = useState(false)
-  const [isEditingSchedule, setIsEditingSchedule] = useState(false)
-  const [editingScheduleId, setEditingScheduleId] = useState<string | null>(null)
+  const [internalIsAddingSchedule, setInternalIsAddingSchedule] = useState(false)
+  const [internalIsEditingSchedule, setInternalIsEditingSchedule] = useState(false)
+  const [internalEditingScheduleId, setInternalEditingScheduleId] = useState<string | null>(null)
+  
+  // 외부에서 전달된 상태가 있으면 사용, 없으면 내부 상태 사용
+  const isAddingSchedule = externalIsAddingSchedule !== undefined ? externalIsAddingSchedule : internalIsAddingSchedule
+  const setIsAddingSchedule = externalSetIsAddingSchedule || setInternalIsAddingSchedule
+  const isEditingSchedule = externalIsEditingSchedule !== undefined ? externalIsEditingSchedule : internalIsEditingSchedule
+  const setIsEditingSchedule = externalSetIsEditingSchedule || setInternalIsEditingSchedule
+  const editingScheduleId = externalEditingScheduleId !== undefined ? externalEditingScheduleId : internalEditingScheduleId
+  const setEditingScheduleId = externalSetEditingScheduleId || setInternalEditingScheduleId
   const [selectedDate, setSelectedDate] = useState<Date>()
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -409,25 +436,6 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
     }
   }
 
-  const resetScheduleForm = () => {
-    setNewSchedule({
-      type: "internal",
-      date: "",
-      time: "",
-      gatherTime: "",
-      location: "",
-      quarterTime: 25,
-      restTime: 5,
-      description: "",
-      opponentTeam: "",
-      trainingContent: "",
-    })
-    setSelectedDate(undefined)
-    setIsAddingSchedule(false)
-    setIsEditingSchedule(false)
-    setEditingScheduleId(null)
-    setError("") // 에러도 초기화
-  }
 
   // 다음 일정 찾기 (가장 가까운 미래 일정)
   const getNextUpcomingSchedule = () => {
@@ -452,6 +460,108 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
   }
 
   const nextUpcomingSchedule = getNextUpcomingSchedule()
+
+  // 일정 공유 텍스트 생성
+  const generateShareText = (schedule: any): string => {
+    const [year, month, day] = schedule.date.split('-')
+    const date = new Date(Number(year), Number(month) - 1, Number(day))
+    const dateStr = date.toLocaleDateString('ko-KR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      weekday: 'short'
+    })
+
+    let text = `⚽ 경기 일정 공유\n\n`
+    text += `📅 날짜: ${dateStr} ${schedule.time}\n`
+    text += `📍 장소: ${schedule.location}\n`
+    text += `⏰ 집합: ${schedule.gatherTime}\n`
+    
+    if (schedule.type === 'internal') {
+      text += `🏷️ 유형: 자체경기\n`
+    } else if (schedule.type === 'match') {
+      text += `🏷️ 유형: A매치\n`
+      if (schedule.opponentTeam) {
+        text += `🆚 상대팀: ${schedule.opponentTeam}\n`
+      }
+    } else {
+      text += `🏷️ 유형: 연습\n`
+    }
+
+    if (schedule.description) {
+      text += `\n📝 ${schedule.description}\n`
+    }
+
+    // 팀편성 결과가 있으면 추가
+    if (schedule.teamFormation) {
+      text += `\n━━━━━━━━━━━━━━━━━━━━\n`
+      text += `📋 팀편성 결과\n\n`
+      
+      const yellowTeam = schedule.teamFormation.yellowTeam || []
+      const blueTeam = schedule.teamFormation.blueTeam || []
+      
+      text += `🟡 노랑팀 (${yellowTeam.length}명)\n`
+      if (yellowTeam.length > 0) {
+        const grouped: { [key: string]: any[] } = {}
+        yellowTeam.forEach((player: any) => {
+          const category = player.isGuest ? '게스트' : (player.positionCategory || '미정')
+          if (!grouped[category]) grouped[category] = []
+          grouped[category].push(player)
+        })
+        
+        Object.entries(grouped).forEach(([category, players]) => {
+          text += `  ${category}: `
+          text += players.map((p: any) => p.name).join(', ')
+          text += `\n`
+        })
+      }
+      
+      text += `\n🔵 파랑팀 (${blueTeam.length}명)\n`
+      if (blueTeam.length > 0) {
+        const grouped: { [key: string]: any[] } = {}
+        blueTeam.forEach((player: any) => {
+          const category = player.isGuest ? '게스트' : (player.positionCategory || '미정')
+          if (!grouped[category]) grouped[category] = []
+          grouped[category].push(player)
+        })
+        
+        Object.entries(grouped).forEach(([category, players]) => {
+          text += `  ${category}: `
+          text += players.map((p: any) => p.name).join(', ')
+          text += `\n`
+        })
+      }
+    }
+
+    return text
+  }
+
+  // 일정 공유 핸들러
+  const handleShareSchedule = async (schedule: any) => {
+    try {
+      const shareText = generateShareText(schedule)
+      
+      // 카카오톡 공유 시도
+      if (typeof window !== 'undefined' && window.Kakao && window.Kakao.isInitialized()) {
+        shareToKakaoTalk({
+          title: `⚽ ${schedule.location} ${schedule.time}`,
+          description: shareText,
+          webUrl: window.location.href
+        })
+      } else {
+        // 카카오 SDK가 없으면 클립보드에 복사
+        const success = await copyToClipboard(shareText)
+        if (success) {
+          alert('일정 정보가 클립보드에 복사되었습니다.\n카카오톡에서 붙여넣기 하세요.')
+        } else {
+          alert('클립보드 복사에 실패했습니다.')
+        }
+      }
+    } catch (error) {
+      console.error('일정 공유 오류:', error)
+      alert('일정 공유 중 오류가 발생했습니다.')
+    }
+  }
 
   const calculateDaysLeft = (scheduleDate: string) => {
     // 한국시간 기준으로 D-Day 계산
@@ -515,23 +625,47 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
     )
   }
 
+  // resetScheduleForm 함수
+  const resetScheduleForm = externalResetScheduleForm || (() => {
+    setNewSchedule({
+      type: "internal",
+      date: "",
+      time: "",
+      gatherTime: "",
+      location: "",
+      quarterTime: 25,
+      restTime: 5,
+      description: "",
+      opponentTeam: "",
+      trainingContent: "",
+    })
+    setSelectedDate(undefined)
+    setIsEditingSchedule(false)
+    setEditingScheduleId(null)
+    setIsAddingSchedule(false)
+  })
+
   return (
     <div className="space-y-6">
-      {/* 헤더 */}
-      <div className="flex justify-between items-center">
-        {/* <h2 className="text-2xl font-bold">일정 관리</h2> */}
-        {isManagerMode && (
-          <Dialog open={isAddingSchedule || isEditingSchedule} onOpenChange={(open) => {
-            if (!open) resetScheduleForm()
-            else setIsAddingSchedule(true)
-          }}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                일정 추가
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      {/* 일정 추가 버튼 (총무만, 최상단 전체 폭) */}
+      {isManagerMode && (
+        <Button 
+          onClick={() => setIsAddingSchedule(true)}
+          className="w-full"
+          size="lg"
+        >
+          <Plus className="h-5 w-5 mr-2" />
+          일정 추가
+        </Button>
+      )}
+
+      {/* 일정 추가/수정 다이얼로그 */}
+      {isManagerMode && (
+        <Dialog open={isAddingSchedule || isEditingSchedule} onOpenChange={(open) => {
+          if (!open) resetScheduleForm()
+          else setIsAddingSchedule(true)
+        }}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>{isEditingSchedule ? '일정 수정' : '새 일정 추가'}</DialogTitle>
                 <DialogDescription>
@@ -841,10 +975,9 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                   )}
                 </Button>
               </div>
-            </DialogContent>
-          </Dialog>
-        )}
-      </div>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* 에러 메시지 */}
       {error && (
@@ -1002,7 +1135,18 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
 
                  {/* 액션 버튼들 */}
                  <div className="space-y-2 pt-2">
-                   <div className="flex gap-2">
+                   <div className="flex gap-2 flex-wrap">
+                     {/* 일정 공유 버튼 */}
+                     <Button
+                       onClick={() => handleShareSchedule(nextUpcomingSchedule)}
+                       variant="outline"
+                       size="sm"
+                       className="flex-1"
+                     >
+                       <Share2 className="h-4 w-4 mr-1" />
+                       일정 공유
+                     </Button>
+                     
                      {/* 게스트 허용 버튼 (총무 전용) */}
                      {isManagerMode && nextUpcomingSchedule.type === "internal" && (
                        <Button
@@ -1040,8 +1184,65 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                          }
                        </Button>
                      )}
+                     
+                     {/* 자동 팀편성 버튼 (총무 전용, 내부 경기만) */}
+                     {isManagerMode && nextUpcomingSchedule.type === "internal" && (
+                       <Button
+                         onClick={async () => {
+                           if (!confirm('자동 팀편성을 실행하시겠습니까?')) return
+                           
+                           startScheduleUpdate(nextUpcomingSchedule.id)
+                           try {
+                             const response = await fetch('/api/schedule/team-formation', {
+                               method: 'POST',
+                               headers: { 'Content-Type': 'application/json' },
+                               body: JSON.stringify({
+                                 scheduleId: nextUpcomingSchedule.id,
+                                 userId: currentUser?.id
+                               })
+                             })
+
+                             const result = await response.json()
+
+                             if (response.ok && result.success) {
+                               alert('팀편성이 완료되었습니다.')
+                               fetchSchedules()
+                             } else {
+                               alert(result.error || '팀편성 중 오류가 발생했습니다.')
+                             }
+                           } catch (error) {
+                             console.error('팀편성 처리 중 오류:', error)
+                             alert('팀편성 처리 중 오류가 발생했습니다.')
+                           } finally {
+                             endScheduleUpdate(nextUpcomingSchedule.id)
+                           }
+                         }}
+                         disabled={isScheduleUpdating(nextUpcomingSchedule.id)}
+                         variant="default"
+                         size="sm"
+                         className="flex-1 bg-blue-600 hover:bg-blue-700"
+                       >
+                         <UsersRound className="h-4 w-4 mr-1" />
+                         {isScheduleUpdating(nextUpcomingSchedule.id) ? "처리 중..." : "자동 팀편성"}
+                       </Button>
+                     )}
                    </div>
                  </div>
+
+                 {/* 팀편성 결과 표시 */}
+                 {nextUpcomingSchedule.teamFormation && (
+                   <div className="pt-4 border-t">
+                     <TeamFormation
+                       scheduleId={nextUpcomingSchedule.id}
+                       teamFormation={nextUpcomingSchedule.teamFormation}
+                       formationDate={nextUpcomingSchedule.formationDate}
+                       isManagerMode={isManagerMode}
+                       currentUserId={currentUser?.id || ''}
+                       onFormationUpdate={fetchSchedules}
+                       onFormationDelete={fetchSchedules}
+                     />
+                   </div>
+                 )}
               </div>
             </CardContent>
             )}

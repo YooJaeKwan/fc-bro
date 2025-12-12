@@ -13,7 +13,16 @@ import {
   LogOut,
   BarChart3,
   Calendar,
+  Plus,
 } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 import { TeamManagement } from "./components/team-management"
 import { UserProfile } from "./components/user-profile"
 import { AttendanceStats } from "./components/attendance-stats"
@@ -59,6 +68,9 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
   // 사용자 role 기반으로 관리자 모드 결정 (DB에서 ADMIN 권한 확인)
   const [isManagerMode, setIsManagerMode] = useState(user?.role === 'ADMIN')
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isAddingSchedule, setIsAddingSchedule] = useState(false)
+  const [isEditingSchedule, setIsEditingSchedule] = useState(false)
+  const [editingScheduleId, setEditingScheduleId] = useState<string | null>(null)
 
 
   const tabItems = [
@@ -238,7 +250,16 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
           </div>
 
           <TabsContent value="schedule">
-            <ScheduleManagement isManagerMode={isManagerMode} currentUser={user} />
+            <ScheduleManagement 
+              isManagerMode={isManagerMode} 
+              currentUser={user}
+              isAddingSchedule={isAddingSchedule}
+              setIsAddingSchedule={setIsAddingSchedule}
+              isEditingSchedule={isEditingSchedule}
+              setIsEditingSchedule={setIsEditingSchedule}
+              editingScheduleId={editingScheduleId}
+              setEditingScheduleId={setEditingScheduleId}
+            />
           </TabsContent>
 
           <TabsContent value="dashboard">

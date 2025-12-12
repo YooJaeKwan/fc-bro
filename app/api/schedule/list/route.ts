@@ -136,6 +136,8 @@ export async function GET() {
         status: schedule.status.toLowerCase(), // SCHEDULED -> scheduled
         attendees: finalAttendees.map(addTempRating),
         allowGuests: schedule.allowGuests || false, // 게스트 허용 상태
+        teamFormation: schedule.teamFormation, // 팀편성 결과
+        formationDate: schedule.formationDate?.toISOString() || null, // 팀편성 생성 일시
         createdBy: {
           id: schedule.creator.id,
           name: schedule.creator.realName || schedule.creator.nickname

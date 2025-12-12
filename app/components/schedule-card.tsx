@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { CalendarIcon, MapPinIcon, ClockIcon, X, Check, UserPlus, UserMinus, Edit, Trash2 } from 'lucide-react'
 import { calculateDaysLeft } from '@/lib/utils'
 import { AttendanceVoting } from './attendance-voting'
+import { TeamFormation } from './team-formation'
 
 interface ScheduleCardProps {
   schedule: any
@@ -193,6 +194,21 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
                   isPastSchedule={isPastSchedule}
                   allowGuests={schedule.allowGuests}
                   onVoteUpdate={onVoteUpdate}
+                />
+              </div>
+            )}
+
+            {/* 팀편성 결과 표시 */}
+            {schedule.teamFormation && (
+              <div className="pt-4 border-t">
+                <TeamFormation
+                  scheduleId={schedule.id}
+                  teamFormation={schedule.teamFormation}
+                  formationDate={schedule.formationDate}
+                  isManagerMode={isManagerMode}
+                  currentUserId={currentUser?.id || ''}
+                  onFormationUpdate={onVoteUpdate}
+                  onFormationDelete={onVoteUpdate}
                 />
               </div>
             )}
