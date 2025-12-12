@@ -87,32 +87,9 @@ export async function POST(request: NextRequest) {
 
     console.log('참석 투표 처리 완료:', attendance.id)
 
-    // 참석 투표 변경 시 기존 팀편성 결과 초기화
-    try {
-      const scheduleWithFormation = await prisma.schedule.findUnique({
-        where: { id: scheduleId },
-        select: { teamFormation: true, formationDate: true }
-      })
-
-      if (scheduleWithFormation?.teamFormation || scheduleWithFormation?.formationDate) {
-        await prisma.schedule.update({
-          where: { id: scheduleId },
-          data: {
-            teamFormation: null,
-            formationDate: null
-          }
-        })
-        console.log('참석 투표 변경으로 인한 팀편성 초기화 완료:', scheduleId)
-      }
-    } catch (error) {
-      console.error('팀편성 초기화 중 오류 (무시됨):', error)
-      // 팀편성 초기화 실패는 참석 투표 성공에 영향을 주지 않음
-    }
-
     return NextResponse.json({
       success: true,
       message: '참석 투표가 등록되었습니다.',
-      teamFormationReset: true, // 팀편성이 초기화되었음을 알림
       attendance: {
         scheduleId: attendance.scheduleId,
         userId: attendance.userId,

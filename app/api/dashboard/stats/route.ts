@@ -154,9 +154,7 @@ export async function GET() {
         daysLeft: diffDays,
         attendees: attendeesList, // 배열 형태로 변경
         total: Math.max(totalInvited, totalMembers),
-        attendanceRate: totalInvited > 0 ? Math.round((attendees / totalInvited) * 100) : 0,
-        teamFormation: upcomingSchedule.teamFormation, // 저장된 팀편성 결과 포함
-        formationDate: upcomingSchedule.formationDate?.toISOString() || null
+        attendanceRate: totalInvited > 0 ? Math.round((attendees / totalInvited) * 100) : 0
       }
     }
 

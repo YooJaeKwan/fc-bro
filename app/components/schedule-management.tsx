@@ -17,15 +17,12 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Progress } from "@/components/ui/progress"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Calendar as CalendarIcon, Clock, MapPin, Users, Plus, Edit, Trash2, Timer, Coffee, Target, UserPlus, ChevronDown, ChevronRight } from "lucide-react"
+import { Calendar as CalendarIcon, Clock, MapPin, Users, Plus, Edit, Trash2, Timer, Coffee, Target, UserPlus } from "lucide-react"
 import { format } from "date-fns"
 import { ko } from "date-fns/locale"
 import { cn } from "@/lib/utils"
-import { AttendanceVoting } from "./attendance-voting"
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Skeleton } from "@/components/ui/skeleton"
 import ScheduleCard from "./schedule-card"
 
@@ -46,12 +43,6 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [availableLocations, setAvailableLocations] = useState<any[]>([])
   const [isLoadingLocations, setIsLoadingLocations] = useState(false)
-
-  // 팀편성 관련 상태
-  const [formationResults, setFormationResults] = useState<any>(null)
-  const [isFormingTeams, setIsFormingTeams] = useState(false)
-  const [isSavingFormation, setIsSavingFormation] = useState(false)
-  const [isFormationOpen, setIsFormationOpen] = useState(false)
 
   // 일정별 업데이트 상태 관리
   const [updatingSchedules, setUpdatingSchedules] = useState<Set<string>>(new Set())
@@ -74,25 +65,6 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
     fetchAvailableLocations()
   }, [])
 
-  // 페이지 로드 시 저장된 팀편성 결과 확인
-  useEffect(() => {
-    if (schedules.length > 0) {
-      const nextSchedule = getNextUpcomingSchedule()
-      if (nextSchedule && nextSchedule.teamFormation) {
-        setFormationResults({
-          ...nextSchedule.teamFormation,
-          scheduleId: nextSchedule.id
-        })
-        // 팀편성 결과가 있으면 자동으로 펼치기
-        setIsFormationOpen(true)
-      } else {
-        // 다음 일정에 팀편성 결과가 없으면 초기화
-        setFormationResults(null)
-        setIsFormationOpen(false)
-      }
-    }
-  }, [schedules])
-
   const fetchSchedules = async () => {
     try {
       setIsLoading(true)
@@ -109,31 +81,6 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
       setError(error instanceof Error ? error.message : '일정 목록 조회 중 오류가 발생했습니다.')
     } finally {
       setIsLoading(false)
-    }
-  }
-
-  // 개별 일정의 참석 현황 업데이트 함수
-  const updateScheduleAttendance = async (scheduleId: string) => {
-    startScheduleUpdate(scheduleId)
-    try {
-      const response = await fetch(`/api/schedule/attendance?scheduleId=${scheduleId}`)
-      const result = await response.json()
-
-      if (response.ok) {
-        // 해당 일정의 참석 현황만 업데이트
-        setSchedules(prevSchedules => 
-          prevSchedules.map(schedule => 
-            schedule.id === scheduleId 
-              ? { ...schedule, attendanceStats: result.stats }
-              : schedule
-          )
-        )
-        console.log('참석 현황 업데이트 완료:', scheduleId)
-      }
-    } catch (error) {
-      console.error('참석 현황 업데이트 오류:', error)
-    } finally {
-      endScheduleUpdate(scheduleId)
     }
   }
 
@@ -162,13 +109,6 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
     }
   }
 
-  // 사용자의 투표 상태 가져오기 함수
-  const getUserAttendanceStatus = (schedule: any) => {
-    if (!currentUser?.id || !schedule.attendees) return null
-    const userAttendance = schedule.attendees.find((att: any) => att.userId === currentUser.id)
-    return userAttendance?.status || null
-  }
-
   // 일정 업데이트 상태 관리 함수들
   const startScheduleUpdate = (scheduleId: string) => {
     setUpdatingSchedules(prev => new Set([...prev, scheduleId]))
@@ -192,7 +132,7 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
       <div className="flex items-center justify-center">
         <div className="flex items-center gap-2 bg-gray-100 text-gray-500 px-4 py-2 rounded-full">
           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400"></div>
-          <span className="text-sm font-medium">참석현황 업데이트 중...</span>
+          <span className="text-sm font-medium">업데이트 중...</span>
         </div>
       </div>
       <div className="space-y-3">
@@ -206,30 +146,6 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
       </div>
     </div>
   )
-
-  // 팀편성 결과 즉시 초기화 함수
-  const handleFormationReset = () => {
-    setFormationResults(null)
-    setIsFormationOpen(false)
-  }
-
-  // 팀편성 결과 확인 및 초기화 함수
-  const refreshFormationResults = () => {
-    const nextSchedule = getNextUpcomingSchedule()
-    if (nextSchedule && nextSchedule.teamFormation) {
-      setFormationResults({
-        ...nextSchedule.teamFormation,
-        scheduleId: nextSchedule.id
-      })
-      // 팀편성 결과가 있으면 펼치기 (사용자가 수동으로 접었다면 유지)
-      if (!isFormationOpen) {
-        setIsFormationOpen(true)
-      }
-    } else {
-      setFormationResults(null)
-      setIsFormationOpen(false)
-    }
-  }
 
   const fetchAvailableLocations = async () => {
     try {
@@ -245,12 +161,6 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
     } finally {
       setIsLoadingLocations(false)
     }
-  }
-
-  const getAttendanceStats = (attendees: any[]) => {
-    const attending = attendees.filter((a) => a.status === "attending" || a.status === "attended").length
-    const total = attendees.length
-    return { attending, total, percentage: Math.round((attending / total) * 100) }
   }
 
   const getTypeColor = (type: string) => {
@@ -576,120 +486,6 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
     }
 
     return quarters
-  }
-
-  // 자동 팀편성 알고리즘 (우선순위: 인원수 > 포지션 균형 > 레벨 균형)
-  const autoFormTeams = (schedule: any) => {
-    const attendingPlayers = schedule.attendees.filter((attendee: any) =>
-      attendee.status === 'attending' || attendee.status === 'attended'
-    )
-
-    if (attendingPlayers.length < 6) {
-      return { yellowTeam: [], blueTeam: [], message: '팀편성에는 최소 6명이 필요합니다.' }
-    }
-
-    // 포지션별로 선수 그룹화
-    const playersByPosition = {
-      GK: [],
-      DEF: [], // DC, DR, DL, DRL, DRLC
-      MID: [], // MC, AMC, DM
-      FWD: []  // ST, CF, SS, LWF, RWF
-    }
-
-    attendingPlayers.forEach((player: any) => {
-      const position = player.position || 'MC'
-      const playerWithLevel = { ...player, level: player.level || 7 }
-
-      if (position === 'GK') {
-        playersByPosition.GK.push(playerWithLevel)
-      } else if (['DC', 'DR', 'DL', 'DRL', 'DRLC'].includes(position)) {
-        playersByPosition.DEF.push(playerWithLevel)
-      } else if (['MC', 'AMC', 'DM'].includes(position)) {
-        playersByPosition.MID.push(playerWithLevel)
-      } else if (['ST', 'CF', 'SS', 'LWF', 'RWF'].includes(position)) {
-        playersByPosition.FWD.push(playerWithLevel)
-      } else {
-        // 기타 포지션은 미드필더로 분류
-        playersByPosition.MID.push(playerWithLevel)
-      }
-    })
-
-    // 각 포지션그룹 내에서 레벨 순으로 정렬
-    Object.keys(playersByPosition).forEach(pos => {
-      playersByPosition[pos].sort((a, b) => (b.level || 7) - (a.level || 7))
-    })
-
-    const yellowTeam = []
-    const blueTeam = []
-
-    // 1. 골키퍼 분배 (번갈아가며 하나씩)
-    playersByPosition.GK.forEach((player, index) => {
-      if (index % 2 === 0) {
-        yellowTeam.push(player)
-      } else {
-        blueTeam.push(player)
-      }
-    })
-
-    // 2. 수비수 분배 (레벨 높은 순으로 번갈아가며)
-    playersByPosition.DEF.forEach((player, index) => {
-      // 현재 팀 인원수 확인하여 적은 팀에 배치
-      if (yellowTeam.length <= blueTeam.length) {
-        yellowTeam.push(player)
-      } else {
-        blueTeam.push(player)
-      }
-    })
-
-    // 3. 미드필더 분배
-    playersByPosition.MID.forEach((player, index) => {
-      if (yellowTeam.length <= blueTeam.length) {
-        yellowTeam.push(player)
-      } else {
-        blueTeam.push(player)
-      }
-    })
-
-    // 4. 공격수 분배
-    playersByPosition.FWD.forEach((player, index) => {
-      if (yellowTeam.length <= blueTeam.length) {
-        yellowTeam.push(player)
-      } else {
-        blueTeam.push(player)
-      }
-    })
-
-    // 최종 인원 균형 조정 (차이가 2명 이상이면 레벨 낮은 선수 이동)
-    const diff = Math.abs(yellowTeam.length - blueTeam.length)
-    if (diff >= 2) {
-      const largerTeam = yellowTeam.length > blueTeam.length ? yellowTeam : blueTeam
-      const smallerTeam = yellowTeam.length > blueTeam.length ? blueTeam : yellowTeam
-
-      // 레벨이 가장 낮은 선수를 인원이 적은 팀으로 이동
-      const transferCount = Math.floor(diff / 2)
-      const sortedByLevel = [...largerTeam].sort((a, b) => (a.level || 7) - (b.level || 7))
-
-      for (let i = 0; i < transferCount; i++) {
-        const playerToTransfer = sortedByLevel[i]
-        const index = largerTeam.indexOf(playerToTransfer)
-        if (index > -1) {
-          largerTeam.splice(index, 1)
-          smallerTeam.push(playerToTransfer)
-        }
-      }
-    }
-
-    const result = {
-      yellowTeam,
-      blueTeam,
-      yellowAverage: yellowTeam.reduce((sum, p) => sum + (p.level || 7), 0) / yellowTeam.length,
-      blueAverage: blueTeam.reduce((sum, p) => sum + (p.level || 7), 0) / blueTeam.length
-    }
-
-    return {
-      ...result,
-      levelDifference: Math.abs(result.yellowAverage - result.blueAverage).toFixed(1)
-    }
   }
 
   const getPositionColor = (position: string) => {
@@ -1175,30 +971,6 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                    )}
                  </div>
 
-                {/* 참석 현황 */}
-                {/* <div className="space-y-2">
-                  {(() => {
-                    const stats = getAttendanceStats(nextUpcomingSchedule.attendees)
-                    return (
-                      <>
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">참석 현황</span>
-                          <div className="flex items-center gap-2">
-                            <Users className="h-4 w-4" />
-                            <Badge variant="outline" className="font-medium">
-                              {stats.attending}/{stats.total}명
-                            </Badge>
-                            <span className="text-xs text-muted-foreground">
-                              ({stats.percentage}%)
-                            </span>
-                          </div>
-                        </div>
-                        <Progress value={stats.percentage} className="h-2" />
-                      </>
-                    )
-                  })()}
-                </div> */}
-
                 {/* 설명 */}
                 {nextUpcomingSchedule.description && (
                   <p className="text-sm text-muted-foreground text-center">{nextUpcomingSchedule.description}</p>
@@ -1206,86 +978,7 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
 
                  {/* 액션 버튼들 */}
                  <div className="space-y-2 pt-2">
-                   {/* 참석 투표 - 비활성화 */}
-                   {/* <AttendanceVoting
-                     schedule={nextUpcomingSchedule}
-                     currentUser={currentUser}
-                     isManagerMode={isManagerMode}
-                     onAttendanceUpdate={() => {
-                       refreshFormationResults()
-                     }}
-                     onAttendanceStatsUpdate={updateScheduleAttendance}
-                     onFormationReset={handleFormationReset}
-                     onGuestStatusUpdate={updateScheduleGuestStatus}
-                     allowGuests={nextUpcomingSchedule.allowGuests}
-                     hasTeamFormation={!!formationResults}
-                   /> */}
-                   
                    <div className="flex gap-2">
-                     {(() => {
-                       const daysLeft = calculateDaysLeft(nextUpcomingSchedule.date)
-                       const attendingCount = nextUpcomingSchedule.attendees?.filter((att: any) => 
-                         att.status === 'attending' || att.status === 'attended'
-                       ).length || 0
-                       return isManagerMode && daysLeft <= 2 && daysLeft >= 0 && attendingCount >= 6 && (
-                         <Button
-                           onClick={async () => {
-                             setIsFormingTeams(true)
-                             try {
-                               const result = autoFormTeams(nextUpcomingSchedule)
-                               console.log('팀편성 결과:', result)
-                               if (result.message) {
-                                 setFormationResults({ ...result, scheduleId: nextUpcomingSchedule.id })
-                               } else {
-                                 setIsSavingFormation(true)
-                                 const saveResponse = await fetch('/api/schedule/formation', {
-                                   method: 'POST',
-                                   headers: { 'Content-Type': 'application/json' },
-                                   body: JSON.stringify({
-                                     scheduleId: nextUpcomingSchedule.id,
-                                     yellowTeam: result.yellowTeam,
-                                     blueTeam: result.blueTeam,
-                                     yellowAverage: result.yellowAverage,
-                                     blueAverage: result.blueAverage,
-                                     levelDifference: result.levelDifference
-                                   })
-                                 })
-
-                               if (saveResponse.ok) {
-                                 setFormationResults({ ...result, scheduleId: nextUpcomingSchedule.id })
-                                 setIsFormationOpen(true) // 팀편성 완료 시 자동으로 펼치기
-                                 fetchSchedules()
-                               } else {
-                                   setFormationResults({
-                                     yellowTeam: [],
-                                     blueTeam: [],
-                                     message: '팀편성 저장에 실패했습니다.',
-                                     scheduleId: nextUpcomingSchedule.id
-                                   })
-                                 }
-                                 setIsSavingFormation(false)
-                               }
-                             } catch (error) {
-                               console.error('팀편성 중 오류:', error)
-                               setFormationResults({
-                                 yellowTeam: [],
-                                 blueTeam: [],
-                                 message: '팀편성 중 오류가 발생했습니다.',
-                                 scheduleId: nextUpcomingSchedule.id
-                               })
-                             } finally {
-                               setIsFormingTeams(false)
-                             }
-                           }}
-                           className="flex-1 bg-green-600 hover:bg-green-700"
-                           size="sm"
-                           disabled={isFormingTeams || isSavingFormation}
-                         >
-                           {isFormingTeams ? "편성 중..." : isSavingFormation ? "저장 중..." : "팀편성하기"}
-                         </Button>
-                       )
-                     })()}
-
                      {/* 게스트 허용 버튼 (총무 전용) */}
                      {isManagerMode && nextUpcomingSchedule.type === "internal" && (
                        <Button
@@ -1332,236 +1025,6 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
         </div>
       )}
 
-       {/* 팀편성 결과 표시 */}
-       {formationResults && formationResults.scheduleId === nextUpcomingSchedule?.id && (
-         <Card className="border-l-4 border-l-green-500">
-           <Collapsible open={isFormationOpen} onOpenChange={setIsFormationOpen}>
-             <CollapsibleTrigger asChild>
-               <CardContent className="p-4 cursor-pointer hover:bg-gray-50 transition-colors">
-                 <div className="flex items-center justify-between">
-                   <div className="flex items-center gap-2">
-                     <h3 className="text-lg font-bold text-gray-900">팀편성 결과</h3>
-                     {formationResults.message && (
-                       <Badge variant="destructive" className="text-xs">
-                         {formationResults.message}
-                       </Badge>
-                     )}
-                   </div>
-                   <div className="flex items-center gap-2">
-                     <Badge variant="outline" className="text-xs">
-                       {formationResults.yellowTeam?.length || 0} vs {formationResults.blueTeam?.length || 0}
-                     </Badge>
-                     {isFormationOpen ? (
-                       <ChevronDown className="h-4 w-4 text-gray-500" />
-                     ) : (
-                       <ChevronRight className="h-4 w-4 text-gray-500" />
-                     )}
-                   </div>
-                 </div>
-               </CardContent>
-             </CollapsibleTrigger>
-             <CollapsibleContent>
-               <CardContent className="space-y-4 p-6 pt-0">
-                 {!formationResults.message && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* 노랑팀 */}
-                <div className="space-y-3">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 bg-yellow-500 rounded-full"></div>
-                      <h4 className="font-medium text-base">노랑팀 ({formationResults.yellowTeam.length}명)</h4>
-                    </div>
-                    <div className="text-xs text-muted-foreground text-left pl-6">
-                      골키퍼 {formationResults.yellowTeam.filter((p: any) => p.position === 'GK').length} |
-                      수비수 {formationResults.yellowTeam.filter((p: any) => ['DC', 'DR', 'DL', 'DRL', 'DRLC'].includes(p.position)).length} |
-                      미드필더 {formationResults.yellowTeam.filter((p: any) => ['MC', 'AMC', 'DM'].includes(p.position)).length} |
-                      공격수 {formationResults.yellowTeam.filter((p: any) => ['ST', 'CF', 'SS', 'LWF', 'RWF'].includes(p.position)).length}
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    {formationResults.yellowTeam
-                      .sort((a: any, b: any) => {
-                        const getPositionOrder = (pos: string) => {
-                          if (pos === 'GK') return 1
-                          if (['DC', 'DR', 'DL', 'DRL', 'DRLC'].includes(pos)) return 2
-                          if (['MC', 'AMC', 'DM'].includes(pos)) return 3
-                          if (['ST', 'CF', 'SS', 'LWF', 'RWF'].includes(pos)) return 4
-                          return 5
-                        }
-                        return getPositionOrder(a.position) - getPositionOrder(b.position)
-                      })
-                      .map((player: any) => (
-                      <div key={player.userId || player.id} className="flex items-center gap-2 text-sm p-2 bg-yellow-50 rounded-lg">
-                        {player.isGuest ? (
-                          <div className="h-6 w-6 bg-gray-200 rounded-full flex items-center justify-center">
-                            <span className="text-xs font-bold text-gray-600">G</span>
-                          </div>
-                        ) : (
-                          <Avatar className="h-6 w-6">
-                            {player.profileImage || player.image ? (
-                              <img
-                                src={(player.profileImage || player.image || "").toString().startsWith("http://") 
-                                  ? (player.profileImage || player.image || "").toString().replace("http://", "https://") 
-                                  : player.profileImage || player.image}
-                                alt={player.name}
-                                className="h-full w-full object-cover rounded-full"
-                                onError={(e) => {
-                                  e.currentTarget.style.display = 'none';
-                                  e.currentTarget.nextElementSibling.style.display = 'flex';
-                                }}
-                              />
-                            ) : null}
-                            <AvatarFallback className="text-xs">{player.name[0]}</AvatarFallback>
-                          </Avatar>
-                        )}
-                        <div className="flex-1 flex items-center gap-2">
-                          <span className="font-medium">{player.name}</span>
-                          <Badge className={getPositionColor(player.position)} variant="outline" size="sm">
-                            {player.position}
-                          </Badge>
-                          {player.isGuest && (
-                            <Badge className="bg-gray-100 text-gray-800 border-gray-300" variant="outline" size="sm">
-                              GUEST
-                            </Badge>
-                          )}
-                          {player.subPositions && player.subPositions.length > 0 && (
-                            <span className="text-xs text-muted-foreground">
-                              + {player.subPositions.join(', ')}
-                            </span>
-                          )}
-                        </div>
-                        <Badge variant="secondary" className="text-xs">
-                          {(() => {
-                            const level = player.level
-                            if (!level || level < 1 || level > 13) return '루키'
-                            if (level === 1) return '루키'
-                            if (level <= 4) return `비기너${level - 1}`
-                            if (level <= 9) return `아마${level - 4}`
-                            if (level <= 12) return `세미프로${level - 9}`
-                            return '프로'
-                          })()}
-                        </Badge>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* 파랑팀 */}
-                <div className="space-y-3">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 bg-blue-500 rounded-full"></div>
-                      <h4 className="font-medium text-base">파랑팀 ({formationResults.blueTeam.length}명)</h4>
-                    </div>
-                    <div className="text-xs text-muted-foreground text-left pl-6">
-                      골키퍼 {formationResults.blueTeam.filter((p: any) => p.position === 'GK').length} |
-                      수비수 {formationResults.blueTeam.filter((p: any) => ['DC', 'DR', 'DL', 'DRL', 'DRLC'].includes(p.position)).length} |
-                      미드필더 {formationResults.blueTeam.filter((p: any) => ['MC', 'AMC', 'DM'].includes(p.position)).length} |
-                      공격수 {formationResults.blueTeam.filter((p: any) => ['ST', 'CF', 'SS', 'LWF', 'RWF'].includes(p.position)).length}
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    {formationResults.blueTeam
-                      .sort((a: any, b: any) => {
-                        const getPositionOrder = (pos: string) => {
-                          if (pos === 'GK') return 1
-                          if (['DC', 'DR', 'DL', 'DRL', 'DRLC'].includes(pos)) return 2
-                          if (['MC', 'AMC', 'DM'].includes(pos)) return 3
-                          if (['ST', 'CF', 'SS', 'LWF', 'RWF'].includes(pos)) return 4
-                          return 5
-                        }
-                        return getPositionOrder(a.position) - getPositionOrder(b.position)
-                      })
-                      .map((player: any) => (
-                      <div key={player.userId || player.id} className="flex items-center gap-2 text-sm p-2 bg-blue-50 rounded-lg">
-                        {player.isGuest ? (
-                          <div className="h-6 w-6 bg-gray-200 rounded-full flex items-center justify-center">
-                            <span className="text-xs font-bold text-gray-600">G</span>
-                          </div>
-                        ) : (
-                          <Avatar className="h-6 w-6">
-                            {player.profileImage || player.image ? (
-                              <img
-                                src={(player.profileImage || player.image || "").toString().startsWith("http://") 
-                                  ? (player.profileImage || player.image || "").toString().replace("http://", "https://") 
-                                  : player.profileImage || player.image}
-                                alt={player.name}
-                                className="h-full w-full object-cover rounded-full"
-                                onError={(e) => {
-                                  e.currentTarget.style.display = 'none';
-                                  e.currentTarget.nextElementSibling.style.display = 'flex';
-                                }}
-                              />
-                            ) : null}
-                            <AvatarFallback className="text-xs">{player.name[0]}</AvatarFallback>
-                          </Avatar>
-                        )}
-                        <div className="flex-1 flex items-center gap-2">
-                          <span className="font-medium">{player.name}</span>
-                          <Badge className={getPositionColor(player.position)} variant="outline" size="sm">
-                            {player.position}
-                          </Badge>
-                          {player.isGuest && (
-                            <Badge className="bg-gray-100 text-gray-800 border-gray-300" variant="outline" size="sm">
-                              GUEST
-                            </Badge>
-                          )}
-                          {player.subPositions && player.subPositions.length > 0 && (
-                            <span className="text-xs text-muted-foreground">
-                              + {player.subPositions.join(', ')}
-                            </span>
-                          )}
-                        </div>
-                        <Badge variant="secondary" className="text-xs">
-                          {(() => {
-                            const level = player.level
-                            if (!level || level < 1 || level > 13) return '루키'
-                            if (level === 1) return '루키'
-                            if (level <= 4) return `비기너${level - 1}`
-                            if (level <= 9) return `아마${level - 4}`
-                            if (level <= 12) return `세미프로${level - 9}`
-                            return '프로'
-                          })()}
-                        </Badge>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-                 {/* 팀편성 초기화 버튼 (총무 전용) */}
-                 {!formationResults.message && isManagerMode && (
-                   <div className="text-center pt-2">
-                     <Button
-                       onClick={async () => {
-                         if (!nextUpcomingSchedule?.id) return
-                         try {
-                           const response = await fetch(`/api/schedule/formation?scheduleId=${nextUpcomingSchedule.id}`, {
-                             method: 'DELETE'
-                           })
-                           if (response.ok) {
-                             setFormationResults(null)
-                             setIsFormationOpen(false)
-                             fetchSchedules()
-                           }
-                         } catch (error) {
-                           console.error('팀편성 초기화 중 오류:', error)
-                         }
-                       }}
-                       variant="outline"
-                       size="sm"
-                     >
-                       팀편성 초기화
-                     </Button>
-                   </div>
-                 )}
-               </CardContent>
-             </CollapsibleContent>
-           </Collapsible>
-         </Card>
-       )}
-
       {/* 일정 목록 - 이후 일정과 지난 일정으로 분류 */}
       <div className="space-y-6">
         {/* 이후 일정 */}
@@ -1607,13 +1070,9 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                 currentUser={currentUser}
                 isManagerMode={isManagerMode}
                 isUpdating={isScheduleUpdating(schedule.id)}
-                onAttendanceUpdate={updateScheduleAttendance}
-                onAttendanceStatsUpdate={updateScheduleAttendance}
-                onFormationReset={handleFormationReset}
                 onGuestStatusUpdate={updateScheduleGuestStatus}
                 onDeleteSchedule={handleDeleteSchedule}
                 onEditSchedule={handleEditSchedule}
-                hasTeamFormation={!!formationResults}
               />
             ))
           })()}
@@ -1662,13 +1121,9 @@ export function ScheduleManagement({ isManagerMode, currentUser }: ScheduleManag
                   currentUser={currentUser}
                   isManagerMode={isManagerMode}
                   isUpdating={isScheduleUpdating(schedule.id)}
-                  onAttendanceUpdate={updateScheduleAttendance}
-                  onAttendanceStatsUpdate={updateScheduleAttendance}
-                  onFormationReset={handleFormationReset}
-                  onGuestStatusUpdate={updateScheduleGuestStatus}
-                  onDeleteSchedule={handleDeleteSchedule}
-                  onEditSchedule={handleEditSchedule}
-                  hasTeamFormation={!!formationResults}
+                onGuestStatusUpdate={updateScheduleGuestStatus}
+                onDeleteSchedule={handleDeleteSchedule}
+                onEditSchedule={handleEditSchedule}
                 />
               ))
             })()}
