@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { formTeams, getPositionCategory, getLevelCategory, getLevelLabelForFormation } from '@/lib/team-formation'
 
@@ -71,6 +72,7 @@ export async function POST(request: NextRequest) {
             level: null,
             guestLevel: att.guestLevel || '보통',
             isGuest: true,
+            invitedByUserId: att.invitedByUserId || undefined, // 초대한 사용자 ID 추가
             positionCategory: getPositionCategory(guestPosition), // 게스트도 주포지션 카테고리 저장
             levelCategory: att.guestLevel || '보통'
           }
@@ -201,7 +203,7 @@ export async function DELETE(request: NextRequest) {
     await prisma.schedule.update({
       where: { id: scheduleId },
       data: {
-        teamFormation: null,
+        teamFormation: Prisma.JsonNull,
         formationDate: null
       }
     })

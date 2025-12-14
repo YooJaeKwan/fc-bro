@@ -99,6 +99,36 @@ function calculatePositionCategoryDiff(yellowTeam: any[], blueTeam: any[]): numb
   return totalDiff
 }
 
+// 포지션 카테고리별 최대 차이 계산
+function calculateMaxPositionCategoryDiff(yellowTeam: any[], blueTeam: any[]): number {
+  const yellowCategories: { [key: string]: number } = {}
+  const blueCategories: { [key: string]: number } = {}
+
+  yellowTeam.forEach(player => {
+    const category = player.positionCategory || getPositionCategory(player.position) || '미정'
+    if (category !== '미정' && category !== '게스트') {
+      yellowCategories[category] = (yellowCategories[category] || 0) + 1
+    }
+  })
+
+  blueTeam.forEach(player => {
+    const category = player.positionCategory || getPositionCategory(player.position) || '미정'
+    if (category !== '미정' && category !== '게스트') {
+      blueCategories[category] = (blueCategories[category] || 0) + 1
+    }
+  })
+
+  // 포지션 카테고리별 최대 차이 계산
+  const allCategories = new Set([...Object.keys(yellowCategories), ...Object.keys(blueCategories)])
+  let maxDiff = 0
+  allCategories.forEach(category => {
+    const diff = Math.abs((yellowCategories[category] || 0) - (blueCategories[category] || 0))
+    maxDiff = Math.max(maxDiff, diff)
+  })
+
+  return maxDiff
+}
+
 // 팀 편성 점수 계산
 function calculateFormationScore(
   yellowTeam: any[],
@@ -140,8 +170,10 @@ function calculateFormationScore(
     // 포지션 카테고리별 차이 계산
     const allCategories = new Set([...Object.keys(yellowCategories), ...Object.keys(blueCategories)])
     let positionScore = 0
+    let maxCategoryDiff = 0
     allCategories.forEach(category => {
       const diff = Math.abs((yellowCategories[category] || 0) - (blueCategories[category] || 0))
+      maxCategoryDiff = Math.max(maxCategoryDiff, diff)
       // 차이가 0이면 1000점, 1이면 500점, 2이면 100점, 3 이상이면 0점
       if (diff === 0) {
         positionScore += 1000
@@ -152,6 +184,10 @@ function calculateFormationScore(
       }
     })
     score += positionScore
+    // 포지션 카테고리 차이가 2명 이상이면 큰 페널티
+    if (maxCategoryDiff >= 2) {
+      score -= 10000
+    }
   }
 
   // 3. 평균 레벨 차이 (포지션 배분 후 고려 - 100점 만점)
@@ -208,14 +244,51 @@ export function formTeams(players: any[]): { yellowTeam: any[], blueTeam: any[],
     const currentYellow: any[] = []
     const currentBlue: any[] = []
 
-    // 모든 플레이어 분배 (골키퍼 포함)
-    for (let i = 0; i < reShuffled.length; i++) {
-      if (i < targetPerTeam + (remainder > 0 ? 1 : 0)) {
-        currentYellow.push(reShuffled[i])
+    // 게스트와 초대자를 같은 팀에 배치하기 위한 맵 생성
+    const inviterTeamMap: { [key: string]: 'yellow' | 'blue' } = {}
+    
+    // 일반 플레이어와 게스트 분리
+    const regularPlayers: any[] = []
+    const guests: any[] = []
+    
+    reShuffled.forEach(player => {
+      if (player.isGuest && player.invitedByUserId) {
+        guests.push(player)
       } else {
-        currentBlue.push(reShuffled[i])
+        regularPlayers.push(player)
+      }
+    })
+
+    // 일반 플레이어 먼저 분배
+    for (let i = 0; i < regularPlayers.length; i++) {
+      const player = regularPlayers[i]
+      if (i < Math.floor(regularPlayers.length / 2) + (regularPlayers.length % 2)) {
+        currentYellow.push(player)
+        inviterTeamMap[player.userId] = 'yellow'
+      } else {
+        currentBlue.push(player)
+        inviterTeamMap[player.userId] = 'blue'
       }
     }
+    
+    // 게스트를 초대자와 같은 팀에 배치
+    guests.forEach(guest => {
+      if (guest.invitedByUserId && inviterTeamMap[guest.invitedByUserId]) {
+        const inviterTeam = inviterTeamMap[guest.invitedByUserId]
+        if (inviterTeam === 'yellow') {
+          currentYellow.push(guest)
+        } else {
+          currentBlue.push(guest)
+        }
+      } else {
+        // 초대자가 없는 경우 균형에 맞춰 배치
+        if (currentYellow.length <= currentBlue.length) {
+          currentYellow.push(guest)
+        } else {
+          currentBlue.push(guest)
+        }
+      }
+    })
 
     // 레벨 점수 계산
     const yellowLevels = currentYellow.map(p => 
@@ -230,12 +303,13 @@ export function formTeams(players: any[]): { yellowTeam: any[], blueTeam: any[],
     
     const countDiff = Math.abs(currentYellow.length - currentBlue.length)
     const positionDiff = calculatePositionCategoryDiff(currentYellow, currentBlue)
+    const maxPositionDiff = calculateMaxPositionCategoryDiff(currentYellow, currentBlue)
     const yellowAvg = yellowLevels.length > 0 ? yellowLevels.reduce((a, b) => a + b, 0) / yellowLevels.length : 0
     const blueAvg = blueLevels.length > 0 ? blueLevels.reduce((a, b) => a + b, 0) / blueLevels.length : 0
     const avgDiff = Math.abs(yellowAvg - blueAvg)
 
-    // 인원수가 같거나 1명 차이인 경우만 후보에 추가
-    if (countDiff <= 1) {
+    // 인원수가 같거나 1명 차이이고, 포지션 카테고리별 최대 차이가 1명 이하인 경우만 후보에 추가
+    if (countDiff <= 1 && maxPositionDiff <= 1) {
       candidates.push({
         yellowTeam: currentYellow,
         blueTeam: currentBlue,
