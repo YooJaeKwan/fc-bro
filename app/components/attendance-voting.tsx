@@ -633,7 +633,12 @@ export function AttendanceVoting({
                             )}
                           </p>
                           {attendee.position && (
-                            <p className="text-xs text-gray-500">{attendee.position}</p>
+                            <p className="text-xs text-gray-500">
+                              {attendee.position}
+                              {attendee.subPositions && attendee.subPositions.length > 0 && (
+                                <span className="text-gray-400"> (+{attendee.subPositions.join(', ')})</span>
+                              )}
+                            </p>
                           )}
                         </div>
                         {attendee.isGuest && (
@@ -686,7 +691,12 @@ export function AttendanceVoting({
                             )}
                           </p>
                           {attendee.position && (
-                            <p className="text-xs text-gray-500">{attendee.position}</p>
+                            <p className="text-xs text-gray-500">
+                              {attendee.position}
+                              {attendee.subPositions && attendee.subPositions.length > 0 && (
+                                <span className="text-gray-400"> (+{attendee.subPositions.join(', ')})</span>
+                              )}
+                            </p>
                           )}
                         </div>
                         {attendee.isGuest && (
