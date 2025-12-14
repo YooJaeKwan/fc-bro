@@ -56,9 +56,9 @@ export function UserSignup({ kakaoUserInfo, onSignupComplete, onBack }: UserSign
     defender: {
       name: "수비수",
       positions: [
-        { value: "DC", label: "DC (센터백)" },
-        { value: "DR", label: "DR (오른쪽 풀백)" },
-        { value: "DL", label: "DL (왼쪽 풀백)" },
+        { value: "CB", label: "CB (센터백)" },
+        { value: "RB", label: "RB (오른쪽 풀백)" },
+        { value: "LB", label: "LB (왼쪽 풀백)" },
         { value: "LRB", label: "LRB (양쪽 풀백 가능)" },
         { value: "LRCB", label: "LRCB (멀티 수비수)" }
       ]

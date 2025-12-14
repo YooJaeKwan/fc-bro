@@ -24,9 +24,9 @@ const positions = {
     { code: "DM", name: "수비형 미드필더 (CDM)" },
   ],
   수비수: [
-    { code: "DC", name: "센터백 (DC)" },
-    { code: "DR", name: "라이트백 (DR)" },
-    { code: "DL", name: "레프트백 (DL)" },
+    { code: "CB", name: "센터백 (CB)" },
+    { code: "RB", name: "라이트백 (RB)" },
+    { code: "LB", name: "레프트백 (LB)" },
     { code: "LRB", name: "양쪽 풀백 (LRB)" },
     { code: "LRCB", name: "멀티 수비수 (LRCB)" },
   ],
