@@ -390,6 +390,14 @@ export function formTeams(players: any[]): { yellowTeam: any[], blueTeam: any[],
     p.position?.toUpperCase() === 'GK'
   )
   
+  // 각 팀의 골키퍼 수 계산
+  const getGoalkeeperCount = (team: any[]): number => {
+    return team.filter(p => 
+      getPositionCategory(p.position) === '골키퍼' || 
+      p.position?.toUpperCase() === 'GK'
+    ).length
+  }
+  
   // 골키퍼가 없는 팀에 부포지션이 GK인 선수 배치
   const assignBackupGoalkeeper = (team: any[]) => {
     // 골키퍼가 있는지 확인 (주포지션이 골키퍼인 선수)
@@ -437,9 +445,26 @@ export function formTeams(players: any[]): { yellowTeam: any[], blueTeam: any[],
     }
   }
 
-  // 주포지션이 골키퍼인 선수가 1명 이하이고, 부포지션이 GK인 선수가 있으면 배치
-  if (mainGoalkeepers.length <= 1) {
-    // 각 팀에 골키퍼 배치 확인
+  // 주포지션이 골키퍼인 선수가 홀수일 경우, 골키퍼가 적은 팀에 부포지션이 GK인 선수 배치
+  if (mainGoalkeepers.length > 0 && mainGoalkeepers.length % 2 === 1) {
+    // 각 팀의 골키퍼 수 확인
+    const yellowGKCount = getGoalkeeperCount(bestFormation.yellowTeam)
+    const blueGKCount = getGoalkeeperCount(bestFormation.blueTeam)
+    
+    // 골키퍼가 적은 팀에 부포지션이 GK인 선수 배치
+    if (yellowGKCount < blueGKCount) {
+      // 노랑팀에 골키퍼가 적으면 노랑팀에 배치
+      assignBackupGoalkeeper(bestFormation.yellowTeam)
+    } else if (blueGKCount < yellowGKCount) {
+      // 파랑팀에 골키퍼가 적으면 파랑팀에 배치
+      assignBackupGoalkeeper(bestFormation.blueTeam)
+    } else {
+      // 골키퍼 수가 같으면 양쪽 팀 모두 확인 (골키퍼가 없는 팀에 배치)
+      assignBackupGoalkeeper(bestFormation.yellowTeam)
+      assignBackupGoalkeeper(bestFormation.blueTeam)
+    }
+  } else if (mainGoalkeepers.length <= 1) {
+    // 주포지션이 골키퍼인 선수가 1명 이하이고, 부포지션이 GK인 선수가 있으면 배치
     assignBackupGoalkeeper(bestFormation.yellowTeam)
     assignBackupGoalkeeper(bestFormation.blueTeam)
   }
