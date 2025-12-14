@@ -381,7 +381,19 @@ export function AttendanceVoting({
 
         {/* 게스트 참석 버튼 (게스트 허용된 일정일 때만) */}
         {allowGuests && (
-          <Dialog open={isGuestDialogOpen} onOpenChange={setIsGuestDialogOpen}>
+          <Dialog 
+            open={isGuestDialogOpen} 
+            onOpenChange={(open) => {
+              setIsGuestDialogOpen(open)
+              // 다이얼로그가 닫힐 때 폼 필드 초기화
+              if (!open) {
+                setGuestName('')
+                setGuestLevel('')
+                setGuestPositions([])
+                setIsPositionAny(false)
+              }
+            }}
+          >
             <DialogTrigger asChild>
               <Button
                 variant="outline"
