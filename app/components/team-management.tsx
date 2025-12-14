@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Progress } from "@/components/ui/progress"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -19,13 +19,19 @@ import { LEVEL_OPTIONS, LEVEL_CATEGORIES, LEVEL_SYSTEM, getLevelLabel, getLevelS
 // 포지션별 한국어 매핑
 const positionMapping: Record<string, string> = {
   "GK": "골키퍼",
-  "CB": "수비수",
-  "RB": "수비수",
-  "LB": "수비수",
+  "DC": "수비수",
+  "CB": "수비수", // Center Back (DC와 동일)
+  "DR": "수비수",
+  "RB": "수비수", // Right Back (DR과 동일)
+  "DL": "수비수",
+  "LB": "수비수", // Left Back (DL과 동일)
   "DRL": "수비수",
   "DRLC": "수비수",
+  "DM": "미드필더",
   "CDM": "미드필더",
-  "CM": "미드필더", 
+  "MC": "미드필더",
+  "CM": "미드필더",
+  "AMC": "미드필더",
   "CAM": "미드필더",
   "ST": "공격수",
   "CF": "공격수",
@@ -37,25 +43,19 @@ const positionMapping: Record<string, string> = {
 // 포지션 풀네임 매핑
 const positionFullNames: Record<string, string> = {
   "GK": "GK (골키퍼)",
-  "CB": "CB (센터백)",
-  "RB": "RB (우측풀백)", 
-  "LB": "LB (좌측풀백)",
+  "DC": "DC (센터백)",
+  "DR": "DR (우측풀백)", 
+  "DL": "DL (좌측풀백)",
   "DRL": "DRL (우좌측풀백)",
   "DRLC": "DRLC (풀백/센터백)",
-  "CM": "CM (중앙미드필더)",
-  "CAM": "CAM (공격형미드필더)",
-  "CDM": "CDM (수비형미드필더)", 
+  "MC": "CM (중앙미드필더)",
+  "AMC": "CAM (공격형미드필더)",
+  "DM": "CDM (수비형미드필더)", 
   "ST": "ST (스트라이커)",
   "CF": "CF (센터포워드)",
   "SS": "SS (세컨드스트라이커)",
   "LWF": "LWF (좌측윙포워드)",
   "RWF": "RWF (우측윙포워드)"
-}
-
-// 이미지 URL을 HTTPS로 강제 변환
-const ensureHttps = (url?: string | null) => {
-  if (!url) return url || undefined
-  return url.startsWith("http://") ? url.replace("http://", "https://") : url
 }
 
 // 전화번호 포맷팅 함수
@@ -311,7 +311,7 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
 
   // 레벨 카테고리 가져오기
   const getLevelCategory = (level: number | null | undefined): string => {
-    if (!level || level < 1 || level > 13) return '루키'
+    if (!level || level < 1 || level > 10) return '루키'
     const category = LEVEL_SYSTEM[level as keyof typeof LEVEL_SYSTEM]?.category
     return category || '루키'
   }
@@ -326,7 +326,6 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
         "프로": [] as any[],
         "세미프로": [] as any[],
         "아마추어": [] as any[],
-        "비기너": [] as any[],
         "루키": [] as any[]
       }
 
@@ -614,13 +613,6 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                 borderColor: "border-blue-300",
                 iconBg: "bg-blue-100"
               },
-              "비기너": {
-                icon: User,
-                color: "text-green-600",
-                bgColor: "bg-gradient-to-r from-green-50 to-green-100/50",
-                borderColor: "border-green-300",
-                iconBg: "bg-green-100"
-              },
               "루키": {
                 icon: Users,
                 color: "text-gray-600",
@@ -672,7 +664,7 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                       <div className="flex items-center gap-3">
                         <div className="relative">
                           <Avatar className="h-12 w-12 ring-2 ring-white shadow-md">
-                            <AvatarImage src={ensureHttps(member.profileImage) || "/placeholder.svg"} />
+                            <AvatarImage src={member.profileImage || "/placeholder.svg"} />
                             <AvatarFallback className="bg-gradient-to-br from-blue-400 to-blue-600 text-white font-semibold">
                               {member.name[0]}
                             </AvatarFallback>
@@ -694,9 +686,8 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                                   className={`text-xs ${(() => {
                                     const level = member.level || 1
                                     if (level === 1) return 'bg-gray-50 text-gray-600 border-gray-200'
-                                    if (level <= 4) return 'bg-green-50 text-green-600 border-green-200'
-                                    if (level <= 9) return 'bg-blue-50 text-blue-600 border-blue-200'
-                                    if (level <= 12) return 'bg-purple-50 text-purple-600 border-purple-200'
+                                    if (level <= 6) return 'bg-blue-50 text-blue-600 border-blue-200'
+                                    if (level <= 9) return 'bg-purple-50 text-purple-600 border-purple-200'
                                     return 'bg-yellow-50 text-yellow-600 border-yellow-200'
                                   })()}`}
                                 >
@@ -739,7 +730,7 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                             <div className="flex items-center gap-4">
                               <Avatar className="h-16 w-16">
                                 {member.profileImage ? (
-                                  <img src={ensureHttps(member.profileImage)} alt={member.name} className="h-full w-full object-cover" />
+                                  <img src={member.profileImage} alt={member.name} className="h-full w-full object-cover" />
                                 ) : (
                                   <AvatarFallback className="text-2xl font-bold bg-blue-100 text-blue-600">
                                     {member.name[0]}
@@ -753,9 +744,7 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                                     <Badge variant="destructive" className="text-xs">비활성</Badge>
                                   )}
                                 </DialogTitle>
-                                <DialogDescription className="sr-only">
-                                  선수 상세 정보
-                                </DialogDescription>
+                                {/* <p className="text-muted-foreground mt-1">선수 상세 정보</p> */}
                               </div>
                             </div>
                           </DialogHeader>
@@ -1251,7 +1240,7 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                   <div className="flex items-center gap-3">
                     <div className="relative">
                       <Avatar className="h-12 w-12 ring-2 ring-white shadow-md">
-                        <AvatarImage src={ensureHttps(member.profileImage) || "/placeholder.svg"} />
+                        <AvatarImage src={member.profileImage || "/placeholder.svg"} />
                         <AvatarFallback className="bg-gradient-to-br from-blue-400 to-blue-600 text-white font-semibold">
                           {member.name[0]}
                         </AvatarFallback>
@@ -1279,14 +1268,13 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                              {/* 레벨 배지 */}
                              <Badge
                                variant="outline"
-                               className={`text-xs ${(() => {
-                                 const level = member.level || 1
-                                 if (level === 1) return 'bg-gray-50 text-gray-600 border-gray-200'
-                                 if (level <= 4) return 'bg-green-50 text-green-600 border-green-200'
-                                 if (level <= 9) return 'bg-blue-50 text-blue-600 border-blue-200'
-                                 if (level <= 12) return 'bg-purple-50 text-purple-600 border-purple-200'
-                                 return 'bg-yellow-50 text-yellow-600 border-yellow-200'
-                               })()}`}
+                                  className={`text-xs ${(() => {
+                                    const level = member.level || 1
+                                    if (level === 1) return 'bg-gray-50 text-gray-600 border-gray-200'
+                                    if (level <= 6) return 'bg-blue-50 text-blue-600 border-blue-200'
+                                    if (level <= 9) return 'bg-purple-50 text-purple-600 border-purple-200'
+                                    return 'bg-yellow-50 text-yellow-600 border-yellow-200'
+                                  })()}`}
                              >
                                {getLevelLabel(member.level)}
                              </Badge>
@@ -1327,7 +1315,7 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                             <div className="flex items-center gap-4">
                               <Avatar className="h-16 w-16">
                                 {member.profileImage ? (
-                                  <img src={ensureHttps(member.profileImage)} alt={member.name} className="h-full w-full object-cover" />
+                                  <img src={member.profileImage} alt={member.name} className="h-full w-full object-cover" />
                                 ) : (
                                   <AvatarFallback className="text-2xl font-bold bg-blue-100 text-blue-600">
                                     {member.name[0]}
@@ -1341,9 +1329,6 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                                     <Badge variant="destructive" className="text-xs">비활성</Badge>
                                   )}
                                 </DialogTitle>
-                                <DialogDescription className="sr-only">
-                                  선수 상세 정보
-                                </DialogDescription>
                               </div>
                             </div>
                           </DialogHeader>

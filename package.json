@@ -7,15 +7,7 @@
     "dev": "next dev",
     "lint": "next lint",
     "start": "next start",
-    "postinstall": "prisma generate",
-    "export:data": "node scripts/export-data.js",
-    "import:data": "node scripts/import-data.js",
-    "setup:dev": "node scripts/setup-dev-db.js",
-    "seed:dev": "node scripts/seed-dev-data.js",
-    "quick-setup:dev": "node scripts/setup-dev-db.js && node scripts/seed-dev-data.js --force",
-    "init:db": "node scripts/init-new-db.js",
-    "init:db:full": "node scripts/init-new-db.js && node scripts/seed-dev-data.js --force",
-    "update:positions": "node scripts/update-position-names.js"
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.10.0",

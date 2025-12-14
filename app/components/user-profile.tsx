@@ -71,17 +71,17 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
     midfielder: {
       name: "미드필더",
       positions: [
-        { value: "CAM", label: "CAM (공격형 미드필더)" },
-        { value: "CM", label: "CM (중앙 미드필더)" },
-        { value: "CDM", label: "CDM (수비형 미드필더)" }
+        { value: "AMC", label: "CAM (공격형 중앙 미드필더)" },
+        { value: "MC", label: "CM (중앙 미드필더)" },
+        { value: "DM", label: "CDM (수비형 미드필더)" }
       ]
     },
     defender: {
       name: "수비수",
       positions: [
-        { value: "CB", label: "CB (센터백)" },
-        { value: "RB", label: "RB (우측 풀백)" },
-        { value: "LB", label: "LB (좌측 풀백)" },
+        { value: "DC", label: "DC (센터백)" },
+        { value: "DR", label: "DR (오른쪽 풀백)" },
+        { value: "DL", label: "DL (왼쪽 풀백)" },
         { value: "DRL", label: "DRL (양쪽 풀백 가능)" },
         { value: "DRLC", label: "DRLC (멀티 수비수)" }
       ]
@@ -267,7 +267,7 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
           {/* 프로필 이미지와 기본 정보 */}
           <div className="flex items-center space-x-4">
             <Avatar className="h-16 w-16">
-              <AvatarImage src={(userInfo?.profileImage?.startsWith("http://") ? userInfo.profileImage.replace("http://", "https://") : userInfo?.profileImage) || "/placeholder.svg"} />
+              <AvatarImage src={userInfo?.profileImage || "/placeholder.svg"} />
               <AvatarFallback className="text-lg">
                 {(userInfo?.realName || userInfo?.nickname)?.[0] || 'U'}
               </AvatarFallback>

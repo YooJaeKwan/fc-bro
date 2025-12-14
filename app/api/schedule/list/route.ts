@@ -77,7 +77,7 @@ export async function GET() {
           return {
             name: attendance.guestName || '게스트',
             status: attendance.status.toLowerCase(),
-            position: attendance.guestPosition || 'CM',
+            position: attendance.guestPosition || 'MC',
             subPositions: [],
             userId: attendance.guestId || attendance.userId,
             level: attendance.guestLevel || 7,  // 게스트 레벨 추가
@@ -88,7 +88,7 @@ export async function GET() {
         return {
           name: attendance.user?.realName || attendance.user?.nickname || '이름 없음',
           status: attendance.status.toLowerCase(),
-          position: attendance.user?.preferredPosition || 'CM',
+          position: attendance.user?.preferredPosition || 'MC',
           subPositions: attendance.user?.subPositions || [],
           userId: attendance.user?.id || attendance.userId,
           isGuest: false
@@ -105,7 +105,7 @@ export async function GET() {
         return {
           name: user.realName || user.nickname || '이름 없음',
           status: 'pending',
-          position: user.preferredPosition || 'CM',
+          position: user.preferredPosition || 'MC',
           subPositions: user.subPositions || [],
           userId: user.id,
           isGuest: false
@@ -135,9 +135,9 @@ export async function GET() {
         trainingContent: schedule.trainingContent,
         status: schedule.status.toLowerCase(), // SCHEDULED -> scheduled
         attendees: finalAttendees.map(addTempRating),
+        teamFormation: schedule.teamFormation, // 팀편성 결과 포함
+        formationDate: schedule.formationDate?.toISOString() || null,
         allowGuests: schedule.allowGuests || false, // 게스트 허용 상태
-        teamFormation: schedule.teamFormation, // 팀편성 결과
-        formationDate: schedule.formationDate?.toISOString() || null, // 팀편성 생성 일시
         createdBy: {
           id: schedule.creator.id,
           name: schedule.creator.realName || schedule.creator.nickname

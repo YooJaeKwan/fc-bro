@@ -1,363 +1,373 @@
-// 팀편성 알고리즘 유틸리티
+import { LEVEL_SYSTEM, getLevelLabel } from './level-system'
 
 // 포지션 대분류 매핑
+export const positionMapping: Record<string, string> = {
+  "GK": "골키퍼",
+  "DC": "수비수",
+  "CB": "수비수", // Center Back (DC와 동일)
+  "DR": "수비수",
+  "RB": "수비수", // Right Back (DR과 동일)
+  "DL": "수비수",
+  "LB": "수비수", // Left Back (DL과 동일)
+  "DRL": "수비수",
+  "DRLC": "수비수",
+  "CDM": "미드필더",
+  "DM": "미드필더",
+  "CM": "미드필더",
+  "MC": "미드필더",
+  "CAM": "미드필더",
+  "AMC": "미드필더",
+  "ST": "공격수",
+  "CF": "공격수",
+  "SS": "공격수",
+  "LWF": "공격수",
+  "RWF": "공격수"
+}
+
+// 포지션 카테고리 가져오기
 export function getPositionCategory(position: string | null | undefined): string {
   if (!position) return '미정'
-  
-  const pos = position.toUpperCase()
-  
-  // 공격수
-  if (['ST', 'CF', 'SS', 'LWF', 'RWF'].includes(pos)) {
-    return '공격수'
-  }
-  
-  // 미드필더
-  if (['CAM', 'CM', 'CDM'].includes(pos)) {
-    return '미드필더'
-  }
-  
-  // 수비수
-  if (['CB', 'RB', 'LB', 'DRL', 'DRLC'].includes(pos)) {
-    return '수비수'
-  }
-  
-  // 골키퍼
-  if (pos === 'GK') {
-    return '골키퍼'
-  }
-  
-  return '미정'
+  return positionMapping[position.toUpperCase()] || '미정'
 }
 
-// 레벨을 점수로 변환 (루키=1점, 아마추어1=2점 ... 프로=10점)
-export function levelToScore(level: number | null | undefined): number {
-  if (!level || level < 1) return 1
-  // 레벨을 그대로 점수로 사용하되, 10 이상은 10으로 제한
-  return Math.min(level, 10)
+// 레벨 점수 계산 (선수용)
+export function getPlayerLevelScore(level: number | null | undefined): number {
+  if (!level || level < 1 || level > 10) return 1
+  return level // 레벨이 곧 점수 (1~10)
 }
 
-// 게스트 레벨을 점수로 변환 (미숙=1, 보통=2, 잘함=3)
-export function guestLevelToScore(guestLevel: number | null | undefined): number {
-  if (!guestLevel) return 1
-  return Math.min(Math.max(guestLevel, 1), 3)
+// 레벨 점수 계산 (게스트용)
+export function getGuestLevelScore(guestLevel: string | null | undefined): number {
+  if (!guestLevel) return 2
+  switch (guestLevel) {
+    case '미숙': return 2
+    case '보통': return 3
+    case '잘함': return 4
+    default: return 2
+  }
 }
 
-// 참석자 인터페이스
-export interface AttendeeForFormation {
-  userId: string
-  name: string
-  position: string | null
-  subPositions: string[]
-  level: number | null
-  isGuest: boolean
-  guestLevel?: number | null
-  category?: string // 포지션 대분류 (팀편성 알고리즘에서 계산)
-  score?: number // 레벨 점수 (팀편성 알고리즘에서 계산)
-  status?: 'attending' | 'not_attending' | 'pending' // API에서 사용
+// 레벨 카테고리 가져오기 (팀편성 표시용)
+export function getLevelCategory(level: number | null | undefined): string {
+  if (!level || level < 1 || level > 10) return '루키'
+  return LEVEL_SYSTEM[level as keyof typeof LEVEL_SYSTEM]?.category || '루키'
 }
 
-// 팀편성 결과 인터페이스
-export interface TeamFormationResult {
-  yellowTeam: AttendeeForFormation[]
-  blueTeam: AttendeeForFormation[]
-  yellowTeamStats: {
-    count: number
-    averageScore: number
-    positionCounts: {
-      공격수: number
-      미드필더: number
-      수비수: number
-      골키퍼: number
+// 레벨 라벨 가져오기 (팀편성 표시용)
+export function getLevelLabelForFormation(level: number | null | undefined): string {
+  if (!level || level < 1 || level > 10) return '루키'
+  return getLevelLabel(level)
+}
+
+// Fisher-Yates 셔플 알고리즘
+function shuffle<T>(array: T[]): T[] {
+  const shuffled = [...array]
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+  }
+  return shuffled
+}
+
+// 포지션 카테고리별 차이 계산 (점수가 낮을수록 좋음)
+function calculatePositionCategoryDiff(yellowTeam: any[], blueTeam: any[]): number {
+  const yellowCategories: { [key: string]: number } = {}
+  const blueCategories: { [key: string]: number } = {}
+
+  yellowTeam.forEach(player => {
+    const category = player.positionCategory || getPositionCategory(player.position) || '미정'
+    if (category !== '미정' && category !== '게스트') {
+      yellowCategories[category] = (yellowCategories[category] || 0) + 1
     }
-  }
-  blueTeamStats: {
-    count: number
-    averageScore: number
-    positionCounts: {
-      공격수: number
-      미드필더: number
-      수비수: number
-      골키퍼: number
-    }
-  }
-}
-
-// 팀 통계 계산
-function calculateTeamStats(team: AttendeeForFormation[]) {
-  const positionCounts = {
-    공격수: 0,
-    미드필더: 0,
-    수비수: 0,
-    골키퍼: 0,
-    미정: 0
-  }
-  
-  let totalScore = 0
-  
-  team.forEach(player => {
-    positionCounts[player.category as keyof typeof positionCounts] = 
-      (positionCounts[player.category as keyof typeof positionCounts] || 0) + 1
-    totalScore += player.score
   })
-  
-  return {
-    count: team.length,
-    averageScore: team.length > 0 ? Number((totalScore / team.length).toFixed(2)) : 0,
-    positionCounts: {
-      공격수: positionCounts.공격수,
-      미드필더: positionCounts.미드필더,
-      수비수: positionCounts.수비수,
-      골키퍼: positionCounts.골키퍼
+
+  blueTeam.forEach(player => {
+    const category = player.positionCategory || getPositionCategory(player.position) || '미정'
+    if (category !== '미정' && category !== '게스트') {
+      blueCategories[category] = (blueCategories[category] || 0) + 1
     }
-  }
+  })
+
+  // 포지션 카테고리별 차이 합계
+  const allCategories = new Set([...Object.keys(yellowCategories), ...Object.keys(blueCategories)])
+  let totalDiff = 0
+  allCategories.forEach(category => {
+    const diff = Math.abs((yellowCategories[category] || 0) - (blueCategories[category] || 0))
+    totalDiff += diff
+  })
+
+  return totalDiff
 }
 
-// 팀편성 알고리즘
-export function formTeams(attendees: AttendeeForFormation[]): TeamFormationResult {
-  // 참석 인원만 필터링 (status가 있으면 'attending'만, 없으면 모두 포함)
-  const attendingPlayers = attendees.filter(a => !a.status || a.status === 'attending')
+// 팀 편성 점수 계산
+function calculateFormationScore(
+  yellowTeam: any[],
+  blueTeam: any[],
+  yellowLevels: number[],
+  blueLevels: number[]
+): number {
+  // 1. 인원수 차이 (가장 중요 - 10000점)
+  const countDiff = Math.abs(yellowTeam.length - blueTeam.length)
+  let score = 0
   
-  if (attendingPlayers.length < 2) {
-    throw new Error('팀편성을 위해서는 최소 2명 이상의 참석 인원이 필요합니다.')
+  if (countDiff === 0) {
+    score += 10000 // 완전히 동일한 인원수
+  } else if (countDiff === 1) {
+    score += 5000 // 1명 차이
+  } else {
+    score += 0 // 2명 이상 차이면 0점
   }
-  
-  // 참석자 데이터 준비
-  const players: AttendeeForFormation[] = attendingPlayers.map(player => ({
-    userId: player.userId,
-    name: player.name,
-    position: player.position,
-    subPositions: player.subPositions || [],
-    level: player.level,
-    isGuest: player.isGuest || false,
-    guestLevel: player.guestLevel,
-    category: getPositionCategory(player.position),
-    score: player.isGuest 
-      ? guestLevelToScore(player.guestLevel) 
-      : levelToScore(player.level)
-  }))
-  
-  // 골키퍼 분리 (골키퍼는 각 팀에 1명씩 배치)
-  const goalkeepers = players.filter(p => p.category === '골키퍼')
-  const fieldPlayers = players.filter(p => p.category !== '골키퍼')
-  
-  // 골키퍼 배치는 매번 랜덤하게 (팀편성 시도마다 다르게 배치)
-  // 여기서는 초기값만 설정하고, 실제 배치는 시도마다 랜덤하게 함
-  const gkForYellow: AttendeeForFormation[] = []
-  const gkForBlue: AttendeeForFormation[] = []
-  
-  // 인원수 균등 배분이 최우선 - 목표 인원수 계산
-  const totalPlayers = players.length
+
+  // 2. 포지션 카테고리 분포 (인원수가 같을 때 중요 - 5000점 만점)
+  if (countDiff <= 1) {
+    const yellowCategories: { [key: string]: number } = {}
+    const blueCategories: { [key: string]: number } = {}
+
+    yellowTeam.forEach(player => {
+      const category = player.positionCategory || getPositionCategory(player.position) || '미정'
+      if (category !== '미정' && category !== '게스트') {
+        yellowCategories[category] = (yellowCategories[category] || 0) + 1
+      }
+    })
+
+    blueTeam.forEach(player => {
+      const category = player.positionCategory || getPositionCategory(player.position) || '미정'
+      if (category !== '미정' && category !== '게스트') {
+        blueCategories[category] = (blueCategories[category] || 0) + 1
+      }
+    })
+
+    // 포지션 카테고리별 차이 계산
+    const allCategories = new Set([...Object.keys(yellowCategories), ...Object.keys(blueCategories)])
+    let positionScore = 0
+    allCategories.forEach(category => {
+      const diff = Math.abs((yellowCategories[category] || 0) - (blueCategories[category] || 0))
+      // 차이가 0이면 1000점, 1이면 500점, 2이면 100점, 3 이상이면 0점
+      if (diff === 0) {
+        positionScore += 1000
+      } else if (diff === 1) {
+        positionScore += 500
+      } else if (diff === 2) {
+        positionScore += 100
+      }
+    })
+    score += positionScore
+  }
+
+  // 3. 평균 레벨 차이 (포지션 배분 후 고려 - 100점 만점)
+  if (countDiff <= 1) {
+    const yellowAvg = yellowLevels.length > 0 
+      ? yellowLevels.reduce((a, b) => a + b, 0) / yellowLevels.length 
+      : 0
+    const blueAvg = blueLevels.length > 0 
+      ? blueLevels.reduce((a, b) => a + b, 0) / blueLevels.length 
+      : 0
+    const avgDiff = Math.abs(yellowAvg - blueAvg)
+    score += Math.max(0, 100 - avgDiff * 10) // 평균 차이가 작을수록 높은 점수
+  }
+
+  return score
+}
+
+// 팀 편성 함수
+export function formTeams(players: any[]): { yellowTeam: any[], blueTeam: any[], stats: any } {
+  if (players.length === 0) {
+    return {
+      yellowTeam: [],
+      blueTeam: [],
+      stats: { yellow: { count: 0, averageScore: 0 }, blue: { count: 0, averageScore: 0 } }
+    }
+  }
+
+  // 모든 플레이어를 필드 플레이어로 처리 (골키퍼도 일반 플레이어처럼 분배)
+  const allPlayers = [...players]
+
+  // 모든 플레이어 셔플
+  const shuffledFieldPlayers = shuffle(allPlayers)
+
+  // 목표 인원수 계산
+  const totalPlayers = shuffledFieldPlayers.length
   const targetPerTeam = Math.floor(totalPlayers / 2)
   const remainder = totalPlayers % 2
-  
-  // 목표: 각 팀에 targetPerTeam명씩 배치 (나머지가 있으면 한 팀에 +1)
-  const targetYellow = targetPerTeam + (remainder > 0 ? 1 : 0)
-  const targetBlue = targetPerTeam
-  
-  // 초기 팀 구성 (골키퍼 포함)
-  let yellowTeam: AttendeeForFormation[] = []
-  let blueTeam: AttendeeForFormation[] = []
-  
-  // 초기 골키퍼 배치 (랜덤)
-  const initialGkShuffle = [...goalkeepers]
-  for (let i = initialGkShuffle.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [initialGkShuffle[i], initialGkShuffle[j]] = [initialGkShuffle[j], initialGkShuffle[i]]
-  }
-  for (let i = 0; i < initialGkShuffle.length; i++) {
-    if (i % 2 === 0) {
-      yellowTeam.push(initialGkShuffle[i])
-    } else {
-      blueTeam.push(initialGkShuffle[i])
-    }
-  }
-  
-  // 초기 필드 플레이어 배치 (랜덤)
-  const initialFieldShuffle = [...fieldPlayers]
-  for (let i = initialFieldShuffle.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [initialFieldShuffle[i], initialFieldShuffle[j]] = [initialFieldShuffle[j], initialFieldShuffle[i]]
-  }
-  for (let i = 0; i < initialFieldShuffle.length; i++) {
-    if (i % 2 === 0) {
-      yellowTeam.push(initialFieldShuffle[i])
-    } else {
-      blueTeam.push(initialFieldShuffle[i])
-    }
-  }
-  
-  // 팀 균형 조정 (인원수 균등이 최우선)
-  let bestFormation = { yellowTeam, blueTeam }
-  let bestScore = calculateFormationScore(yellowTeam, blueTeam)
-  
-  // 인원수가 같을 때 평균 레벨이 비슷한 여러 후보를 저장
-  const candidates: Array<{ yellowTeam: AttendeeForFormation[], blueTeam: AttendeeForFormation[], score: number }> = []
-  
-  // 여러 번 시도하여 최적의 조합 찾기 (인원수 균등 우선)
+
+  // 최적의 편성 찾기 (2000번 시도)
+  let bestFormation: { yellowTeam: any[], blueTeam: any[], score: number } | null = null
+  const candidates: Array<{ 
+    yellowTeam: any[], 
+    blueTeam: any[], 
+    score: number, 
+    positionDiff: number,
+    avgDiff: number 
+  }> = []
+
   for (let attempt = 0; attempt < 2000; attempt++) {
-    // 골키퍼를 매번 랜덤하게 배치
-    const shuffledGKs = [...goalkeepers]
-    // Fisher-Yates 셔플 알고리즘 사용
-    for (let i = shuffledGKs.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffledGKs[i], shuffledGKs[j]] = [shuffledGKs[j], shuffledGKs[i]]
-    }
+    // 모든 플레이어 다시 셔플
+    const reShuffled = shuffle(shuffledFieldPlayers)
     
-    const testGkYellow: AttendeeForFormation[] = []
-    const testGkBlue: AttendeeForFormation[] = []
-    
-    // 골키퍼를 번갈아가며 배치
-    for (let i = 0; i < shuffledGKs.length; i++) {
-      if (i % 2 === 0) {
-        testGkYellow.push(shuffledGKs[i])
+    // 현재 시도의 팀 구성
+    const currentYellow: any[] = []
+    const currentBlue: any[] = []
+
+    // 모든 플레이어 분배 (골키퍼 포함)
+    for (let i = 0; i < reShuffled.length; i++) {
+      if (i < targetPerTeam + (remainder > 0 ? 1 : 0)) {
+        currentYellow.push(reShuffled[i])
       } else {
-        testGkBlue.push(shuffledGKs[i])
+        currentBlue.push(reShuffled[i])
       }
     }
+
+    // 레벨 점수 계산
+    const yellowLevels = currentYellow.map(p => 
+      p.isGuest ? getGuestLevelScore(p.guestLevel) : getPlayerLevelScore(p.level)
+    )
+    const blueLevels = currentBlue.map(p => 
+      p.isGuest ? getGuestLevelScore(p.guestLevel) : getPlayerLevelScore(p.level)
+    )
+
+    // 편성 점수 계산
+    const score = calculateFormationScore(currentYellow, currentBlue, yellowLevels, blueLevels)
     
-    // 필드 플레이어를 완전히 랜덤하게 섞기
-    const shuffled = [...fieldPlayers]
-    // Fisher-Yates 셔플 알고리즘 사용
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
-    }
-    
-    const testYellow = [...testGkYellow]
-    const testBlue = [...testGkBlue]
-    
-    // 인원수 균등 배분을 위해 정확히 배치
-    let yellowCount = testYellow.length
-    let blueCount = testBlue.length
-    
-    for (let i = 0; i < shuffled.length; i++) {
-      // 목표 인원수에 맞춰 배치
-      if (yellowCount < targetYellow && (yellowCount < blueCount || blueCount >= targetBlue)) {
-        testYellow.push(shuffled[i])
-        yellowCount++
-      } else if (blueCount < targetBlue) {
-        testBlue.push(shuffled[i])
-        blueCount++
-      } else {
-        // 목표 인원수에 도달했으면 나머지는 번갈아가며 배치
-        if (i % 2 === 0) {
-          testYellow.push(shuffled[i])
-          yellowCount++
-        } else {
-          testBlue.push(shuffled[i])
-          blueCount++
-        }
-      }
-    }
-    
-    // 인원수 차이가 1 이하인 경우만 고려
-    const countDiff = Math.abs(testYellow.length - testBlue.length)
+    const countDiff = Math.abs(currentYellow.length - currentBlue.length)
+    const positionDiff = calculatePositionCategoryDiff(currentYellow, currentBlue)
+    const yellowAvg = yellowLevels.length > 0 ? yellowLevels.reduce((a, b) => a + b, 0) / yellowLevels.length : 0
+    const blueAvg = blueLevels.length > 0 ? blueLevels.reduce((a, b) => a + b, 0) / blueLevels.length : 0
+    const avgDiff = Math.abs(yellowAvg - blueAvg)
+
+    // 인원수가 같거나 1명 차이인 경우만 후보에 추가
     if (countDiff <= 1) {
-      const testScore = calculateFormationScore(testYellow, testBlue)
-      
-      // 인원수가 같을 때 (countDiff === 0) 후보에 추가
-      if (countDiff === 0) {
-        candidates.push({ yellowTeam: testYellow, blueTeam: testBlue, score: testScore })
+      candidates.push({
+        yellowTeam: currentYellow,
+        blueTeam: currentBlue,
+        score,
+        positionDiff,
+        avgDiff
+      })
+    }
+  }
+
+  // 후보가 없으면 기본 분배
+  if (candidates.length === 0) {
+    const defaultYellow: any[] = []
+    const defaultBlue: any[] = []
+    for (let i = 0; i < shuffledFieldPlayers.length; i++) {
+      if (i % 2 === 0) {
+        defaultYellow.push(shuffledFieldPlayers[i])
+      } else {
+        defaultBlue.push(shuffledFieldPlayers[i])
       }
-      
-      if (testScore > bestScore) {
-        bestScore = testScore
-        bestFormation = { yellowTeam: testYellow, blueTeam: testBlue }
+    }
+    bestFormation = {
+      yellowTeam: defaultYellow,
+      blueTeam: defaultBlue,
+      score: 0
+    }
+  } else {
+    // 정렬 우선순위: 1. 포지션 카테고리 차이, 2. 평균 레벨 차이, 3. 점수
+    candidates.sort((a, b) => {
+      // 1순위: 포지션 카테고리 차이 (작을수록 좋음)
+      if (a.positionDiff !== b.positionDiff) {
+        return a.positionDiff - b.positionDiff
+      }
+      // 2순위: 평균 레벨 차이 (작을수록 좋음)
+      if (a.avgDiff !== b.avgDiff) {
+        return a.avgDiff - b.avgDiff
+      }
+      // 3순위: 점수 (클수록 좋음)
+      return b.score - a.score
+    })
+
+    // 상위 10% 중에서 랜덤 선택
+    const top10Percent = Math.max(1, Math.floor(candidates.length * 0.1))
+    const topCandidates = candidates.slice(0, top10Percent)
+    const selected = topCandidates[Math.floor(Math.random() * topCandidates.length)]
+    
+    bestFormation = {
+      yellowTeam: selected.yellowTeam,
+      blueTeam: selected.blueTeam,
+      score: selected.score
+    }
+  }
+
+  // 최종 인원수 균형 맞추기 (강제 조정)
+  const finalCountDiff = Math.abs(bestFormation.yellowTeam.length - bestFormation.blueTeam.length)
+  if (finalCountDiff > 1) {
+    const largerTeam = bestFormation.yellowTeam.length > bestFormation.blueTeam.length 
+      ? bestFormation.yellowTeam 
+      : bestFormation.blueTeam
+    const smallerTeam = bestFormation.yellowTeam.length > bestFormation.blueTeam.length 
+      ? bestFormation.blueTeam 
+      : bestFormation.yellowTeam
+
+    const playersToMove = Math.floor((largerTeam.length - smallerTeam.length) / 2)
+    for (let i = 0; i < playersToMove; i++) {
+      const playerToMove = largerTeam.pop()
+      if (playerToMove) {
+        smallerTeam.push(playerToMove)
+      } else {
+        break
       }
     }
   }
-  
-  // 인원수가 같은 후보가 있으면, 평균 레벨 차이가 가장 작은 것들 중에서 랜덤 선택
-  if (candidates.length > 0) {
-    // 평균 레벨 차이 계산
-    const candidatesWithLevelDiff = candidates.map(candidate => {
-      const yellowAvg = calculateTeamStats(candidate.yellowTeam).averageScore
-      const blueAvg = calculateTeamStats(candidate.blueTeam).averageScore
-      const levelDiff = Math.abs(yellowAvg - blueAvg)
-      return { ...candidate, levelDiff }
+
+  // 골키퍼가 없는 팀에 부포지션이 GK인 선수 배치
+  const assignBackupGoalkeeper = (team: any[]) => {
+    // 골키퍼가 있는지 확인
+    const hasGoalkeeper = team.some(p => 
+      getPositionCategory(p.position) === '골키퍼' || 
+      p.position?.toUpperCase() === 'GK'
+    )
+    
+    if (hasGoalkeeper) return // 이미 골키퍼가 있으면 종료
+    
+    // 부포지션에 GK가 있는 선수 찾기
+    const backupGK = team.find(p => {
+      if (!p.subPositions || p.subPositions.length === 0) return false
+      return p.subPositions.some((subPos: string) => 
+        getPositionCategory(subPos) === '골키퍼' || subPos.toUpperCase() === 'GK'
+      )
     })
     
-    // 평균 레벨 차이로 정렬 (작을수록 좋음)
-    candidatesWithLevelDiff.sort((a, b) => a.levelDiff - b.levelDiff)
-    
-    // 상위 10% 후보 중에서 랜덤 선택 (최소 1개, 최대 10개)
-    const topCount = Math.max(1, Math.min(10, Math.floor(candidatesWithLevelDiff.length * 0.1)))
-    const topCandidates = candidatesWithLevelDiff.slice(0, topCount)
-    const randomCandidate = topCandidates[Math.floor(Math.random() * topCandidates.length)]
-    
-    // 인원수가 같고 평균 레벨 차이가 작은 후보가 있으면 사용
-    if (randomCandidate.levelDiff < 0.5 || candidatesWithLevelDiff.length > 0) {
-      bestFormation = { yellowTeam: randomCandidate.yellowTeam, blueTeam: randomCandidate.blueTeam }
+    if (backupGK) {
+      // 부포지션에 GK가 있는 선수를 골키퍼로 표시하기 위해 positionCategory 업데이트
+      // (실제로는 주포지션은 그대로 두고, 표시만 골키퍼로 할 수도 있지만
+      // 일단 positionCategory를 골키퍼로 설정)
+      backupGK.positionCategory = '골키퍼'
     }
   }
-  
-  // 최종 팀 구성
-  yellowTeam = bestFormation.yellowTeam
-  blueTeam = bestFormation.blueTeam
-  
-  // 최종 인원수 확인 및 조정 (만약 여전히 차이가 크면 강제 조정)
-  const finalCountDiff = Math.abs(yellowTeam.length - blueTeam.length)
-  if (finalCountDiff > 1) {
-    // 인원수가 많은 팀에서 적은 팀으로 이동
-    if (yellowTeam.length > blueTeam.length) {
-      while (yellowTeam.length - blueTeam.length > 1) {
-        const moved = yellowTeam.pop()
-        if (moved) blueTeam.push(moved)
-      }
-    } else if (blueTeam.length > yellowTeam.length) {
-      while (blueTeam.length - yellowTeam.length > 1) {
-        const moved = blueTeam.pop()
-        if (moved) yellowTeam.push(moved)
-      }
-    }
-  }
-  
-  return {
-    yellowTeam,
-    blueTeam,
-    yellowTeamStats: calculateTeamStats(yellowTeam),
-    blueTeamStats: calculateTeamStats(blueTeam)
-  }
-}
 
-// 팀편성 점수 계산 (높을수록 좋음)
-function calculateFormationScore(
-  yellowTeam: AttendeeForFormation[],
-  blueTeam: AttendeeForFormation[]
-): number {
-  // 1. 인원수 균형 (가장 중요) - 1000점 만점 (최우선)
-  const countDiff = Math.abs(yellowTeam.length - blueTeam.length)
-  // 인원수 차이가 0이면 1000점, 1이면 500점, 2 이상이면 0점
-  const countScore = countDiff === 0 ? 1000 : (countDiff === 1 ? 500 : 0)
-  
-  // 2. 포지션 대분류 균형 - 50점 만점
-  const yellowPositions = calculateTeamStats(yellowTeam).positionCounts
-  const bluePositions = calculateTeamStats(blueTeam).positionCounts
-  
-  const positionDiffs = [
-    Math.abs(yellowPositions.공격수 - bluePositions.공격수),
-    Math.abs(yellowPositions.미드필더 - bluePositions.미드필더),
-    Math.abs(yellowPositions.수비수 - bluePositions.수비수),
-    Math.abs(yellowPositions.골키퍼 - bluePositions.골키퍼)
-  ]
-  
-  const totalPositionDiff = positionDiffs.reduce((sum, diff) => sum + diff, 0)
-  const positionScore = Math.max(0, 50 - totalPositionDiff * 10)
-  
-  // 3. 레벨 점수 평균 균형 - 인원수가 같을 때 더 높은 가중치
-  const yellowAvg = calculateTeamStats(yellowTeam).averageScore
-  const blueAvg = calculateTeamStats(blueTeam).averageScore
-  const avgDiff = Math.abs(yellowAvg - blueAvg)
-  
-  // 인원수가 같을 때는 레벨 평균 차이에 더 높은 가중치 부여
-  if (countDiff === 0) {
-    // 평균 차이가 0.1 이하면 100점, 0.2 이하면 90점, ... 1.0 이상이면 0점
-    const avgScore = Math.max(0, 100 - avgDiff * 100)
-    return countScore + positionScore + avgScore
-  } else {
-    // 인원수가 다를 때는 기존 가중치 유지
-    const avgScore = Math.max(0, 50 - avgDiff * 10)
-    return countScore + positionScore + avgScore
+  // 각 팀에 골키퍼 배치 확인
+  assignBackupGoalkeeper(bestFormation.yellowTeam)
+  assignBackupGoalkeeper(bestFormation.blueTeam)
+
+  // 통계 계산
+  const yellowLevels = bestFormation.yellowTeam.map(p => 
+    p.isGuest ? getGuestLevelScore(p.guestLevel) : getPlayerLevelScore(p.level)
+  )
+  const blueLevels = bestFormation.blueTeam.map(p => 
+    p.isGuest ? getGuestLevelScore(p.guestLevel) : getPlayerLevelScore(p.level)
+  )
+
+  const yellowAvg = yellowLevels.length > 0 
+    ? Number((yellowLevels.reduce((a, b) => a + b, 0) / yellowLevels.length).toFixed(2))
+    : 0
+  const blueAvg = blueLevels.length > 0 
+    ? Number((blueLevels.reduce((a, b) => a + b, 0) / blueLevels.length).toFixed(2))
+    : 0
+
+  return {
+    yellowTeam: bestFormation.yellowTeam,
+    blueTeam: bestFormation.blueTeam,
+    stats: {
+      yellow: {
+        count: bestFormation.yellowTeam.length,
+        averageScore: yellowAvg
+      },
+      blue: {
+        count: bestFormation.blueTeam.length,
+        averageScore: blueAvg
+      }
+    }
   }
 }
 

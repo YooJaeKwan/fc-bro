@@ -13,16 +13,7 @@ import {
   LogOut,
   BarChart3,
   Calendar,
-  Plus,
 } from "lucide-react"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
 import { TeamManagement } from "./components/team-management"
 import { UserProfile } from "./components/user-profile"
 import { AttendanceStats } from "./components/attendance-stats"
@@ -68,9 +59,6 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
   // 사용자 role 기반으로 관리자 모드 결정 (DB에서 ADMIN 권한 확인)
   const [isManagerMode, setIsManagerMode] = useState(user?.role === 'ADMIN')
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const [isAddingSchedule, setIsAddingSchedule] = useState(false)
-  const [isEditingSchedule, setIsEditingSchedule] = useState(false)
-  const [editingScheduleId, setEditingScheduleId] = useState<string | null>(null)
 
 
   const tabItems = [
@@ -109,7 +97,7 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
             <div className="hidden lg:flex items-center space-x-4">
               <div className="flex items-center space-x-3">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src={(user?.profileImage?.startsWith("http://") ? user.profileImage.replace("http://", "https://") : user?.profileImage) || "/placeholder.svg"} />
+                  <AvatarImage src={user?.profileImage || "/placeholder.svg"} />
                   <AvatarFallback>{(user?.realName || user?.nickname)?.[0] || 'U'}</AvatarFallback>
                 </Avatar>
                 <div className="text-sm">
@@ -157,7 +145,7 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
                     {/* User Info */}
                     <div className="flex items-center space-x-3 pb-4 border-b">
                       <Avatar>
-                        <AvatarImage src={(user?.profileImage?.startsWith("http://") ? user.profileImage.replace("http://", "https://") : user?.profileImage) || "/placeholder.svg"} />
+                        <AvatarImage src={user?.profileImage || "/placeholder.svg"} />
                         <AvatarFallback>{(user?.realName || user?.nickname)?.[0] || 'U'}</AvatarFallback>
                       </Avatar>
                       <div>
@@ -250,16 +238,7 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
           </div>
 
           <TabsContent value="schedule">
-            <ScheduleManagement 
-              isManagerMode={isManagerMode} 
-              currentUser={user}
-              isAddingSchedule={isAddingSchedule}
-              setIsAddingSchedule={setIsAddingSchedule}
-              isEditingSchedule={isEditingSchedule}
-              setIsEditingSchedule={setIsEditingSchedule}
-              editingScheduleId={editingScheduleId}
-              setEditingScheduleId={setEditingScheduleId}
-            />
+            <ScheduleManagement isManagerMode={isManagerMode} currentUser={user} />
           </TabsContent>
 
           <TabsContent value="dashboard">

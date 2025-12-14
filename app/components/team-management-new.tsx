@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Progress } from "@/components/ui/progress"
 import { Edit, Star, MapPin, Phone, Calendar, TrendingUp, Eye, Target, BarChart3, Shield, Award, Users } from 'lucide-react'
@@ -15,14 +15,14 @@ import { Edit, Star, MapPin, Phone, Calendar, TrendingUp, Eye, Target, BarChart3
 // 포지션별 한국어 매핑
 const positionMapping: Record<string, string> = {
   "GK": "골키퍼",
-  "CB": "수비수",
-  "RB": "수비수",
-  "LB": "수비수",
+  "DC": "수비수", 
+  "DR": "수비수",
+  "DL": "수비수",
   "DRL": "수비수",
   "DRLC": "수비수",
-  "CDM": "미드필더",
-  "CM": "미드필더", 
-  "CAM": "미드필더",
+  "DM": "미드필더",
+  "MC": "미드필더", 
+  "AMC": "미드필더",
   "ST": "공격수",
   "CF": "공격수",
   "SS": "공격수",
@@ -160,7 +160,7 @@ export function TeamManagement({ isManagerMode }: TeamManagementProps) {
                       <div className="flex items-center gap-3">
                         <div className="relative">
                           <Avatar className="h-10 w-10 sm:h-12 sm:w-12">
-                            <AvatarImage src={(member.profileImage?.startsWith("http://") ? member.profileImage.replace("http://", "https://") : member.profileImage) || "/placeholder.svg"} />
+                            <AvatarImage src={member.profileImage || "/placeholder.svg"} />
                             <AvatarFallback>{member.name[0]}</AvatarFallback>
                           </Avatar>
                           {member.jerseyNumber && (
@@ -203,9 +203,6 @@ export function TeamManagement({ isManagerMode }: TeamManagementProps) {
                         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                           <DialogHeader>
                             <DialogTitle>{member.name} 상세 정보</DialogTitle>
-                            <DialogDescription className="sr-only">
-                              선수 상세 정보를 확인할 수 있습니다.
-                            </DialogDescription>
                           </DialogHeader>
                           <div className="space-y-4">
                             <div className="grid grid-cols-2 gap-4">

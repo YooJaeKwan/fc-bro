@@ -19,14 +19,14 @@ const positions = {
     { code: "RWF", name: "우측 윙 포워드 (RWF)" },
   ],
   미드필더: [
-    { code: "CAM", name: "공격형 미드필더 (CAM)" },
-    { code: "CM", name: "중앙 미드필더 (CM)" },
-    { code: "CDM", name: "수비형 미드필더 (CDM)" },
+    { code: "AMC", name: "공격형 중앙 미드필더 (CAM)" },
+    { code: "MC", name: "중앙 미드필더 (CM)" },
+    { code: "DM", name: "수비형 미드필더 (CDM)" },
   ],
   수비수: [
-    { code: "CB", name: "센터백 (CB)" },
-    { code: "RB", name: "우측 풀백 (RB)" },
-    { code: "LB", name: "좌측 풀백 (LB)" },
+    { code: "DC", name: "센터백 (DC)" },
+    { code: "DR", name: "라이트백 (DR)" },
+    { code: "DL", name: "레프트백 (DL)" },
     { code: "DRL", name: "양쪽 풀백 (DRL)" },
     { code: "DRLC", name: "멀티 수비수 (DRLC)" },
   ],
@@ -367,9 +367,7 @@ export function UserRegistration({ kakaoUserInfo, onRegistrationComplete }: User
           kakaoId: kakaoUserInfo.id,
           email: kakaoUserInfo.kakao_account?.email || '',
           nickname: kakaoUserInfo.properties?.nickname || '사용자',
-          profileImage: kakaoUserInfo.properties?.profile_image
-            ? kakaoUserInfo.properties.profile_image.replace("http://", "https://")
-            : '',
+          profileImage: kakaoUserInfo.properties?.profile_image || '',
           registeredAt: new Date().toISOString(),
         }
 
@@ -431,9 +429,7 @@ export function UserRegistration({ kakaoUserInfo, onRegistrationComplete }: User
             <div className="p-4 bg-yellow-50 rounded-lg">
               <div className="flex items-center gap-3">
                 <Avatar>
-                  <AvatarImage src={(kakaoUserInfo?.properties?.profile_image || "").startsWith("http://") 
-                    ? kakaoUserInfo.properties.profile_image.replace("http://", "https://") 
-                    : kakaoUserInfo?.properties?.profile_image || "/placeholder.svg"} />
+                  <AvatarImage src={kakaoUserInfo?.properties?.profile_image || "/placeholder.svg"} />
                   <AvatarFallback>{kakaoUserInfo?.properties?.nickname?.[0] || "K"}</AvatarFallback>
                 </Avatar>
                 <div>

@@ -1,12 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
-// 이미지 URL을 HTTPS로 강제 변환
-const ensureHttps = (url?: string | null) => {
-  if (!url) return url || undefined
-  return url.startsWith("http://") ? url.replace("http://", "https://") : url
-}
-
 export async function GET(request: NextRequest) {
   try {
     console.log('팀원 목록 조회 요청')
@@ -83,16 +77,16 @@ export async function GET(request: NextRequest) {
       switch (position) {
         case "GK":
           return { ...baseSkills, "수비": 8, "멘탈": 8, "속도": 3, "드리블": 3 }
-        case "CB":
+        case "DC":
           return { ...baseSkills, "수비": 8, "체력": 7, "멘탈": 7, "속도": 4 }
-        case "RB":
-        case "LB":
+        case "DR":
+        case "DL":
           return { ...baseSkills, "수비": 7, "속도": 7, "체력": 8, "패스": 6 }
-        case "CDM":
+        case "DM":
           return { ...baseSkills, "수비": 7, "패스": 7, "체력": 8, "멘탈": 7 }
-        case "CM":
+        case "MC":
           return { ...baseSkills, "패스": 8, "체력": 7, "멘탈": 7, "드리블": 6 }
-        case "CAM":
+        case "AMC":
           return { ...baseSkills, "패스": 8, "드리블": 7, "슈팅": 7, "창조력": 8 }
         case "ST":
         case "CF":
@@ -204,7 +198,7 @@ export async function GET(request: NextRequest) {
     // 클라이언트에 전송할 데이터 구성 (이제 비동기 작업 없음)
     const membersWithTempData = teamMembers.map((member) => {
       try {
-        const tempSkills = generateTempSkills(member.preferredPosition || "CM")
+        const tempSkills = generateTempSkills(member.preferredPosition || "MC")
         const overallRating = calculateOverallRating(tempSkills)
 
         // 메모리에서 참석 정보 가져오기
@@ -220,7 +214,7 @@ export async function GET(request: NextRequest) {
           id: member.id,
           name: member.realName || member.nickname || '이름 없음',
           nickname: member.nickname,
-          mainPosition: member.preferredPosition || 'CM',
+          mainPosition: member.preferredPosition || 'MC',
           subPositions: member.subPositions || [],
           phone: member.phoneNumber || '정보 없음',
           region: member.region || '정보 없음',
@@ -230,7 +224,7 @@ export async function GET(request: NextRequest) {
           level: member.level || 1,
           role: member.role || 'MEMBER',
           isActive: member.isActive,
-          profileImage: ensureHttps(member.image),
+          profileImage: member.image,
           joinDate: member.createdAt.toLocaleDateString('ko-KR'),
           attendanceRate,
           attendedCount,
@@ -246,7 +240,7 @@ export async function GET(request: NextRequest) {
           id: member.id,
           name: member.realName || member.nickname || '이름 없음',
           nickname: member.nickname,
-          mainPosition: member.preferredPosition || 'CM',
+          mainPosition: member.preferredPosition || 'MC',
           subPositions: member.subPositions || [],
           phone: member.phoneNumber || '정보 없음',
           region: member.region || '정보 없음',
@@ -256,7 +250,7 @@ export async function GET(request: NextRequest) {
           level: member.level || 1,
           role: member.role || 'MEMBER',
           isActive: member.isActive,
-          profileImage: ensureHttps(member.image),
+          profileImage: member.image,
           joinDate: member.createdAt.toLocaleDateString('ko-KR'),
           attendanceRate: 0,
           attendedCount: 0,

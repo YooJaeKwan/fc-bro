@@ -1,9 +1,3 @@
-// 이미지 URL을 HTTPS로 강제 변환
-const ensureHttps = (url?: string | null) => {
-  if (!url) return url || undefined
-  return url.startsWith("http://") ? url.replace("http://", "https://") : url
-}
-
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
@@ -87,9 +81,32 @@ export async function POST(request: NextRequest) {
 
     console.log('참석 투표 처리 완료:', attendance.id)
 
+    // 참석 투표 변경 시 기존 팀편성 결과 초기화
+    try {
+      const scheduleWithFormation = await prisma.schedule.findUnique({
+        where: { id: scheduleId },
+        select: { teamFormation: true, formationDate: true }
+      })
+
+      if (scheduleWithFormation?.teamFormation || scheduleWithFormation?.formationDate) {
+        await prisma.schedule.update({
+          where: { id: scheduleId },
+          data: {
+            teamFormation: null,
+            formationDate: null
+          }
+        })
+        console.log('참석 투표 변경으로 인한 팀편성 초기화 완료:', scheduleId)
+      }
+    } catch (error) {
+      console.error('팀편성 초기화 중 오류 (무시됨):', error)
+      // 팀편성 초기화 실패는 참석 투표 성공에 영향을 주지 않음
+    }
+
     return NextResponse.json({
       success: true,
       message: '참석 투표가 등록되었습니다.',
+      teamFormationReset: true, // 팀편성이 초기화되었음을 알림
       attendance: {
         scheduleId: attendance.scheduleId,
         userId: attendance.userId,
@@ -181,12 +198,12 @@ export async function GET(request: NextRequest) {
       return {
         userId: user.id,
         name: user.realName || user.nickname || '이름 없음',
-        position: user.preferredPosition || 'CM',
+        position: user.preferredPosition || 'MC',
         subPositions: user.subPositions || [],
         status: attendance?.status.toLowerCase() || 'pending',
-        rating: generateTempRating(user.preferredPosition || 'CM'),
+        rating: generateTempRating(user.preferredPosition || 'MC'),
         level: user.level || 1,
-        profileImage: ensureHttps(user.image),
+        profileImage: user.image,
         updatedAt: attendance?.updatedAt.toISOString() || null,
         isGuest: false
       }
@@ -199,7 +216,7 @@ export async function GET(request: NextRequest) {
         userId: att.guestId || att.userId,  // guestId를 우선 사용
         name: att.guestName || '게스트',
         invitedBy: att.invitedBy?.realName || att.invitedBy?.nickname || '알 수 없음',
-        position: att.guestPosition || 'CM',  // 게스트 포지션
+        position: att.guestPosition || 'MC',  // 게스트 포지션
         subPositions: [],
         status: att.status.toLowerCase(),
         rating: 5.0, // 게스트 기본 능력치

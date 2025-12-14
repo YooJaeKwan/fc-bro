@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Trash2 } from 'lucide-react'
+import { getPositionCategory } from '@/lib/team-formation'
 
 interface TeamFormationProps {
   scheduleId: string
@@ -58,28 +59,49 @@ export function TeamFormation({
   const blueTeam = teamFormation.blueTeam || []
   const stats = teamFormation.stats || {}
 
-  // 포지션 대분류별로 그룹화
+  // 포지션 대분류별로 그룹화 (게스트는 별도)
   const groupByPositionCategory = (team: any[]) => {
     const grouped: { [key: string]: any[] } = {
       '공격수': [],
       '미드필더': [],
       '수비수': [],
       '골키퍼': [],
-      '게스트': [],
-      '미정': []
+      '게스트': []
     }
 
     team.forEach(player => {
-      // 게스트인 경우 "게스트" 카테고리로 분류
+      // 게스트는 별도 카테고리로
       if (player.isGuest) {
         grouped['게스트'].push(player)
       } else {
-        const category = player.positionCategory || '미정'
-        if (!grouped[category]) {
-          grouped[category] = []
+        // 일반 사용자는 주포지션에 따라 분류
+        // 1. positionCategory가 있고 유효한 카테고리면 사용
+        // 2. 없거나 미정이면 주포지션으로 계산
+        // 3. 여전히 미정이면 공격수로 기본 분류
+        let category: string = player.positionCategory
+        
+        // positionCategory가 없거나 미정이면 주포지션으로 계산
+        if (!category || category === '미정') {
+          category = getPositionCategory(player.position)
         }
+        
+        // 여전히 미정이거나 유효하지 않은 카테고리면 공격수로 기본 분류
+        if (!category || category === '미정' || !grouped.hasOwnProperty(category)) {
+          category = '공격수'
+        }
+        
+        // 최종 카테고리에 추가
         grouped[category].push(player)
       }
+    })
+
+    // 각 카테고리 내에서 주포지션 이름순으로 정렬
+    Object.keys(grouped).forEach(category => {
+      grouped[category].sort((a, b) => {
+        const posA = a.position || ''
+        const posB = b.position || ''
+        return posA.localeCompare(posB, 'ko')
+      })
     })
 
     return grouped
@@ -88,10 +110,28 @@ export function TeamFormation({
   const yellowGrouped = groupByPositionCategory(yellowTeam)
   const blueGrouped = groupByPositionCategory(blueTeam)
 
+  // 포지션 텍스트 색상 가져오기
+  const getPositionTextColor = (position: string | null | undefined): string => {
+    if (!position) return 'text-gray-600'
+    const category = getPositionCategory(position)
+    switch (category) {
+      case '공격수':
+        return 'text-red-600'
+      case '미드필더':
+        return 'text-green-600'
+      case '수비수':
+        return 'text-blue-600'
+      case '골키퍼':
+        return 'text-yellow-600'
+      default:
+        return 'text-gray-600'
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">팀편성 결과 (베타테스트)</h3>
+        <h3 className="text-lg font-semibold">팀편성 결과 (테스트)</h3>
         {isManagerMode && (
           <Button
             onClick={handleDelete}
@@ -129,56 +169,64 @@ export function TeamFormation({
               {yellowTeam.length === 0 ? (
                 <p className="text-sm text-gray-500">팀원이 없습니다.</p>
               ) : (
-                Object.entries(yellowGrouped).map(([category, players]) => {
-                  if (players.length === 0) return null
-                  
-                  return (
-                    <div key={category} className="space-y-1">
-                      <div className="text-xs font-semibold text-gray-600 border-b pb-1">
-                        {category} ({players.length})
-                      </div>
-                      {players.map((player: any) => (
-                        <div key={player.userId} className="flex items-center gap-2 py-1 rounded hover:bg-yellow-100/50">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <p className="text-sm font-medium truncate">
-                                {player.name}
-                              </p>
-                              {player.isGuest && (
-                                <Badge variant="outline" className="text-xs">게스트</Badge>
-                              )}
-                              {player.levelCategory && (
-                                <Badge 
-                                  variant="outline" 
-                                  className={`text-xs ${
-                                    player.levelCategory === '루키' ? 'bg-gray-100 text-gray-800' :
-                                    player.levelCategory.startsWith('아마추어') ? 'bg-blue-100 text-blue-800' :
-                                    player.levelCategory.startsWith('세미프로') ? 'bg-purple-100 text-purple-800' :
-                                    player.levelCategory === '프로' ? 'bg-yellow-100 text-yellow-800' :
-                                    player.levelCategory === '미숙' ? 'bg-gray-100 text-gray-800' :
-                                    player.levelCategory === '보통' ? 'bg-blue-100 text-blue-800' :
-                                    player.levelCategory === '잘함' ? 'bg-purple-100 text-purple-800' :
-                                    'bg-gray-100 text-gray-800'
-                                  }`}
-                                >
-                                  {player.levelCategory}
-                                </Badge>
-                              )}
-                              {player.position && (
-                                <span className="text-xs text-gray-600">
-                                  {player.position}
-                                  {player.subPositions && player.subPositions.length > 0 && (
-                                    <span className="ml-1 text-gray-500">(+{player.subPositions.join(', ')})</span>
-                                  )}
-                                </span>
-                              )}
+                Object.entries(yellowGrouped)
+                  .filter(([category]) => category !== '미정' && yellowGrouped[category] && yellowGrouped[category].length > 0)
+                  .sort(([a], [b]) => {
+                    // 게스트는 마지막에
+                    if (a === '게스트') return 1
+                    if (b === '게스트') return -1
+                    const order = ['공격수', '미드필더', '수비수', '골키퍼']
+                    const aIndex = order.indexOf(a)
+                    const bIndex = order.indexOf(b)
+                    if (aIndex === -1 && bIndex === -1) return 0
+                    if (aIndex === -1) return 1
+                    if (bIndex === -1) return -1
+                    return aIndex - bIndex
+                  })
+                  .map(([category, players]) => {
+                    if (players.length === 0) return null
+                    
+                    return (
+                      <div key={category} className="space-y-1">
+                        <div className="text-xs font-semibold text-gray-600 border-b pb-1">
+                          {category} ({players.length})
+                        </div>
+                        {players.map((player: any) => (
+                          <div key={player.userId} className="flex items-center gap-2 py-1 rounded hover:bg-yellow-100/50">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <p className="text-sm font-medium truncate">
+                                  {player.name}
+                                </p>
+                                {player.position && (
+                                  <>
+                                    <Badge 
+                                      variant="outline" 
+                                      className={`text-xs font-medium ${getPositionTextColor(player.position)} border-current`}
+                                    >
+                                      {player.position}
+                                    </Badge>
+                                    {player.subPositions && player.subPositions.length > 0 && (
+                                      <span className="text-xs font-medium">
+                                        <span className="text-gray-500">(+</span>
+                                        {player.subPositions.map((subPos: string, idx: number) => (
+                                          <span key={idx}>
+                                            <span className={getPositionTextColor(subPos)}>{subPos}</span>
+                                            {idx < player.subPositions.length - 1 && <span className="text-gray-400">, </span>}
+                                          </span>
+                                        ))}
+                                        <span className="text-gray-500">)</span>
+                                      </span>
+                                    )}
+                                  </>
+                                )}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  )
-                })
+                        ))}
+                      </div>
+                    )
+                  })
               )}
             </div>
           </CardContent>
@@ -202,56 +250,64 @@ export function TeamFormation({
               {blueTeam.length === 0 ? (
                 <p className="text-sm text-gray-500">팀원이 없습니다.</p>
               ) : (
-                Object.entries(blueGrouped).map(([category, players]) => {
-                  if (players.length === 0) return null
-                  
-                  return (
-                    <div key={category} className="space-y-1">
-                      <div className="text-xs font-semibold text-gray-600 border-b pb-1">
-                        {category} ({players.length})
-                      </div>
-                      {players.map((player: any) => (
-                        <div key={player.userId} className="flex items-center gap-2 py-1 rounded hover:bg-blue-100/50">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <p className="text-sm font-medium truncate">
-                                {player.name}
-                              </p>
-                              {player.isGuest && (
-                                <Badge variant="outline" className="text-xs">게스트</Badge>
-                              )}
-                              {player.levelCategory && (
-                                <Badge 
-                                  variant="outline" 
-                                  className={`text-xs ${
-                                    player.levelCategory === '루키' ? 'bg-gray-100 text-gray-800' :
-                                    player.levelCategory.startsWith('아마추어') ? 'bg-blue-100 text-blue-800' :
-                                    player.levelCategory.startsWith('세미프로') ? 'bg-purple-100 text-purple-800' :
-                                    player.levelCategory === '프로' ? 'bg-yellow-100 text-yellow-800' :
-                                    player.levelCategory === '미숙' ? 'bg-gray-100 text-gray-800' :
-                                    player.levelCategory === '보통' ? 'bg-blue-100 text-blue-800' :
-                                    player.levelCategory === '잘함' ? 'bg-purple-100 text-purple-800' :
-                                    'bg-gray-100 text-gray-800'
-                                  }`}
-                                >
-                                  {player.levelCategory}
-                                </Badge>
-                              )}
-                              {player.position && (
-                                <span className="text-xs text-gray-600">
-                                  {player.position}
-                                  {player.subPositions && player.subPositions.length > 0 && (
-                                    <span className="ml-1 text-gray-500">(+{player.subPositions.join(', ')})</span>
-                                  )}
-                                </span>
-                              )}
+                Object.entries(blueGrouped)
+                  .filter(([category]) => category !== '미정' && blueGrouped[category] && blueGrouped[category].length > 0)
+                  .sort(([a], [b]) => {
+                    // 게스트는 마지막에
+                    if (a === '게스트') return 1
+                    if (b === '게스트') return -1
+                    const order = ['공격수', '미드필더', '수비수', '골키퍼']
+                    const aIndex = order.indexOf(a)
+                    const bIndex = order.indexOf(b)
+                    if (aIndex === -1 && bIndex === -1) return 0
+                    if (aIndex === -1) return 1
+                    if (bIndex === -1) return -1
+                    return aIndex - bIndex
+                  })
+                  .map(([category, players]) => {
+                    if (players.length === 0) return null
+                    
+                    return (
+                      <div key={category} className="space-y-1">
+                        <div className="text-xs font-semibold text-gray-600 border-b pb-1">
+                          {category} ({players.length})
+                        </div>
+                        {players.map((player: any) => (
+                          <div key={player.userId} className="flex items-center gap-2 py-1 rounded hover:bg-blue-100/50">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <p className="text-sm font-medium truncate">
+                                  {player.name}
+                                </p>
+                                {player.position && (
+                                  <>
+                                    <Badge 
+                                      variant="outline" 
+                                      className={`text-xs font-medium ${getPositionTextColor(player.position)} border-current`}
+                                    >
+                                      {player.position}
+                                    </Badge>
+                                    {player.subPositions && player.subPositions.length > 0 && (
+                                      <span className="text-xs font-medium">
+                                        <span className="text-gray-500">(+</span>
+                                        {player.subPositions.map((subPos: string, idx: number) => (
+                                          <span key={idx}>
+                                            <span className={getPositionTextColor(subPos)}>{subPos}</span>
+                                            {idx < player.subPositions.length - 1 && <span className="text-gray-400">, </span>}
+                                          </span>
+                                        ))}
+                                        <span className="text-gray-500">)</span>
+                                      </span>
+                                    )}
+                                  </>
+                                )}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  )
-                })
+                        ))}
+                      </div>
+                    )
+                  })
               )}
             </div>
           </CardContent>
