@@ -27,8 +27,8 @@ const positions = {
     { code: "DC", name: "센터백 (DC)" },
     { code: "DR", name: "라이트백 (DR)" },
     { code: "DL", name: "레프트백 (DL)" },
-    { code: "DRL", name: "양쪽 풀백 (DRL)" },
-    { code: "DRLC", name: "멀티 수비수 (DRLC)" },
+    { code: "LRB", name: "양쪽 풀백 (LRB)" },
+    { code: "LRCB", name: "멀티 수비수 (LRCB)" },
   ],
   골키퍼: [{ code: "GK", name: "골키퍼 (GK)" }],
 }

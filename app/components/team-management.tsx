@@ -25,8 +25,8 @@ const positionMapping: Record<string, string> = {
   "RB": "수비수", // Right Back (DR과 동일)
   "DL": "수비수",
   "LB": "수비수", // Left Back (DL과 동일)
-  "DRL": "수비수",
-  "DRLC": "수비수",
+  "LRB": "수비수", // Left/Right Back (양쪽 풀백)
+  "LRCB": "수비수", // Left/Right/Center Back (멀티 수비수)
   "DM": "미드필더",
   "CDM": "미드필더",
   "MC": "미드필더",
@@ -46,8 +46,8 @@ const positionFullNames: Record<string, string> = {
   "DC": "DC (센터백)",
   "DR": "DR (우측풀백)", 
   "DL": "DL (좌측풀백)",
-  "DRL": "DRL (우좌측풀백)",
-  "DRLC": "DRLC (풀백/센터백)",
+  "LRB": "LRB (양쪽 풀백)",
+  "LRCB": "LRCB (멀티 수비수)",
   "MC": "CM (중앙미드필더)",
   "AMC": "CAM (공격형미드필더)",
   "DM": "CDM (수비형미드필더)", 

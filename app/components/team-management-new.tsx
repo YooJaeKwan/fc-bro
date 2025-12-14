@@ -18,8 +18,8 @@ const positionMapping: Record<string, string> = {
   "DC": "수비수", 
   "DR": "수비수",
   "DL": "수비수",
-  "DRL": "수비수",
-  "DRLC": "수비수",
+  "LRB": "수비수", // Left/Right Back (양쪽 풀백)
+  "LRCB": "수비수", // Left/Right/Center Back (멀티 수비수)
   "DM": "미드필더",
   "MC": "미드필더", 
   "AMC": "미드필더",

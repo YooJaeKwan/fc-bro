@@ -9,8 +9,8 @@ export const positionMapping: Record<string, string> = {
   "RB": "수비수", // Right Back (DR과 동일)
   "DL": "수비수",
   "LB": "수비수", // Left Back (DL과 동일)
-  "DRL": "수비수",
-  "DRLC": "수비수",
+  "LRB": "수비수", // Left/Right Back (양쪽 풀백)
+  "LRCB": "수비수", // Left/Right/Center Back (멀티 수비수)
   "CDM": "미드필더",
   "DM": "미드필더",
   "CM": "미드필더",
@@ -310,18 +310,31 @@ export function formTeams(players: any[]): { yellowTeam: any[], blueTeam: any[],
     }
   }
 
+  // 전체 참가자 중 주포지션이 골키퍼인 선수 수 확인
+  const mainGoalkeepers = players.filter(p => 
+    getPositionCategory(p.position) === '골키퍼' || 
+    p.position?.toUpperCase() === 'GK'
+  )
+  
   // 골키퍼가 없는 팀에 부포지션이 GK인 선수 배치
   const assignBackupGoalkeeper = (team: any[]) => {
-    // 골키퍼가 있는지 확인
-    const hasGoalkeeper = team.some(p => 
+    // 골키퍼가 있는지 확인 (주포지션이 골키퍼인 선수)
+    const hasMainGoalkeeper = team.some(p => 
       getPositionCategory(p.position) === '골키퍼' || 
       p.position?.toUpperCase() === 'GK'
     )
     
-    if (hasGoalkeeper) return // 이미 골키퍼가 있으면 종료
+    if (hasMainGoalkeeper) return // 이미 주포지션이 골키퍼인 선수가 있으면 종료
     
-    // 부포지션에 GK가 있는 선수 찾기
+    // 부포지션에 GK가 있는 선수 찾기 (주포지션이 골키퍼가 아닌 선수 중)
     const backupGK = team.find(p => {
+      // 주포지션이 골키퍼가 아니어야 함
+      const mainPosCategory = getPositionCategory(p.position)
+      if (mainPosCategory === '골키퍼' || p.position?.toUpperCase() === 'GK') {
+        return false
+      }
+      
+      // 부포지션에 GK가 있어야 함
       if (!p.subPositions || p.subPositions.length === 0) return false
       return p.subPositions.some((subPos: string) => 
         getPositionCategory(subPos) === '골키퍼' || subPos.toUpperCase() === 'GK'
@@ -330,15 +343,16 @@ export function formTeams(players: any[]): { yellowTeam: any[], blueTeam: any[],
     
     if (backupGK) {
       // 부포지션에 GK가 있는 선수를 골키퍼로 표시하기 위해 positionCategory 업데이트
-      // (실제로는 주포지션은 그대로 두고, 표시만 골키퍼로 할 수도 있지만
-      // 일단 positionCategory를 골키퍼로 설정)
       backupGK.positionCategory = '골키퍼'
     }
   }
 
-  // 각 팀에 골키퍼 배치 확인
-  assignBackupGoalkeeper(bestFormation.yellowTeam)
-  assignBackupGoalkeeper(bestFormation.blueTeam)
+  // 주포지션이 골키퍼인 선수가 1명 이하이고, 부포지션이 GK인 선수가 있으면 배치
+  if (mainGoalkeepers.length <= 1) {
+    // 각 팀에 골키퍼 배치 확인
+    assignBackupGoalkeeper(bestFormation.yellowTeam)
+    assignBackupGoalkeeper(bestFormation.blueTeam)
+  }
 
   // 통계 계산
   const yellowLevels = bestFormation.yellowTeam.map(p => 

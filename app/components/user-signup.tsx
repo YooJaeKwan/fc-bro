@@ -59,8 +59,8 @@ export function UserSignup({ kakaoUserInfo, onSignupComplete, onBack }: UserSign
         { value: "DC", label: "DC (센터백)" },
         { value: "DR", label: "DR (오른쪽 풀백)" },
         { value: "DL", label: "DL (왼쪽 풀백)" },
-        { value: "DRL", label: "DRL (양쪽 풀백 가능)" },
-        { value: "DRLC", label: "DRLC (멀티 수비수)" }
+        { value: "LRB", label: "LRB (양쪽 풀백 가능)" },
+        { value: "LRCB", label: "LRCB (멀티 수비수)" }
       ]
     },
     goalkeeper: {
