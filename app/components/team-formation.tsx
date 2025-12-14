@@ -206,13 +206,13 @@ export function TeamFormation({
                                     >
                                       {player.displayPosition || player.position}
                                     </Badge>
-                                    {player.subPositions && player.subPositions.length > 0 && (
+                                    {((player.displaySubPositions && player.displaySubPositions.length > 0) || (player.subPositions && player.subPositions.length > 0)) && (
                                       <span className="text-xs font-medium">
                                         <span className="text-gray-500">(+</span>
-                                        {player.subPositions.map((subPos: string, idx: number) => (
+                                        {(player.displaySubPositions || player.subPositions).map((subPos: string, idx: number) => (
                                           <span key={idx}>
                                             <span className={getPositionTextColor(subPos)}>{subPos}</span>
-                                            {idx < player.subPositions.length - 1 && <span className="text-gray-400">, </span>}
+                                            {idx < (player.displaySubPositions || player.subPositions).length - 1 && <span className="text-gray-400">, </span>}
                                           </span>
                                         ))}
                                         <span className="text-gray-500">)</span>
@@ -287,13 +287,13 @@ export function TeamFormation({
                                     >
                                       {player.displayPosition || player.position}
                                     </Badge>
-                                    {player.subPositions && player.subPositions.length > 0 && (
+                                    {((player.displaySubPositions && player.displaySubPositions.length > 0) || (player.subPositions && player.subPositions.length > 0)) && (
                                       <span className="text-xs font-medium">
                                         <span className="text-gray-500">(+</span>
-                                        {player.subPositions.map((subPos: string, idx: number) => (
+                                        {(player.displaySubPositions || player.subPositions).map((subPos: string, idx: number) => (
                                           <span key={idx}>
                                             <span className={getPositionTextColor(subPos)}>{subPos}</span>
-                                            {idx < player.subPositions.length - 1 && <span className="text-gray-400">, </span>}
+                                            {idx < (player.displaySubPositions || player.subPositions).length - 1 && <span className="text-gray-400">, </span>}
                                           </span>
                                         ))}
                                         <span className="text-gray-500">)</span>

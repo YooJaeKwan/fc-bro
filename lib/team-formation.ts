@@ -346,6 +346,20 @@ export function formTeams(players: any[]): { yellowTeam: any[], blueTeam: any[],
       backupGK.positionCategory = '골키퍼'
       // 표시용 포지션도 GK로 변경 (원래 주포지션은 유지하되, 표시는 GK로)
       backupGK.displayPosition = 'GK'
+      // 부포지션 표시용: GK를 제거하고 원래 주포지션을 부포지션에 추가
+      if (backupGK.subPositions && backupGK.subPositions.length > 0) {
+        const filteredSubPositions = backupGK.subPositions.filter((pos: string) => 
+          pos.toUpperCase() !== 'GK'
+        )
+        // 원래 주포지션이 부포지션에 없으면 추가
+        if (backupGK.position && !filteredSubPositions.includes(backupGK.position)) {
+          filteredSubPositions.push(backupGK.position)
+        }
+        backupGK.displaySubPositions = filteredSubPositions
+      } else if (backupGK.position) {
+        // 부포지션이 없으면 원래 주포지션을 부포지션으로 표시
+        backupGK.displaySubPositions = [backupGK.position]
+      }
     }
   }
 
