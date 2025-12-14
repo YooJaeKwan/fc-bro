@@ -198,13 +198,13 @@ export function TeamFormation({
                                 <p className="text-sm font-medium truncate">
                                   {player.name}
                                 </p>
-                                {player.position && (
+                                {(player.displayPosition || player.position) && (
                                   <>
                                     <Badge 
                                       variant="outline" 
-                                      className={`text-xs font-medium ${getPositionTextColor(player.position)} border-current`}
+                                      className={`text-xs font-medium ${getPositionTextColor(player.displayPosition || player.position)} border-current`}
                                     >
-                                      {player.position}
+                                      {player.displayPosition || player.position}
                                     </Badge>
                                     {player.subPositions && player.subPositions.length > 0 && (
                                       <span className="text-xs font-medium">
@@ -279,13 +279,13 @@ export function TeamFormation({
                                 <p className="text-sm font-medium truncate">
                                   {player.name}
                                 </p>
-                                {player.position && (
+                                {(player.displayPosition || player.position) && (
                                   <>
                                     <Badge 
                                       variant="outline" 
-                                      className={`text-xs font-medium ${getPositionTextColor(player.position)} border-current`}
+                                      className={`text-xs font-medium ${getPositionTextColor(player.displayPosition || player.position)} border-current`}
                                     >
-                                      {player.position}
+                                      {player.displayPosition || player.position}
                                     </Badge>
                                     {player.subPositions && player.subPositions.length > 0 && (
                                       <span className="text-xs font-medium">

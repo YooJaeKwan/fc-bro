@@ -342,8 +342,10 @@ export function formTeams(players: any[]): { yellowTeam: any[], blueTeam: any[],
     })
     
     if (backupGK) {
-      // 부포지션에 GK가 있는 선수를 골키퍼로 표시하기 위해 positionCategory 업데이트
+      // 부포지션에 GK가 있는 선수를 골키퍼로 표시하기 위해 positionCategory와 position 업데이트
       backupGK.positionCategory = '골키퍼'
+      // 표시용 포지션도 GK로 변경 (원래 주포지션은 유지하되, 표시는 GK로)
+      backupGK.displayPosition = 'GK'
     }
   }
 
