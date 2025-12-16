@@ -5,9 +5,9 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { CalendarIcon, MapPinIcon, UsersIcon, ClockIcon, X, Check, UserPlus, UserMinus } from 'lucide-react'
+import { CalendarIcon, MapPinIcon, UsersIcon, ClockIcon, X, Check, UserPlus, UserMinus, Edit, Trash2 } from 'lucide-react'
 import { calculateDaysLeft } from '@/lib/utils'
-// import { AttendanceVoting } from './attendance-voting'
+import { AttendanceVoting } from './attendance-voting'
 
 interface ScheduleCardProps {
   schedule: any
@@ -165,34 +165,56 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
             </div>
 
             {/* D-Day 표시 */}
-            <div className="flex items-center justify-center gap-3">
-              <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-full font-semibold">
-                <CalendarIcon className="h-4 w-4" />
-                {(() => {
-                  if (daysLeft === 0) return "오늘 경기!"
-                  if (daysLeft === 1) return "내일 경기!"
-                  if (daysLeft > 0) return `D-${daysLeft}`
-                  return "지난 경기"
-                })()}
+            <div className="space-y-2">
+              <div className="flex items-center justify-center gap-3">
+                <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-full font-semibold">
+                  <CalendarIcon className="h-4 w-4" />
+                  {(() => {
+                    if (daysLeft === 0) return "오늘 경기!"
+                    if (daysLeft === 1) return "내일 경기!"
+                    if (daysLeft > 0) return `D-${daysLeft}`
+                    return "지난 경기"
+                  })()}
+                </div>
               </div>
 
-              {/* 사용자 투표 상태 뱃지 */}
-              {!isPastSchedule && (() => {
-                if (userStatus === 'attending' || userStatus === 'ATTENDING') {
-                  return (
-                    <Badge className="bg-green-100 text-green-800 border-green-300 text-xs">
-                      참석
-                    </Badge>
-                  )
-                } else if (userStatus === 'not_attending' || userStatus === 'NOT_ATTENDING') {
-                  return (
-                    <Badge className="bg-red-100 text-red-800 border-red-300 text-xs">
-                      불참
-                    </Badge>
-                  )
-                }
-                return null
-              })()}
+              {/* 관리자 아이콘 버튼들 */}
+              {isManagerMode && (
+                <div className="flex items-center justify-center gap-2">
+                  {/* 이후 일정: 수정/삭제 */}
+                  {!isPastSchedule && (
+                    <>
+                      <Button
+                        onClick={() => onEditSchedule(schedule)}
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        onClick={() => onDeleteSchedule(schedule.id)}
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </>
+                  )}
+                  {/* 지난 경기: 삭제만 */}
+                  {isPastSchedule && (
+                    <Button
+                      onClick={() => onDeleteSchedule(schedule.id)}
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* 장소 정보 */}
@@ -210,22 +232,6 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
               </div>
             )}
 
-            {/* 참석 현황 */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className={isPastSchedule ? 'text-gray-500' : 'text-muted-foreground'}>참석 현황 (임시)</span>
-                <div className="flex items-center gap-2">
-                  <UsersIcon className={`h-4 w-4 ${isPastSchedule ? 'text-gray-400' : ''}`} />
-                  <Badge variant="outline" className={`font-medium ${isPastSchedule ? 'text-gray-500 border-gray-300' : ''}`}>
-                    {stats.attending}/{stats.total}명
-                  </Badge>
-                  <span className={`text-xs ${isPastSchedule ? 'text-gray-400' : 'text-muted-foreground'}`}>
-                    ({stats.percentage}%)
-                  </span>
-                </div>
-              </div>
-            </div>
-
             {/* 지난 경기 안내 메시지 */}
             {isPastSchedule && (
               <div className="bg-gray-100 text-gray-600 text-sm p-3 rounded-lg text-center">
@@ -233,43 +239,24 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
               </div>
             )}
 
-            {/* 참석 투표 - 비활성화 */}
-            {/* {!isPastSchedule && (
-              <AttendanceVoting
-                schedule={schedule}
-                currentUser={currentUser}
-                isManagerMode={isManagerMode}
-                onAttendanceUpdate={() => onAttendanceUpdate(schedule.id)}
-                onAttendanceStatsUpdate={() => onAttendanceStatsUpdate(schedule.id)}
-                onFormationReset={onFormationReset}
-                onGuestStatusUpdate={() => onGuestStatusUpdate(schedule.id)}
-                allowGuests={schedule.allowGuests}
-                hasTeamFormation={hasTeamFormation}
-              />
-            )} */}
-
-            {/* 관리자 버튼들 */}
-            {isManagerMode && (
-              <div className="flex gap-2 pt-2 border-t">
-                <Button
-                  onClick={() => onEditSchedule(schedule)}
-                  variant="outline"
-                  size="sm"
-                  disabled={isPastSchedule}
-                  className="flex-1"
-                >
-                  수정
-                </Button>
-                <Button
-                  onClick={() => onDeleteSchedule(schedule.id)}
-                  variant="outline"
-                  size="sm"
-                  className="flex-1 text-red-600 hover:text-red-700 hover:bg-red-50"
-                >
-                  삭제
-                </Button>
+            {/* 참석 투표 */}
+            {!isPastSchedule && currentUser?.id && (
+              <div className="pt-4 border-t">
+                <AttendanceVoting
+                  scheduleId={schedule.id}
+                  currentUserId={currentUser.id}
+                  isPastSchedule={isPastSchedule}
+                  allowGuests={false}
+                  hasTeamFormation={!!schedule.teamFormation}
+                  isManagerMode={isManagerMode}
+                  onVoteUpdate={() => {
+                    onVoteUpdate?.()
+                    onAttendanceUpdate(schedule.id)
+                  }}
+                />
               </div>
             )}
+
           </div>
         </CardContent>
       )}

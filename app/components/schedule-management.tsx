@@ -1028,6 +1028,7 @@ export function ScheduleManagement({
                          isPastSchedule={isPastSchedule}
                          allowGuests={nextUpcomingSchedule.allowGuests}
                          hasTeamFormation={!!nextUpcomingSchedule.teamFormation}
+                         isManagerMode={isManagerMode}
                          onVoteUpdate={handleVoteUpdate}
                        />
                      </div>

@@ -250,3 +250,120 @@ export async function GET(request: NextRequest) {
     )
   }
 }
+
+// 참석 투표 삭제 (총무만 가능)
+export async function DELETE(request: NextRequest) {
+  try {
+    const body = await request.json()
+    const { scheduleId, targetUserId, guestId, adminUserId } = body
+
+    // 필수 필드 검증
+    if (!scheduleId || !adminUserId) {
+      return NextResponse.json(
+        { error: '필수 정보가 누락되었습니다.' },
+        { status: 400 }
+      )
+    }
+
+    // 일반 사용자 삭제인지 게스트 삭제인지 확인
+    if (!targetUserId && !guestId) {
+      return NextResponse.json(
+        { error: '삭제할 사용자 ID 또는 게스트 ID가 필요합니다.' },
+        { status: 400 }
+      )
+    }
+
+    // 총무 권한 확인
+    const adminUser = await prisma.user.findUnique({
+      where: { id: adminUserId },
+      select: { role: true }
+    })
+
+    if (!adminUser || adminUser.role !== 'ADMIN') {
+      return NextResponse.json(
+        { error: '총무 권한이 필요합니다.' },
+        { status: 403 }
+      )
+    }
+
+    // 일정 존재 확인
+    const schedule = await prisma.schedule.findUnique({
+      where: { id: scheduleId }
+    })
+
+    if (!schedule) {
+      return NextResponse.json(
+        { error: '존재하지 않는 일정입니다.' },
+        { status: 404 }
+      )
+    }
+
+    // 참석 기록 삭제
+    if (guestId) {
+      // 게스트 삭제
+      await prisma.scheduleAttendance.delete({
+        where: {
+          scheduleId_guestId: {
+            scheduleId,
+            guestId
+          }
+        }
+      })
+      console.log('게스트 참석 투표 삭제:', { scheduleId, guestId })
+    } else if (targetUserId) {
+      // 일반 사용자 삭제
+      await prisma.scheduleAttendance.delete({
+        where: {
+          scheduleId_userId: {
+            scheduleId,
+            userId: targetUserId
+          }
+        }
+      })
+      console.log('일반 사용자 참석 투표 삭제:', { scheduleId, targetUserId })
+    }
+
+    // 참석 투표 삭제 시 기존 팀편성 결과 초기화
+    try {
+      const scheduleWithFormation = await prisma.schedule.findUnique({
+        where: { id: scheduleId },
+        select: { teamFormation: true, formationDate: true }
+      })
+
+      if (scheduleWithFormation?.teamFormation || scheduleWithFormation?.formationDate) {
+        await prisma.schedule.update({
+          where: { id: scheduleId },
+          data: {
+            teamFormation: null,
+            formationDate: null
+          }
+        })
+        console.log('참석 투표 삭제로 인한 팀편성 초기화 완료:', scheduleId)
+      }
+    } catch (error) {
+      console.error('팀편성 초기화 중 오류 (무시됨):', error)
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: '참석 투표가 삭제되었습니다.',
+      teamFormationReset: true
+    })
+
+  } catch (error: any) {
+    console.error('참석 투표 삭제 중 오류:', error)
+    
+    // 레코드를 찾을 수 없는 경우
+    if (error.code === 'P2025') {
+      return NextResponse.json(
+        { error: '삭제할 참석 투표를 찾을 수 없습니다.' },
+        { status: 404 }
+      )
+    }
+    
+    return NextResponse.json(
+      { error: '참석 투표 삭제 중 오류가 발생했습니다.' },
+      { status: 500 }
+    )
+  }
+}

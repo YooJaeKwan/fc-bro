@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { scheduleId, guestName, guestLevel, guestPosition, invitedByUserId } = body
+    const { scheduleId, guestName, guestLevel, guestPosition, invitedByUserId, sameTeamAsInviter } = body
 
     // 필수 필드 확인
     if (!scheduleId || !guestName || !guestLevel || !guestPosition || !invitedByUserId) {
@@ -75,6 +75,9 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
+
+    // sameTeamAsInviter 기본값 처리 (없으면 false)
+    const sameTeam = sameTeamAsInviter !== undefined ? sameTeamAsInviter : false
 
     // 초대한 사용자 확인
     const inviter = await prisma.user.findUnique({
@@ -101,7 +104,8 @@ export async function POST(request: NextRequest) {
         guestLevel,
         guestPosition,
         invitedByUserId,
-        isGuest: true
+        isGuest: true,
+        sameTeamAsInviter: sameTeam
       }
     })
 

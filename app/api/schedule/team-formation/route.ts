@@ -64,17 +64,31 @@ export async function POST(request: NextRequest) {
         if (att.isGuest) {
           // 게스트 - 주포지션에 따라 분류되지만 게스트 카테고리로 표시
           const guestPosition = att.guestPosition || null
+          // 숫자로 저장된 guestLevel을 문자열로 변환 (3=미숙, 4=보통, 5=잘함)
+          // 이전 값(2, 3, 4)도 호환: 2=미숙(구), 3=미숙(신), 4=보통(신), 5=잘함(신)
+          const getGuestLevelString = (level: number | null | undefined): string => {
+            if (!level) return '보통'
+            // 현재 값 (3, 4, 5)
+            if (level === 5) return '잘함'
+            if (level === 4) return '보통'
+            if (level === 3) return '미숙'
+            // 이전 값 호환 (2, 3, 4) - 3과 4는 이미 위에서 처리됨
+            if (level === 2) return '미숙' // 이전 값 호환
+            return '보통'
+          }
+          const guestLevelString = getGuestLevelString(att.guestLevel)
           return {
             userId: att.guestId || att.id,
             name: att.guestName || '게스트',
             position: guestPosition,
             subPositions: [],
             level: null,
-            guestLevel: att.guestLevel || '보통',
+            guestLevel: guestLevelString,
             isGuest: true,
             invitedByUserId: att.invitedByUserId || undefined, // 초대한 사용자 ID 추가
+            sameTeamAsInviter: att.sameTeamAsInviter !== undefined ? att.sameTeamAsInviter : true, // 초대자와 같은 팀 희망 여부
             positionCategory: getPositionCategory(guestPosition), // 게스트도 주포지션 카테고리 저장
-            levelCategory: att.guestLevel || '보통'
+            levelCategory: guestLevelString
           }
         } else {
           // 일반 사용자 - 주포지션에 따라 분류

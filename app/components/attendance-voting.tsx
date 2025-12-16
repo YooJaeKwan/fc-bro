@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Check, X, Clock, UserPlus } from 'lucide-react'
+import { Check, X, Clock, UserPlus, Trash2 } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -25,6 +25,7 @@ interface AttendanceVotingProps {
   isPastSchedule: boolean
   allowGuests?: boolean
   hasTeamFormation?: boolean
+  isManagerMode?: boolean
   onVoteUpdate: () => void
 }
 
@@ -52,6 +53,7 @@ export function AttendanceVoting({
   isPastSchedule,
   allowGuests = false,
   hasTeamFormation = false,
+  isManagerMode = false,
   onVoteUpdate
 }: AttendanceVotingProps) {
   const [myStatus, setMyStatus] = useState<'attending' | 'not_attending' | 'pending'>('pending')
@@ -71,15 +73,14 @@ export function AttendanceVoting({
   const [guestPositions, setGuestPositions] = useState<string[]>([])
   const [isPositionAny, setIsPositionAny] = useState(false)
   const [isAddingGuest, setIsAddingGuest] = useState(false)
+  const [sameTeamAsInviter, setSameTeamAsInviter] = useState(false) // 기본값: 체크 해제
 
   // 포지션 카테고리 정의
   const positionCategories = {
     attacker: {
       name: '공격수',
       positions: [
-        { value: 'ST', label: 'ST (스트라이커)' },
         { value: 'CF', label: 'CF (센터 포워드)' },
-        { value: 'SS', label: 'SS (세컨드 스트라이커)' },
         { value: 'LWF', label: 'LWF (좌측 윙 포워드)' },
         { value: 'RWF', label: 'RWF (우측 윙 포워드)' }
       ]
@@ -96,10 +97,8 @@ export function AttendanceVoting({
       name: '수비수',
       positions: [
         { value: 'CB', label: 'CB (센터백)' },
-        { value: 'RB', label: 'RB (우측 풀백)' },
         { value: 'LB', label: 'LB (좌측 풀백)' },
-        { value: 'LRB', label: 'LRB (양쪽 풀백 가능)' },
-        { value: 'LRCB', label: 'LRCB (멀티 수비수)' }
+        { value: 'RB', label: 'RB (우측 풀백)' }
       ]
     },
     goalkeeper: {
@@ -215,6 +214,57 @@ export function AttendanceVoting({
     }
   }
 
+  // 참석 투표 삭제 (총무만 가능)
+  const handleDeleteAttendance = async (attendee: Attendee) => {
+    if (!isManagerMode) return
+
+    const confirmMessage = attendee.isGuest
+      ? `게스트 "${attendee.name}"의 참석 투표를 삭제하시겠습니까?`
+      : `"${attendee.name}"님의 참석 투표를 삭제하시겠습니까?`
+    
+    if (!confirm(confirmMessage)) return
+
+    // 팀편성 결과가 있으면 확인 메시지 표시
+    if (hasTeamFormation) {
+      if (!confirm('팀편성 결과가 있습니다. 투표를 삭제하면 팀편성 결과가 초기화됩니다. 삭제하시겠습니까?')) {
+        return
+      }
+    }
+
+    try {
+      const response = await fetch('/api/schedule/attendance', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          scheduleId,
+          targetUserId: attendee.isGuest ? null : attendee.userId,
+          guestId: attendee.isGuest ? attendee.userId : null,
+          adminUserId: currentUserId
+        })
+      })
+
+      const result = await response.json()
+
+      if (response.ok && result.success) {
+        // 현황 다시 조회
+        await fetchAttendance()
+        // 상위 컴포넌트에 알림
+        onVoteUpdate()
+        // 팀편성 결과가 있었을 때만 초기화 메시지 표시
+        if (result.teamFormationReset && hasTeamFormation) {
+          alert('참석 투표가 삭제되었습니다. 팀편성 결과가 초기화되었습니다.')
+        }
+        // 다이얼로그는 유지 (닫지 않음)
+      } else {
+        console.error('투표 삭제 실패:', result.error)
+        alert(result.error || '투표 삭제 중 오류가 발생했습니다.')
+      }
+    } catch (error) {
+      console.error('투표 삭제 오류:', error)
+      alert('투표 삭제 중 오류가 발생했습니다.')
+    }
+  }
+
   // 게스트 참석 추가
   const handleAddGuest = async () => {
     if (!guestName.trim() || !guestLevel) {
@@ -237,11 +287,11 @@ export function AttendanceVoting({
 
     setIsAddingGuest(true)
     try {
-      // 레벨 매핑: 미숙=2, 보통=3, 잘함=4
+      // 레벨 매핑: 미숙=3, 보통=4, 잘함=5
       const levelMap: { [key: string]: number } = {
-        '미숙': 2,
-        '보통': 3,
-        '잘함': 4
+        '미숙': 3,
+        '보통': 4,
+        '잘함': 5
       }
 
       // 포지션 처리: 포지션 무관이면 'ANY', 아니면 선택된 포지션들을 콤마로 구분
@@ -257,7 +307,8 @@ export function AttendanceVoting({
           guestName: guestName.trim(),
           guestLevel: levelMap[guestLevel],
           guestPosition: guestPosition,
-          invitedByUserId: currentUserId
+          invitedByUserId: currentUserId,
+          sameTeamAsInviter: sameTeamAsInviter
         })
       })
 
@@ -269,12 +320,14 @@ export function AttendanceVoting({
         setGuestLevel('')
         setGuestPositions([])
         setIsPositionAny(false)
+        setSameTeamAsInviter(false) // 기본값으로 리셋
         setIsGuestDialogOpen(false)
         // 현황 다시 조회
         await fetchAttendance()
         // 상위 컴포넌트에 알림
         onVoteUpdate()
-        if (result.teamFormationReset) {
+        // 팀편성 결과가 있었을 때만 초기화 메시지 표시
+        if (result.teamFormationReset && hasTeamFormation) {
           alert('게스트가 초대되었습니다. 팀편성 결과가 초기화되었습니다.')
         }
       } else {
@@ -383,7 +436,7 @@ export function AttendanceVoting({
         {allowGuests && (
           <Dialog 
             open={isGuestDialogOpen} 
-            onOpenChange={(open) => {
+              onOpenChange={(open) => {
               setIsGuestDialogOpen(open)
               // 다이얼로그가 닫힐 때 폼 필드 초기화
               if (!open) {
@@ -391,6 +444,7 @@ export function AttendanceVoting({
                 setGuestLevel('')
                 setGuestPositions([])
                 setIsPositionAny(false)
+                setSameTeamAsInviter(false) // 기본값으로 리셋
               }
             }}
           >
@@ -503,6 +557,22 @@ export function AttendanceVoting({
                     )}
                   </div>
                 </div>
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-2 p-2 rounded border">
+                    <Checkbox
+                      id="same-team-inviter"
+                      checked={sameTeamAsInviter}
+                      onCheckedChange={(checked) => setSameTeamAsInviter(checked === true)}
+                      disabled={isAddingGuest}
+                    />
+                    <label
+                      htmlFor="same-team-inviter"
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                    >
+                      초대자와 같은 팀 희망
+                    </label>
+                  </div>
+                </div>
                 <div className="flex gap-2 pt-2">
                   <Button
                     onClick={handleAddGuest}
@@ -518,6 +588,7 @@ export function AttendanceVoting({
                       setGuestLevel('')
                       setGuestPositions([])
                       setIsPositionAny(false)
+                      setSameTeamAsInviter(false) // 기본값으로 리셋
                     }}
                     variant="outline"
                     disabled={isAddingGuest}
@@ -561,6 +632,7 @@ export function AttendanceVoting({
                 ) : (
                   attendees
                     .filter(a => a.status === 'attending')
+                    .sort((a, b) => a.name.localeCompare(b.name, 'ko'))
                     .map((attendee) => (
                       <div key={attendee.userId} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50">
                         <Avatar className="h-8 w-8">
@@ -583,9 +655,21 @@ export function AttendanceVoting({
                             </p>
                           )}
                         </div>
-                        {attendee.isGuest && (
-                          <Badge variant="outline" className="text-xs">게스트</Badge>
-                        )}
+                        <div className="flex items-center gap-2">
+                          {attendee.isGuest && (
+                            <Badge variant="outline" className="text-xs">게스트</Badge>
+                          )}
+                          {isManagerMode && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                              onClick={() => handleDeleteAttendance(attendee)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     ))
                 )}
@@ -619,6 +703,7 @@ export function AttendanceVoting({
                 ) : (
                   attendees
                     .filter(a => a.status === 'not_attending')
+                    .sort((a, b) => a.name.localeCompare(b.name, 'ko'))
                     .map((attendee) => (
                       <div key={attendee.userId} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50">
                         <Avatar className="h-8 w-8">
@@ -641,9 +726,21 @@ export function AttendanceVoting({
                             </p>
                           )}
                         </div>
-                        {attendee.isGuest && (
-                          <Badge variant="outline" className="text-xs">게스트</Badge>
-                        )}
+                        <div className="flex items-center gap-2">
+                          {attendee.isGuest && (
+                            <Badge variant="outline" className="text-xs">게스트</Badge>
+                          )}
+                          {isManagerMode && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                              onClick={() => handleDeleteAttendance(attendee)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     ))
                 )}
@@ -677,6 +774,7 @@ export function AttendanceVoting({
                 ) : (
                   attendees
                     .filter(a => a.status === 'pending')
+                    .sort((a, b) => a.name.localeCompare(b.name, 'ko'))
                     .map((attendee) => (
                       <div key={attendee.userId} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50">
                         <Avatar className="h-8 w-8">

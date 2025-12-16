@@ -38,12 +38,12 @@ export function getPlayerLevelScore(level: number | null | undefined): number {
 
 // 레벨 점수 계산 (게스트용)
 export function getGuestLevelScore(guestLevel: string | null | undefined): number {
-  if (!guestLevel) return 2
+  if (!guestLevel) return 3
   switch (guestLevel) {
-    case '미숙': return 2
-    case '보통': return 3
-    case '잘함': return 4
-    default: return 2
+    case '미숙': return 3
+    case '보통': return 4
+    case '잘함': return 5
+    default: return 3
   }
 }
 
@@ -305,10 +305,12 @@ export function formTeams(players: any[]): { yellowTeam: any[], blueTeam: any[],
         inviterTeamMap[player.userId] = 'blue'
       }
 
-      // 게스트 배치 (초대자와 같은 팀 우선, 포지션 균형 고려)
+      // 게스트 배치 (초대자와 같은 팀 희망 여부에 따라)
       categoryGuests.forEach(guest => {
-        if (guest.invitedByUserId && inviterTeamMap[guest.invitedByUserId]) {
-          // 초대자가 있는 경우 초대자 팀에 배치
+        const wantsSameTeam = guest.sameTeamAsInviter !== undefined ? guest.sameTeamAsInviter : false
+        
+        if (wantsSameTeam && guest.invitedByUserId && inviterTeamMap[guest.invitedByUserId]) {
+          // 같은 팀 희망하고 초대자가 있는 경우 초대자 팀에 배치
           const inviterTeam = inviterTeamMap[guest.invitedByUserId]
           if (inviterTeam === 'yellow') {
             currentYellow.push(guest)
@@ -316,7 +318,7 @@ export function formTeams(players: any[]): { yellowTeam: any[], blueTeam: any[],
             currentBlue.push(guest)
           }
         } else {
-          // 초대자가 없는 경우 포지션 균형을 고려하여 배치
+          // 같은 팀 희망하지 않거나 초대자가 없는 경우 포지션 균형을 고려하여 배치
           // 현재 카테고리의 각 팀 인원수 확인
           const yellowCategoryCount = currentYellow.filter(p => {
             const cat = p.positionCategory || getPositionCategory(p.position) || '미정'
@@ -430,9 +432,12 @@ export function formTeams(players: any[]): { yellowTeam: any[], blueTeam: any[],
         inviterTeamMap[player.userId] = 'blue'
       }
 
-      // 게스트 배치
+      // 게스트 배치 (초대자와 같은 팀 희망 여부에 따라)
       categoryGuests.forEach(guest => {
-        if (guest.invitedByUserId && inviterTeamMap[guest.invitedByUserId]) {
+        const wantsSameTeam = guest.sameTeamAsInviter !== undefined ? guest.sameTeamAsInviter : false
+        
+        if (wantsSameTeam && guest.invitedByUserId && inviterTeamMap[guest.invitedByUserId]) {
+          // 같은 팀 희망하고 초대자가 있는 경우 초대자 팀에 배치
           const inviterTeam = inviterTeamMap[guest.invitedByUserId]
           if (inviterTeam === 'yellow') {
             defaultYellow.push(guest)
@@ -440,6 +445,7 @@ export function formTeams(players: any[]): { yellowTeam: any[], blueTeam: any[],
             defaultBlue.push(guest)
           }
         } else {
+          // 같은 팀 희망하지 않거나 초대자가 없는 경우 포지션 균형을 고려하여 배치
           const yellowCategoryCount = defaultYellow.filter(p => {
             const cat = p.positionCategory || getPositionCategory(p.position) || '미정'
             return cat === category
