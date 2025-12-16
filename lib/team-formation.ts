@@ -226,7 +226,7 @@ export function formTeams(players: any[]): { yellowTeam: any[], blueTeam: any[],
   const targetPerTeam = Math.floor(totalPlayers / 2)
   const remainder = totalPlayers % 2
 
-  // 최적의 편성 찾기 (2000번 시도)
+  // 최적의 편성 찾기 (5000번 시도 - 포지션 균형을 위해 더 많은 시도)
   let bestFormation: { yellowTeam: any[], blueTeam: any[], score: number } | null = null
   const candidates: Array<{ 
     yellowTeam: any[], 
@@ -236,7 +236,7 @@ export function formTeams(players: any[]): { yellowTeam: any[], blueTeam: any[],
     avgDiff: number 
   }> = []
 
-  for (let attempt = 0; attempt < 2000; attempt++) {
+  for (let attempt = 0; attempt < 5000; attempt++) {
     // 모든 플레이어 다시 셔플
     const reShuffled = shuffle(shuffledFieldPlayers)
     
@@ -259,35 +259,81 @@ export function formTeams(players: any[]): { yellowTeam: any[], blueTeam: any[],
       }
     })
 
-    // 일반 플레이어 먼저 분배
-    for (let i = 0; i < regularPlayers.length; i++) {
-      const player = regularPlayers[i]
-      if (i < Math.floor(regularPlayers.length / 2) + (regularPlayers.length % 2)) {
+    // 포지션 카테고리별로 그룹화
+    const playersByCategory: { [key: string]: any[] } = {}
+    regularPlayers.forEach(player => {
+      const category = player.positionCategory || getPositionCategory(player.position) || '미정'
+      if (!playersByCategory[category]) {
+        playersByCategory[category] = []
+      }
+      playersByCategory[category].push(player)
+    })
+
+    // 게스트도 포지션 카테고리별로 그룹화
+    const guestsByCategory: { [key: string]: any[] } = {}
+    guests.forEach(guest => {
+      const category = guest.positionCategory || getPositionCategory(guest.position) || '미정'
+      if (!guestsByCategory[category]) {
+        guestsByCategory[category] = []
+      }
+      guestsByCategory[category].push(guest)
+    })
+
+    // 각 포지션 카테고리별로 균형있게 분배
+    const allCategories = new Set([...Object.keys(playersByCategory), ...Object.keys(guestsByCategory)])
+    
+    allCategories.forEach(category => {
+      const categoryPlayers = shuffle(playersByCategory[category] || [])
+      const categoryGuests = guestsByCategory[category] || []
+      
+      // 일반 플레이어 먼저 분배
+      const categoryCount = categoryPlayers.length
+      const yellowCount = Math.floor(categoryCount / 2)
+      const blueCount = categoryCount - yellowCount
+
+      // 노랑팀에 배치
+      for (let i = 0; i < yellowCount; i++) {
+        const player = categoryPlayers[i]
         currentYellow.push(player)
         inviterTeamMap[player.userId] = 'yellow'
-      } else {
+      }
+
+      // 파랑팀에 배치
+      for (let i = yellowCount; i < categoryCount; i++) {
+        const player = categoryPlayers[i]
         currentBlue.push(player)
         inviterTeamMap[player.userId] = 'blue'
       }
-    }
-    
-    // 게스트를 초대자와 같은 팀에 배치
-    guests.forEach(guest => {
-      if (guest.invitedByUserId && inviterTeamMap[guest.invitedByUserId]) {
-        const inviterTeam = inviterTeamMap[guest.invitedByUserId]
-        if (inviterTeam === 'yellow') {
-          currentYellow.push(guest)
+
+      // 게스트 배치 (초대자와 같은 팀 우선, 포지션 균형 고려)
+      categoryGuests.forEach(guest => {
+        if (guest.invitedByUserId && inviterTeamMap[guest.invitedByUserId]) {
+          // 초대자가 있는 경우 초대자 팀에 배치
+          const inviterTeam = inviterTeamMap[guest.invitedByUserId]
+          if (inviterTeam === 'yellow') {
+            currentYellow.push(guest)
+          } else {
+            currentBlue.push(guest)
+          }
         } else {
-          currentBlue.push(guest)
+          // 초대자가 없는 경우 포지션 균형을 고려하여 배치
+          // 현재 카테고리의 각 팀 인원수 확인
+          const yellowCategoryCount = currentYellow.filter(p => {
+            const cat = p.positionCategory || getPositionCategory(p.position) || '미정'
+            return cat === category
+          }).length
+          const blueCategoryCount = currentBlue.filter(p => {
+            const cat = p.positionCategory || getPositionCategory(p.position) || '미정'
+            return cat === category
+          }).length
+
+          if (yellowCategoryCount <= blueCategoryCount) {
+            currentYellow.push(guest)
+          } else {
+            currentBlue.push(guest)
+          }
         }
-      } else {
-        // 초대자가 없는 경우 균형에 맞춰 배치
-        if (currentYellow.length <= currentBlue.length) {
-          currentYellow.push(guest)
-        } else {
-          currentBlue.push(guest)
-        }
-      }
+      })
     })
 
     // 레벨 점수 계산
@@ -320,17 +366,98 @@ export function formTeams(players: any[]): { yellowTeam: any[], blueTeam: any[],
     }
   }
 
-  // 후보가 없으면 기본 분배
+  // 후보가 없으면 포지션 균형을 고려한 기본 분배
   if (candidates.length === 0) {
     const defaultYellow: any[] = []
     const defaultBlue: any[] = []
-    for (let i = 0; i < shuffledFieldPlayers.length; i++) {
-      if (i % 2 === 0) {
-        defaultYellow.push(shuffledFieldPlayers[i])
+    const inviterTeamMap: { [key: string]: 'yellow' | 'blue' } = {}
+    
+    // 일반 플레이어와 게스트 분리
+    const regularPlayers: any[] = []
+    const guests: any[] = []
+    
+    shuffledFieldPlayers.forEach(player => {
+      if (player.isGuest && player.invitedByUserId) {
+        guests.push(player)
       } else {
-        defaultBlue.push(shuffledFieldPlayers[i])
+        regularPlayers.push(player)
       }
-    }
+    })
+
+    // 포지션 카테고리별로 그룹화
+    const playersByCategory: { [key: string]: any[] } = {}
+    regularPlayers.forEach(player => {
+      const category = player.positionCategory || getPositionCategory(player.position) || '미정'
+      if (!playersByCategory[category]) {
+        playersByCategory[category] = []
+      }
+      playersByCategory[category].push(player)
+    })
+
+    // 게스트도 포지션 카테고리별로 그룹화
+    const guestsByCategory: { [key: string]: any[] } = {}
+    guests.forEach(guest => {
+      const category = guest.positionCategory || getPositionCategory(guest.position) || '미정'
+      if (!guestsByCategory[category]) {
+        guestsByCategory[category] = []
+      }
+      guestsByCategory[category].push(guest)
+    })
+
+    // 각 포지션 카테고리별로 균형있게 분배
+    const allCategories = new Set([...Object.keys(playersByCategory), ...Object.keys(guestsByCategory)])
+    
+    allCategories.forEach(category => {
+      const categoryPlayers = shuffle(playersByCategory[category] || [])
+      const categoryGuests = guestsByCategory[category] || []
+      
+      // 일반 플레이어 먼저 분배
+      const categoryCount = categoryPlayers.length
+      const yellowCount = Math.floor(categoryCount / 2)
+      const blueCount = categoryCount - yellowCount
+
+      // 노랑팀에 배치
+      for (let i = 0; i < yellowCount; i++) {
+        const player = categoryPlayers[i]
+        defaultYellow.push(player)
+        inviterTeamMap[player.userId] = 'yellow'
+      }
+
+      // 파랑팀에 배치
+      for (let i = yellowCount; i < categoryCount; i++) {
+        const player = categoryPlayers[i]
+        defaultBlue.push(player)
+        inviterTeamMap[player.userId] = 'blue'
+      }
+
+      // 게스트 배치
+      categoryGuests.forEach(guest => {
+        if (guest.invitedByUserId && inviterTeamMap[guest.invitedByUserId]) {
+          const inviterTeam = inviterTeamMap[guest.invitedByUserId]
+          if (inviterTeam === 'yellow') {
+            defaultYellow.push(guest)
+          } else {
+            defaultBlue.push(guest)
+          }
+        } else {
+          const yellowCategoryCount = defaultYellow.filter(p => {
+            const cat = p.positionCategory || getPositionCategory(p.position) || '미정'
+            return cat === category
+          }).length
+          const blueCategoryCount = defaultBlue.filter(p => {
+            const cat = p.positionCategory || getPositionCategory(p.position) || '미정'
+            return cat === category
+          }).length
+
+          if (yellowCategoryCount <= blueCategoryCount) {
+            defaultYellow.push(guest)
+          } else {
+            defaultBlue.push(guest)
+          }
+        }
+      })
+    })
+
     bestFormation = {
       yellowTeam: defaultYellow,
       blueTeam: defaultBlue,
@@ -363,7 +490,7 @@ export function formTeams(players: any[]): { yellowTeam: any[], blueTeam: any[],
     }
   }
 
-  // 최종 인원수 균형 맞추기 (강제 조정)
+  // 최종 인원수 균형 맞추기 (강제 조정) - 포지션 균형 고려
   const finalCountDiff = Math.abs(bestFormation.yellowTeam.length - bestFormation.blueTeam.length)
   if (finalCountDiff > 1) {
     const largerTeam = bestFormation.yellowTeam.length > bestFormation.blueTeam.length 
@@ -374,14 +501,133 @@ export function formTeams(players: any[]): { yellowTeam: any[], blueTeam: any[],
       : bestFormation.yellowTeam
 
     const playersToMove = Math.floor((largerTeam.length - smallerTeam.length) / 2)
+    
+    // 각 팀의 포지션 카테고리별 인원수 계산
+    const getCategoryCount = (team: any[]): { [key: string]: number } => {
+      const counts: { [key: string]: number } = {}
+      team.forEach(player => {
+        const category = player.positionCategory || getPositionCategory(player.position) || '미정'
+        counts[category] = (counts[category] || 0) + 1
+      })
+      return counts
+    }
+
+    const largerTeamCategories = getCategoryCount(largerTeam)
+    const smallerTeamCategories = getCategoryCount(smallerTeam)
+
+    // 이동할 선수 선택 (포지션 균형을 고려)
     for (let i = 0; i < playersToMove; i++) {
-      const playerToMove = largerTeam.pop()
+      // 각 카테고리별로 차이 계산하여 가장 차이가 큰 카테고리의 선수를 이동
+      let bestCategoryToMove = ''
+      let maxDiff = -1
+
+      Object.keys(largerTeamCategories).forEach(category => {
+        if (category === '미정' || category === '게스트') return
+        
+        const largerCount = largerTeamCategories[category] || 0
+        const smallerCount = smallerTeamCategories[category] || 0
+        const diff = largerCount - smallerCount
+
+        if (diff > maxDiff && largerCount > 0) {
+          maxDiff = diff
+          bestCategoryToMove = category
+        }
+      })
+
+      // 해당 카테고리의 선수 찾아서 이동
+      let playerToMove: any = null
+      if (bestCategoryToMove) {
+        const index = largerTeam.findIndex(player => {
+          const category = player.positionCategory || getPositionCategory(player.position) || '미정'
+          return category === bestCategoryToMove
+        })
+        if (index !== -1) {
+          playerToMove = largerTeam.splice(index, 1)[0]
+        }
+      }
+
+      // 카테고리별로 찾지 못했으면 마지막 선수 이동
+      if (!playerToMove) {
+        playerToMove = largerTeam.pop()
+      }
+
       if (playerToMove) {
         smallerTeam.push(playerToMove)
+        // 카운트 업데이트
+        const category = playerToMove.positionCategory || getPositionCategory(playerToMove.position) || '미정'
+        largerTeamCategories[category] = (largerTeamCategories[category] || 0) - 1
+        smallerTeamCategories[category] = (smallerTeamCategories[category] || 0) + 1
       } else {
         break
       }
     }
+  }
+
+  // 최종 포지션 균형 재확인 및 재조정 (포지션 균형이 최우선)
+  const getCategoryCount = (team: any[]): { [key: string]: number } => {
+    const counts: { [key: string]: number } = {}
+    team.forEach(player => {
+      const category = player.positionCategory || getPositionCategory(player.position) || '미정'
+      counts[category] = (counts[category] || 0) + 1
+    })
+    return counts
+  }
+
+  let maxIterations = 10 // 무한 루프 방지
+  let iteration = 0
+  while (iteration < maxIterations) {
+    const yellowCategories = getCategoryCount(bestFormation.yellowTeam)
+    const blueCategories = getCategoryCount(bestFormation.blueTeam)
+    
+    // 모든 카테고리 확인
+    const allCategories = new Set([...Object.keys(yellowCategories), ...Object.keys(blueCategories)])
+    let needsAdjustment = false
+    let worstCategory = ''
+    let worstDiff = 0
+
+    allCategories.forEach(category => {
+      if (category === '미정' || category === '게스트') return
+      
+      const yellowCount = yellowCategories[category] || 0
+      const blueCount = blueCategories[category] || 0
+      const diff = Math.abs(yellowCount - blueCount)
+
+      if (diff > 1 && diff > worstDiff) {
+        needsAdjustment = true
+        worstCategory = category
+        worstDiff = diff
+      }
+    })
+
+    if (!needsAdjustment) break // 포지션 균형이 맞으면 종료
+
+    // 가장 차이가 큰 카테고리 재조정
+    const yellowCount = yellowCategories[worstCategory] || 0
+    const blueCount = blueCategories[worstCategory] || 0
+    
+    if (yellowCount > blueCount) {
+      // 노랑팀에서 파랑팀으로 이동
+      const index = bestFormation.yellowTeam.findIndex(player => {
+        const category = player.positionCategory || getPositionCategory(player.position) || '미정'
+        return category === worstCategory
+      })
+      if (index !== -1) {
+        const playerToMove = bestFormation.yellowTeam.splice(index, 1)[0]
+        bestFormation.blueTeam.push(playerToMove)
+      }
+    } else {
+      // 파랑팀에서 노랑팀으로 이동
+      const index = bestFormation.blueTeam.findIndex(player => {
+        const category = player.positionCategory || getPositionCategory(player.position) || '미정'
+        return category === worstCategory
+      })
+      if (index !== -1) {
+        const playerToMove = bestFormation.blueTeam.splice(index, 1)[0]
+        bestFormation.yellowTeam.push(playerToMove)
+      }
+    }
+
+    iteration++
   }
 
   // 전체 참가자 중 주포지션이 골키퍼인 선수 수 확인
