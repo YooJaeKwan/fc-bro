@@ -25,6 +25,7 @@ import { ko } from "date-fns/locale"
 import { cn } from "@/lib/utils"
 import { Skeleton } from "@/components/ui/skeleton"
 import ScheduleCard from "./schedule-card"
+import { MatchResultDialog } from "./match-result-dialog"
 import { AttendanceVoting } from "./attendance-voting"
 import { TeamFormation } from "./team-formation"
 
@@ -40,8 +41,8 @@ interface ScheduleManagementProps {
   resetScheduleForm?: () => void
 }
 
-export function ScheduleManagement({ 
-  isManagerMode, 
+export function ScheduleManagement({
+  isManagerMode,
   currentUser,
   isAddingSchedule: externalIsAddingSchedule,
   setIsAddingSchedule: externalSetIsAddingSchedule,
@@ -57,7 +58,7 @@ export function ScheduleManagement({
   const [internalIsAddingSchedule, setInternalIsAddingSchedule] = useState(false)
   const [internalIsEditingSchedule, setInternalIsEditingSchedule] = useState(false)
   const [internalEditingScheduleId, setInternalEditingScheduleId] = useState<string | null>(null)
-  
+
   // 외부에서 전달된 상태가 있으면 사용, 없으면 내부 상태 사용
   const isAddingSchedule = externalIsAddingSchedule !== undefined ? externalIsAddingSchedule : internalIsAddingSchedule
   const setIsAddingSchedule = externalSetIsAddingSchedule || setInternalIsAddingSchedule
@@ -70,6 +71,8 @@ export function ScheduleManagement({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [availableLocations, setAvailableLocations] = useState<any[]>([])
   const [isLoadingLocations, setIsLoadingLocations] = useState(false)
+  const [isResultDialogOpen, setIsResultDialogOpen] = useState(false)
+  const [resultEditingSchedule, setResultEditingSchedule] = useState<any>(null)
 
   // 일정별 업데이트 상태 관리
   const [updatingSchedules, setUpdatingSchedules] = useState<Set<string>>(new Set())
@@ -141,9 +144,9 @@ export function ScheduleManagement({
 
       if (response.ok) {
         // 해당 일정의 게스트 허용 상태만 업데이트
-        setSchedules(prevSchedules => 
-          prevSchedules.map(schedule => 
-            schedule.id === scheduleId 
+        setSchedules(prevSchedules =>
+          prevSchedules.map(schedule =>
+            schedule.id === scheduleId
               ? { ...schedule, allowGuests: result.schedules.find((s: any) => s.id === scheduleId)?.allowGuests || false }
               : schedule
           )
@@ -405,6 +408,15 @@ export function ScheduleManagement({
     setIsEditingSchedule(true)
   }
 
+  const handleOpenResultDialog = (schedule: any) => {
+    setResultEditingSchedule(schedule)
+    setIsResultDialogOpen(true)
+  }
+
+  const handleResultSuccess = () => {
+    fetchSchedules()
+  }
+
   const handleDeleteSchedule = async (scheduleId: string, scheduleTitle?: string) => {
     if (!currentUser?.id) {
       setError('삭제 권한이 없습니다.')
@@ -565,319 +577,319 @@ export function ScheduleManagement({
           if (!open) resetScheduleForm()
           else setIsAddingSchedule(true)
         }}>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>{isEditingSchedule ? '일정 수정' : '새 일정 추가'}</DialogTitle>
-                <DialogDescription>
-                  {isEditingSchedule ? '일정 정보를 수정하세요' : '새로운 팀 일정을 등록하세요'}
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{isEditingSchedule ? '일정 수정' : '새 일정 추가'}</DialogTitle>
+              <DialogDescription>
+                {isEditingSchedule ? '일정 정보를 수정하세요' : '새로운 팀 일정을 등록하세요'}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="type">경기 유형 *</Label>
+                <Select
+                  value={newSchedule.type}
+                  onValueChange={(value) => setNewSchedule({
+                    ...newSchedule,
+                    type: value,
+                    opponentTeam: "",
+                    trainingContent: ""
+                  })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="internal">자체경기</SelectItem>
+                    <SelectItem value="match">A매치</SelectItem>
+                    <SelectItem value="training">연습</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {newSchedule.type === "match" && (
                 <div className="space-y-2">
-                  <Label htmlFor="type">경기 유형 *</Label>
-                  <Select
-                    value={newSchedule.type}
-                    onValueChange={(value) => setNewSchedule({
-                      ...newSchedule,
-                      type: value,
-                      opponentTeam: "",
-                      trainingContent: ""
-                    })}
-                  >
+                  <Label htmlFor="opponentTeam">상대팀명 *</Label>
+                  <Input
+                    id="opponentTeam"
+                    value={newSchedule.opponentTeam}
+                    onChange={(e) => setNewSchedule({ ...newSchedule, opponentTeam: e.target.value })}
+                    placeholder="상대팀 이름을 입력하세요"
+                  />
+                </div>
+              )}
+
+              {newSchedule.type === "training" && (
+                <div className="space-y-2">
+                  <Label htmlFor="trainingContent">연습 내용 *</Label>
+                  <Input
+                    id="trainingContent"
+                    value={newSchedule.trainingContent}
+                    onChange={(e) => setNewSchedule({ ...newSchedule, trainingContent: e.target.value })}
+                    placeholder="연습 내용을 입력하세요"
+                  />
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label>날짜 *</Label>
+                <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !selectedDate && "text-muted-foreground",
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {(() => {
+                        try {
+                          return selectedDate && !isNaN(selectedDate.getTime())
+                            ? format(selectedDate, "yyyy년 MM월 dd일 (EEE)", { locale: ko })
+                            : "날짜를 선택하세요"
+                        } catch (error) {
+                          console.error('날짜 포맷 오류:', error)
+                          return "날짜를 선택하세요"
+                        }
+                      })()}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={selectedDate}
+                      onSelect={(date) => {
+                        setSelectedDate(date)
+                        setNewSchedule({
+                          ...newSchedule,
+                          date: date ? format(date, "yyyy-MM-dd") : "",
+                        })
+                        setIsDatePickerOpen(false)
+                      }}
+                      disabled={(date) => date < new Date()}
+                      initialFocus
+                      locale={ko}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>시작 시간 *</Label>
+                  <Select value={newSchedule.time} onValueChange={handleStartTimeChange}>
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue placeholder="시작 시간 선택" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="internal">자체경기</SelectItem>
-                      <SelectItem value="match">A매치</SelectItem>
-                      <SelectItem value="training">연습</SelectItem>
+                      {timeOptions.map((time) => (
+                        <SelectItem key={time} value={time}>
+                          <div className="flex items-center gap-2">
+                            <Clock className="h-4 w-4" />
+                            {time}
+                          </div>
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
 
-                {newSchedule.type === "match" && (
-                  <div className="space-y-2">
-                    <Label htmlFor="opponentTeam">상대팀명 *</Label>
-                    <Input
-                      id="opponentTeam"
-                      value={newSchedule.opponentTeam}
-                      onChange={(e) => setNewSchedule({ ...newSchedule, opponentTeam: e.target.value })}
-                      placeholder="상대팀 이름을 입력하세요"
-                    />
+                {newSchedule.time && newSchedule.gatherTime && (
+                  <div className="p-3 bg-blue-50 rounded-lg">
+                    <div className="flex items-center gap-2 text-blue-700">
+                      <Users className="h-4 w-4" />
+                      <span className="font-medium">집합 시간: {newSchedule.gatherTime}</span>
+                      <span className="text-sm text-blue-600">(시작 20분 전)</span>
+                    </div>
                   </div>
                 )}
+              </div>
 
-                {newSchedule.type === "training" && (
-                  <div className="space-y-2">
-                    <Label htmlFor="trainingContent">연습 내용 *</Label>
-                    <Input
-                      id="trainingContent"
-                      value={newSchedule.trainingContent}
-                      onChange={(e) => setNewSchedule({ ...newSchedule, trainingContent: e.target.value })}
-                      placeholder="연습 내용을 입력하세요"
-                    />
-                  </div>
-                )}
-
-                <div className="space-y-2">
-                  <Label>날짜 *</Label>
-                  <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !selectedDate && "text-muted-foreground",
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {(() => {
-                          try {
-                            return selectedDate && !isNaN(selectedDate.getTime())
-                              ? format(selectedDate, "yyyy년 MM월 dd일 (EEE)", { locale: ko })
-                              : "날짜를 선택하세요"
-                          } catch (error) {
-                            console.error('날짜 포맷 오류:', error)
-                            return "날짜를 선택하세요"
-                          }
-                        })()}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={selectedDate}
-                        onSelect={(date) => {
-                          setSelectedDate(date)
-                          setNewSchedule({
-                            ...newSchedule,
-                            date: date ? format(date, "yyyy-MM-dd") : "",
-                          })
-                          setIsDatePickerOpen(false)
-                        }}
-                        disabled={(date) => date < new Date()}
-                        initialFocus
-                        locale={ko}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>시작 시간 *</Label>
-                    <Select value={newSchedule.time} onValueChange={handleStartTimeChange}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="시작 시간 선택" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {timeOptions.map((time) => (
-                          <SelectItem key={time} value={time}>
+              <div className="space-y-2">
+                <Label>장소 *</Label>
+                <div className="space-y-3">
+                  <Select
+                    value={newSchedule.location}
+                    onValueChange={(value) => setNewSchedule({ ...newSchedule, location: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="이전 사용 장소에서 선택" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-60">
+                      {isLoadingLocations ? (
+                        <div className="px-2 py-1 text-xs text-muted-foreground">
+                          장소 목록 로딩 중...
+                        </div>
+                      ) : (
+                        availableLocations.map((location: any) => (
+                          <SelectItem key={location.name} value={location.name}>
                             <div className="flex items-center gap-2">
-                              <Clock className="h-4 w-4" />
-                              {time}
+                              <MapPin className="h-4 w-4 text-blue-500" />
+                              <span>{location.name}</span>
+                              {location.count && (
+                                <Badge variant="secondary" className="text-xs ml-auto">
+                                  {location.count}회
+                                </Badge>
+                              )}
                             </div>
                           </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
 
-                  {newSchedule.time && newSchedule.gatherTime && (
-                    <div className="p-3 bg-blue-50 rounded-lg">
-                      <div className="flex items-center gap-2 text-blue-700">
-                        <Users className="h-4 w-4" />
-                        <span className="font-medium">집합 시간: {newSchedule.gatherTime}</span>
-                        <span className="text-sm text-blue-600">(시작 20분 전)</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label>장소 *</Label>
-                  <div className="space-y-3">
-                    <Select
+                  <div className="relative">
+                    <Input
                       value={newSchedule.location}
-                      onValueChange={(value) => setNewSchedule({ ...newSchedule, location: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="이전 사용 장소에서 선택" />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-60">
-                        {isLoadingLocations ? (
-                          <div className="px-2 py-1 text-xs text-muted-foreground">
-                            장소 목록 로딩 중...
-                          </div>
-                        ) : (
-                          availableLocations.map((location: any) => (
-                            <SelectItem key={location.name} value={location.name}>
-                              <div className="flex items-center gap-2">
-                                <MapPin className="h-4 w-4 text-blue-500" />
-                                <span>{location.name}</span>
-                                {location.count && (
-                                  <Badge variant="secondary" className="text-xs ml-auto">
-                                    {location.count}회
-                                  </Badge>
-                                )}
-                              </div>
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
-
-                    <div className="relative">
-                      <Input
-                        value={newSchedule.location}
-                        onChange={(e) => setNewSchedule({ ...newSchedule, location: e.target.value })}
-                        placeholder="또는 직접 입력하세요"
-                      />
-                      {newSchedule.location &&
-                       !availableLocations.some((loc: any) => loc.name === newSchedule.location) && (
+                      onChange={(e) => setNewSchedule({ ...newSchedule, location: e.target.value })}
+                      placeholder="또는 직접 입력하세요"
+                    />
+                    {newSchedule.location &&
+                      !availableLocations.some((loc: any) => loc.name === newSchedule.location) && (
                         <div className="absolute right-2 top-1/2 -translate-y-1/2">
                           <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-700 border-yellow-300">
                             신규
                           </Badge>
                         </div>
                       )}
-                    </div>
                   </div>
                 </div>
+              </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="quarterTime">쿼터 시간 (분)</Label>
-                    <Select
-                      value={newSchedule.quarterTime.toString()}
-                      onValueChange={(value) => setNewSchedule({ ...newSchedule, quarterTime: Number.parseInt(value) })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {[15, 20, 25, 30, 35, 40, 45].map((minutes) => (
-                          <SelectItem key={minutes} value={minutes.toString()}>
-                            <div className="flex items-center gap-2">
-                              <Timer className="h-4 w-4" />
-                              {minutes}분
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="restTime">휴식 시간 (분)</Label>
-                    <Select
-                      value={newSchedule.restTime.toString()}
-                      onValueChange={(value) => setNewSchedule({ ...newSchedule, restTime: Number.parseInt(value) })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {[5, 10, 15, 20].map((minutes) => (
-                          <SelectItem key={minutes} value={minutes.toString()}>
-                            <div className="flex items-center gap-2">
-                              <Coffee className="h-4 w-4" />
-                              {minutes}분
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="quarterTime">쿼터 시간 (분)</Label>
+                  <Select
+                    value={newSchedule.quarterTime.toString()}
+                    onValueChange={(value) => setNewSchedule({ ...newSchedule, quarterTime: Number.parseInt(value) })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[15, 20, 25, 30, 35, 40, 45].map((minutes) => (
+                        <SelectItem key={minutes} value={minutes.toString()}>
+                          <div className="flex items-center gap-2">
+                            <Timer className="h-4 w-4" />
+                            {minutes}분
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="description">설명</Label>
-                  <Textarea
-                    id="description"
-                    value={newSchedule.description}
-                    onChange={(e) => setNewSchedule({ ...newSchedule, description: e.target.value })}
-                    placeholder="추가 정보를 입력하세요"
-                    rows={3}
-                  />
+                  <Label htmlFor="restTime">휴식 시간 (분)</Label>
+                  <Select
+                    value={newSchedule.restTime.toString()}
+                    onValueChange={(value) => setNewSchedule({ ...newSchedule, restTime: Number.parseInt(value) })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[5, 10, 15, 20].map((minutes) => (
+                        <SelectItem key={minutes} value={minutes.toString()}>
+                          <div className="flex items-center gap-2">
+                            <Coffee className="h-4 w-4" />
+                            {minutes}분
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
+              </div>
 
-                {(selectedDate && !isNaN(selectedDate.getTime()) || newSchedule.time || newSchedule.location) && (
-                  <div className="p-4 bg-blue-50 rounded-lg space-y-2">
-                    <h4 className="font-medium text-blue-800">일정 요약</h4>
-                    <div className="text-sm text-blue-700 space-y-1">
+              <div className="space-y-2">
+                <Label htmlFor="description">설명</Label>
+                <Textarea
+                  id="description"
+                  value={newSchedule.description}
+                  onChange={(e) => setNewSchedule({ ...newSchedule, description: e.target.value })}
+                  placeholder="추가 정보를 입력하세요"
+                  rows={3}
+                />
+              </div>
+
+              {(selectedDate && !isNaN(selectedDate.getTime()) || newSchedule.time || newSchedule.location) && (
+                <div className="p-4 bg-blue-50 rounded-lg space-y-2">
+                  <h4 className="font-medium text-blue-800">일정 요약</h4>
+                  <div className="text-sm text-blue-700 space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Target className="h-4 w-4" />
+                      <span className="font-medium">
+                        {newSchedule.type === "internal" ? "자체경기" :
+                          newSchedule.type === "match" ? `vs ${newSchedule.opponentTeam || "상대팀"}` :
+                            `연습 - ${newSchedule.trainingContent || "연습내용"}`}
+                      </span>
+                    </div>
+                    {(() => {
+                      try {
+                        return selectedDate && !isNaN(selectedDate.getTime()) && (
+                          <div className="flex items-center gap-2">
+                            <CalendarIcon className="h-4 w-4" />
+                            {format(selectedDate, "yyyy년 MM월 dd일 (EEE)", { locale: ko })}
+                          </div>
+                        )
+                      } catch (error) {
+                        console.error('날짜 포맷 오류:', error)
+                        return null
+                      }
+                    })()}
+                    {newSchedule.time && (
                       <div className="flex items-center gap-2">
-                        <Target className="h-4 w-4" />
-                        <span className="font-medium">
-                          {newSchedule.type === "internal" ? "자체경기" :
-                           newSchedule.type === "match" ? `vs ${newSchedule.opponentTeam || "상대팀"}` :
-                           `연습 - ${newSchedule.trainingContent || "연습내용"}`}
-                        </span>
+                        <Clock className="h-4 w-4" />
+                        시작: {newSchedule.time}
                       </div>
-                      {(() => {
-                        try {
-                          return selectedDate && !isNaN(selectedDate.getTime()) && (
-                            <div className="flex items-center gap-2">
-                              <CalendarIcon className="h-4 w-4" />
-                              {format(selectedDate, "yyyy년 MM월 dd일 (EEE)", { locale: ko })}
-                            </div>
-                          )
-                        } catch (error) {
-                          console.error('날짜 포맷 오류:', error)
-                          return null
-                        }
-                      })()}
-                      {newSchedule.time && (
-                        <div className="flex items-center gap-2">
-                          <Clock className="h-4 w-4" />
-                          시작: {newSchedule.time}
-                        </div>
-                      )}
-                      {newSchedule.gatherTime && (
-                        <div className="flex items-center gap-2">
-                          <Users className="h-4 w-4" />
-                          집합: {newSchedule.gatherTime}
-                        </div>
-                      )}
-                      {newSchedule.location && (
-                        <div className="flex items-center gap-2">
-                          <MapPin className="h-4 w-4" />
-                          장소: {newSchedule.location}
-                        </div>
-                      )}
-                    </div>
+                    )}
+                    {newSchedule.gatherTime && (
+                      <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4" />
+                        집합: {newSchedule.gatherTime}
+                      </div>
+                    )}
+                    {newSchedule.location && (
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4" />
+                        장소: {newSchedule.location}
+                      </div>
+                    )}
                   </div>
+                </div>
+              )}
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={resetScheduleForm}>
+                취소
+              </Button>
+              <Button
+                onClick={isEditingSchedule ? handleScheduleUpdate : handleScheduleSubmit}
+                disabled={
+                  !selectedDate ||
+                  isNaN(selectedDate.getTime()) ||
+                  !newSchedule.time ||
+                  !newSchedule.location ||
+                  (newSchedule.type === "match" && !newSchedule.opponentTeam) ||
+                  (newSchedule.type === "training" && !newSchedule.trainingContent) ||
+                  isSubmitting
+                }
+              >
+                {isSubmitting ? (
+                  <div className="flex items-center space-x-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                    <span>등록 중...</span>
+                  </div>
+                ) : (
+                  isEditingSchedule ? '수정' : '등록'
                 )}
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={resetScheduleForm}>
-                  취소
-                </Button>
-                <Button
-                  onClick={isEditingSchedule ? handleScheduleUpdate : handleScheduleSubmit}
-                  disabled={
-                    !selectedDate ||
-                    isNaN(selectedDate.getTime()) ||
-                    !newSchedule.time ||
-                    !newSchedule.location ||
-                    (newSchedule.type === "match" && !newSchedule.opponentTeam) ||
-                    (newSchedule.type === "training" && !newSchedule.trainingContent) ||
-                    isSubmitting
-                  }
-                >
-                  {isSubmitting ? (
-                    <div className="flex items-center space-x-2">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-                      <span>등록 중...</span>
-                    </div>
-                  ) : (
-                    isEditingSchedule ? '수정' : '등록'
-                  )}
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-        )}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* 에러 메시지 */}
       {error && (
@@ -901,247 +913,247 @@ export function ScheduleManagement({
               <ScheduleSkeleton />
             ) : (
               <CardContent className="p-6">
-              <div className="space-y-4">
-                {/* D-Day 표시와 액션 버튼 */}
-                <div className="flex items-center justify-center gap-3">
-                  <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-full font-semibold">
-                    <CalendarIcon className="h-4 w-4" />
-                    {(() => {
-                      const daysLeft = calculateDaysLeft(nextUpcomingSchedule.date)
-                      if (daysLeft === 0) return "오늘 경기!"
-                      if (daysLeft === 1) return "내일 경기!"
-                      if (daysLeft > 0) return `D-${daysLeft}`
-                      return "지난 경기"
-                    })()}
+                <div className="space-y-4">
+                  {/* D-Day 표시와 액션 버튼 */}
+                  <div className="flex items-center justify-center gap-3">
+                    <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-full font-semibold">
+                      <CalendarIcon className="h-4 w-4" />
+                      {(() => {
+                        const daysLeft = calculateDaysLeft(nextUpcomingSchedule.date)
+                        if (daysLeft === 0) return "오늘 경기!"
+                        if (daysLeft === 1) return "내일 경기!"
+                        if (daysLeft > 0) return `D-${daysLeft}`
+                        return "지난 경기"
+                      })()}
+                    </div>
                   </div>
-                </div>
 
-                {/* 일정 기본 정보 */}
-                <div className="text-center space-y-2">
-                  <h3 className="text-xl font-bold">
-                    {(() => {
-                      // 한국시간으로 저장된 날짜를 그대로 표시
-                      const [year, month, day] = nextUpcomingSchedule.date.split('-')
-                      const date = new Date(Number(year), Number(month) - 1, Number(day))
-                      return date.toLocaleDateString('ko-KR', {
-                        month: 'long',
-                        day: 'numeric',
-                        weekday: 'short'
-                      })
-                    })()} <span >{nextUpcomingSchedule.time}</span>
-                  </h3>
-                  <h3 className="flex gap-2 items-center justify-center text-xl font-bold">
-                    <MapPin className="h-4 w-4" />
-                    {nextUpcomingSchedule.location}
-                  </h3>
-                  <h3 className="flex gap-2 items-center justify-center text-xl font-bold">
-                    <div className="text-red-600 text-muted-foreground">집합 {nextUpcomingSchedule.gatherTime}</div>
-                  </h3>
-                </div>
+                  {/* 일정 기본 정보 */}
+                  <div className="text-center space-y-2">
+                    <h3 className="text-xl font-bold">
+                      {(() => {
+                        // 한국시간으로 저장된 날짜를 그대로 표시
+                        const [year, month, day] = nextUpcomingSchedule.date.split('-')
+                        const date = new Date(Number(year), Number(month) - 1, Number(day))
+                        return date.toLocaleDateString('ko-KR', {
+                          month: 'long',
+                          day: 'numeric',
+                          weekday: 'short'
+                        })
+                      })()} <span >{nextUpcomingSchedule.time}</span>
+                    </h3>
+                    <h3 className="flex gap-2 items-center justify-center text-xl font-bold">
+                      <MapPin className="h-4 w-4" />
+                      {nextUpcomingSchedule.location}
+                    </h3>
+                    <h3 className="flex gap-2 items-center justify-center text-xl font-bold">
+                      <div className="text-red-600 text-muted-foreground">집합 {nextUpcomingSchedule.gatherTime}</div>
+                    </h3>
+                  </div>
 
-                <div className="flex items-center justify-center">
+                  <div className="flex items-center justify-center">
                     <div className="flex items-center gap-2">
-                        <Badge className={getTypeColor(nextUpcomingSchedule.type)} variant="secondary">
+                      <Badge className={getTypeColor(nextUpcomingSchedule.type)} variant="secondary">
                         {nextUpcomingSchedule.type === "internal" ? "자체경기" : nextUpcomingSchedule.type === "match" ? "A매치" : "연습"}
+                      </Badge>
+                      {nextUpcomingSchedule.allowGuests && nextUpcomingSchedule.type === "internal" && (
+                        <Badge className="bg-yellow-100 text-yellow-800" variant="secondary">
+                          게스트허용
                         </Badge>
-                        {nextUpcomingSchedule.allowGuests && nextUpcomingSchedule.type === "internal" && (
-                          <Badge className="bg-yellow-100 text-yellow-800" variant="secondary">
-                            게스트허용
-                          </Badge>
-                        )}
-                        {isManagerMode && (
+                      )}
+                      {isManagerMode && (
                         <>
-                            <Button
+                          <Button
                             variant="ghost"
                             size="sm"
                             className="h-8 w-8 p-0"
                             onClick={() => handleEditSchedule(nextUpcomingSchedule)}
-                            >
+                          >
                             <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
+                          </Button>
+                          <Button
                             variant="ghost"
                             size="sm"
                             className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
                             onClick={() => handleDeleteSchedule(nextUpcomingSchedule.id, `${nextUpcomingSchedule.location} ${nextUpcomingSchedule.time}`)}
-                            >
+                          >
                             <Trash2 className="h-4 w-4" />
-                            </Button>
+                          </Button>
                         </>
-                        )}
+                      )}
                     </div>
-                   </div>
-                 {/* 경기 세부 정보 */}
-                 <div className="space-y-3 bg-gray-50 rounded-lg p-4">
-                   {/* <div className="flex items-center gap-2 text-sm">
+                  </div>
+                  {/* 경기 세부 정보 */}
+                  <div className="space-y-3 bg-gray-50 rounded-lg p-4">
+                    {/* <div className="flex items-center gap-2 text-sm">
                      <CalendarIcon className="h-4 w-4 text-blue-500 flex-shrink-0" />
                      <div className="flex-1">
                        <div className="text-muted-foreground">집합: {nextUpcomingSchedule.gatherTime}</div>
                      </div>
                    </div> */}
 
-                   {/* 쿼터 시간 표시 */}
-                   {nextUpcomingSchedule.quarterTime && (
-                     <div>
+                    {/* 쿼터 시간 표시 */}
+                    {nextUpcomingSchedule.quarterTime && (
                       <div>
-                        <div className="bg-white rounded border p-2">
-                          <div className="grid grid-cols-4 gap-0 text-xs font-mono">
-                            {calculateQuarters(
-                              nextUpcomingSchedule.time,
-                              nextUpcomingSchedule.quarterTime || 25,
-                              nextUpcomingSchedule.restTime || 5
-                            ).map((quarter) => (
-                              <div key={quarter.quarter} className="text-center p-1">
-                                <div className="font-semibold text-blue-600 mb-1">{quarter.quarter}</div>
-                                <div className="text-xs text-muted-foreground whitespace-nowrap">
-                                  {quarter.start}
+                        <div>
+                          <div className="bg-white rounded border p-2">
+                            <div className="grid grid-cols-4 gap-0 text-xs font-mono">
+                              {calculateQuarters(
+                                nextUpcomingSchedule.time,
+                                nextUpcomingSchedule.quarterTime || 25,
+                                nextUpcomingSchedule.restTime || 5
+                              ).map((quarter) => (
+                                <div key={quarter.quarter} className="text-center p-1">
+                                  <div className="font-semibold text-blue-600 mb-1">{quarter.quarter}</div>
+                                  <div className="text-xs text-muted-foreground whitespace-nowrap">
+                                    {quarter.start}
+                                  </div>
+                                  <div className="text-xs text-muted-foreground">
+                                    ~
+                                  </div>
+                                  <div className="text-xs text-muted-foreground whitespace-nowrap">
+                                    {quarter.end}
+                                  </div>
                                 </div>
-                                <div className="text-xs text-muted-foreground">
-                                  ~
-                                </div>
-                                <div className="text-xs text-muted-foreground whitespace-nowrap">
-                                  {quarter.end}
-                                </div>
-                              </div>
-                            ))}
+                              ))}
+                            </div>
                           </div>
                         </div>
                       </div>
-                     </div>  
-                   )}
-                 </div>
+                    )}
+                  </div>
 
-                {/* 설명 */}
-                {nextUpcomingSchedule.description && (
-                  <p className="text-sm text-muted-foreground text-center">{nextUpcomingSchedule.description}</p>
-                )}
+                  {/* 설명 */}
+                  {nextUpcomingSchedule.description && (
+                    <p className="text-sm text-muted-foreground text-center">{nextUpcomingSchedule.description}</p>
+                  )}
 
-                 {/* 참석 투표 섹션 (지난 일정이 아니고 사용자가 로그인한 경우) */}
-                 {(() => {
-                   const daysLeft = calculateDaysLeft(nextUpcomingSchedule.date)
-                   const isPastSchedule = daysLeft < 0
-                   return !isPastSchedule && currentUser?.id && (
-                     <div className="pt-4 border-t">
-                       <AttendanceVoting
-                         scheduleId={nextUpcomingSchedule.id}
-                         currentUserId={currentUser.id}
-                         isPastSchedule={isPastSchedule}
-                         allowGuests={nextUpcomingSchedule.allowGuests}
-                         hasTeamFormation={!!nextUpcomingSchedule.teamFormation}
-                         isManagerMode={isManagerMode}
-                         onVoteUpdate={handleVoteUpdate}
-                       />
-                     </div>
-                   )
-                 })()}
+                  {/* 참석 투표 섹션 (지난 일정이 아니고 사용자가 로그인한 경우) */}
+                  {(() => {
+                    const daysLeft = calculateDaysLeft(nextUpcomingSchedule.date)
+                    const isPastSchedule = daysLeft < 0
+                    return !isPastSchedule && currentUser?.id && (
+                      <div className="pt-4 border-t">
+                        <AttendanceVoting
+                          scheduleId={nextUpcomingSchedule.id}
+                          currentUserId={currentUser.id}
+                          isPastSchedule={isPastSchedule}
+                          allowGuests={nextUpcomingSchedule.allowGuests}
+                          hasTeamFormation={!!nextUpcomingSchedule.teamFormation}
+                          isManagerMode={isManagerMode}
+                          onVoteUpdate={handleVoteUpdate}
+                        />
+                      </div>
+                    )
+                  })()}
 
-                 {/* 액션 버튼들 */}
-                 <div className="space-y-2 pt-2">
-                   <div className="flex gap-2 flex-wrap">
-                     {/* 게스트 허용 버튼 (총무 전용) */}
-                     {isManagerMode && nextUpcomingSchedule.type === "internal" && (
-                       <Button
-                         onClick={async () => {
-                           startScheduleUpdate(nextUpcomingSchedule.id)
-                           try {
-                             const response = await fetch('/api/schedule/toggle-guests', {
-                               method: 'POST',
-                               headers: { 'Content-Type': 'application/json' },
-                               body: JSON.stringify({
-                                 scheduleId: nextUpcomingSchedule.id,
-                                 userId: currentUser?.id,
-                                 allowGuests: !nextUpcomingSchedule.allowGuests
-                               })
-                             })
+                  {/* 액션 버튼들 */}
+                  <div className="space-y-2 pt-2">
+                    <div className="flex gap-2 flex-wrap">
+                      {/* 게스트 허용 버튼 (총무 전용) */}
+                      {isManagerMode && nextUpcomingSchedule.type === "internal" && (
+                        <Button
+                          onClick={async () => {
+                            startScheduleUpdate(nextUpcomingSchedule.id)
+                            try {
+                              const response = await fetch('/api/schedule/toggle-guests', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                  scheduleId: nextUpcomingSchedule.id,
+                                  userId: currentUser?.id,
+                                  allowGuests: !nextUpcomingSchedule.allowGuests
+                                })
+                              })
 
-                             if (response.ok) {
-                               // 해당 일정의 게스트 허용 상태만 업데이트 (전체 페이지 리로딩 방지)
-                               await updateScheduleGuestStatus(nextUpcomingSchedule.id)
-                             }
-                           } catch (error) {
-                             console.error('게스트 허용 상태 변경 중 오류:', error)
-                           } finally {
-                             endScheduleUpdate(nextUpcomingSchedule.id)
-                           }
-                         }}
-                         disabled={isScheduleUpdating(nextUpcomingSchedule.id)}
-                         variant={nextUpcomingSchedule.allowGuests ? "destructive" : "outline"}
-                         size="sm"
-                         className={`flex-1 ${nextUpcomingSchedule.allowGuests ? "" : "bg-yellow-400"}`}
-                       >
-                         {isScheduleUpdating(nextUpcomingSchedule.id) 
-                           ? "업데이트 중..." 
-                           : nextUpcomingSchedule.allowGuests ? "게스트 중단" : "게스트 허용"
-                         }
-                       </Button>
-                     )}
-                     
-                     {/* 자동 팀편성 버튼 (총무 전용, 내부 경기만) */}
-                     {isManagerMode && nextUpcomingSchedule.type === "internal" && (
-                       <Button
-                         onClick={async () => {
-                           if (!confirm('자동 팀편성을 실행하시겠습니까?')) return
-                           
-                           startScheduleUpdate(nextUpcomingSchedule.id)
-                           try {
-                             const response = await fetch('/api/schedule/team-formation', {
-                               method: 'POST',
-                               headers: { 'Content-Type': 'application/json' },
-                               body: JSON.stringify({
-                                 scheduleId: nextUpcomingSchedule.id,
-                                 userId: currentUser?.id
-                               })
-                             })
+                              if (response.ok) {
+                                // 해당 일정의 게스트 허용 상태만 업데이트 (전체 페이지 리로딩 방지)
+                                await updateScheduleGuestStatus(nextUpcomingSchedule.id)
+                              }
+                            } catch (error) {
+                              console.error('게스트 허용 상태 변경 중 오류:', error)
+                            } finally {
+                              endScheduleUpdate(nextUpcomingSchedule.id)
+                            }
+                          }}
+                          disabled={isScheduleUpdating(nextUpcomingSchedule.id)}
+                          variant={nextUpcomingSchedule.allowGuests ? "destructive" : "outline"}
+                          size="sm"
+                          className={`flex-1 ${nextUpcomingSchedule.allowGuests ? "" : "bg-yellow-400"}`}
+                        >
+                          {isScheduleUpdating(nextUpcomingSchedule.id)
+                            ? "업데이트 중..."
+                            : nextUpcomingSchedule.allowGuests ? "게스트 중단" : "게스트 허용"
+                          }
+                        </Button>
+                      )}
 
-                             if (!response.ok) {
-                               const errorText = await response.text()
-                               console.error('팀편성 API 오류:', errorText)
-                               throw new Error('팀편성 API 호출 실패')
-                             }
+                      {/* 자동 팀편성 버튼 (총무 전용, 내부 경기만) */}
+                      {isManagerMode && nextUpcomingSchedule.type === "internal" && (
+                        <Button
+                          onClick={async () => {
+                            if (!confirm('자동 팀편성을 실행하시겠습니까?')) return
 
-                             const result = await response.json()
+                            startScheduleUpdate(nextUpcomingSchedule.id)
+                            try {
+                              const response = await fetch('/api/schedule/team-formation', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                  scheduleId: nextUpcomingSchedule.id,
+                                  userId: currentUser?.id
+                                })
+                              })
 
-                             if (result.success) {
-                               alert('팀편성이 완료되었습니다.')
-                               fetchSchedules()
-                             } else {
-                               alert(result.error || '팀편성 중 오류가 발생했습니다.')
-                             }
-                           } catch (error) {
-                             console.error('팀편성 처리 중 오류:', error)
-                             alert('팀편성 처리 중 오류가 발생했습니다.')
-                           } finally {
-                             endScheduleUpdate(nextUpcomingSchedule.id)
-                           }
-                         }}
-                         disabled={isScheduleUpdating(nextUpcomingSchedule.id)}
-                         variant="default"
-                         size="sm"
-                         className="flex-1 bg-blue-600 hover:bg-blue-700"
-                       >
-                         <UsersRound className="h-4 w-4 mr-1" />
-                         {isScheduleUpdating(nextUpcomingSchedule.id) ? "처리 중..." : "자동 팀편성"}
-                       </Button>
-                     )}
-                   </div>
-                 </div>
+                              if (!response.ok) {
+                                const errorText = await response.text()
+                                console.error('팀편성 API 오류:', errorText)
+                                throw new Error('팀편성 API 호출 실패')
+                              }
 
-                 {/* 팀편성 결과 표시 */}
-                 {nextUpcomingSchedule.teamFormation && (
-                   <div className="pt-4 border-t">
-                     <TeamFormation
-                       scheduleId={nextUpcomingSchedule.id}
-                       teamFormation={nextUpcomingSchedule.teamFormation}
-                       formationDate={nextUpcomingSchedule.formationDate}
-                       isManagerMode={isManagerMode}
-                       currentUserId={currentUser?.id || ''}
-                       onFormationUpdate={fetchSchedules}
-                       onFormationDelete={fetchSchedules}
-                     />
-                   </div>
-                 )}
-              </div>
-            </CardContent>
+                              const result = await response.json()
+
+                              if (result.success) {
+                                alert('팀편성이 완료되었습니다.')
+                                fetchSchedules()
+                              } else {
+                                alert(result.error || '팀편성 중 오류가 발생했습니다.')
+                              }
+                            } catch (error) {
+                              console.error('팀편성 처리 중 오류:', error)
+                              alert('팀편성 처리 중 오류가 발생했습니다.')
+                            } finally {
+                              endScheduleUpdate(nextUpcomingSchedule.id)
+                            }
+                          }}
+                          disabled={isScheduleUpdating(nextUpcomingSchedule.id)}
+                          variant="default"
+                          size="sm"
+                          className="flex-1 bg-blue-600 hover:bg-blue-700"
+                        >
+                          <UsersRound className="h-4 w-4 mr-1" />
+                          {isScheduleUpdating(nextUpcomingSchedule.id) ? "처리 중..." : "자동 팀편성"}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 팀편성 결과 표시 */}
+                  {nextUpcomingSchedule.teamFormation && (
+                    <div className="pt-4 border-t">
+                      <TeamFormation
+                        scheduleId={nextUpcomingSchedule.id}
+                        teamFormation={nextUpcomingSchedule.teamFormation}
+                        formationDate={nextUpcomingSchedule.formationDate}
+                        isManagerMode={isManagerMode}
+                        currentUserId={currentUser?.id || ''}
+                        onFormationUpdate={fetchSchedules}
+                        onFormationDelete={fetchSchedules}
+                      />
+                    </div>
+                  )}
+                </div>
+              </CardContent>
             )}
           </Card>
         </div>
@@ -1155,7 +1167,7 @@ export function ScheduleManagement({
           {(() => {
             const now = new Date()
             now.setHours(0, 0, 0, 0)
-            
+
             const upcomingSchedules = schedules
               .filter(schedule => {
                 if (schedule.id === nextUpcomingSchedule?.id) return false
@@ -1199,6 +1211,7 @@ export function ScheduleManagement({
                 onDeleteSchedule={handleDeleteSchedule}
                 onEditSchedule={handleEditSchedule}
                 onVoteUpdate={handleVoteUpdate}
+                onEnterResult={handleOpenResultDialog}
               />
             ))
           })()}
@@ -1211,7 +1224,7 @@ export function ScheduleManagement({
             {(() => {
               const now = new Date()
               now.setHours(0, 0, 0, 0)
-              
+
               const pastSchedules = schedules
                 .filter(schedule => {
                   const [year, month, day] = schedule.date.split('-')
@@ -1254,6 +1267,7 @@ export function ScheduleManagement({
                   onDeleteSchedule={handleDeleteSchedule}
                   onEditSchedule={handleEditSchedule}
                   onVoteUpdate={handleVoteUpdate}
+                  onEnterResult={handleOpenResultDialog}
                 />
               ))
             })()}
@@ -1277,6 +1291,12 @@ export function ScheduleManagement({
           </Card>
         )}
       </div>
+      <MatchResultDialog
+        isOpen={isResultDialogOpen}
+        onClose={() => setIsResultDialogOpen(false)}
+        schedule={resultEditingSchedule}
+        onSuccess={handleResultSuccess}
+      />
     </div>
   )
 }

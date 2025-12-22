@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { CalendarIcon, MapPinIcon, UsersIcon, ClockIcon, X, Check, UserPlus, UserMinus, Edit, Trash2 } from 'lucide-react'
+import { CalendarIcon, MapPinIcon, UsersIcon, ClockIcon, X, Check, UserPlus, UserMinus, Edit, Trash2, Trophy } from 'lucide-react'
 import { calculateDaysLeft } from '@/lib/utils'
 import { AttendanceVoting } from './attendance-voting'
 
@@ -21,6 +21,7 @@ interface ScheduleCardProps {
   onDeleteSchedule: (scheduleId: string) => void
   onEditSchedule: (schedule: any) => void
   onVoteUpdate?: () => void
+  onEnterResult?: (schedule: any) => void
   hasTeamFormation?: boolean
 }
 
@@ -36,6 +37,7 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
   onDeleteSchedule,
   onEditSchedule,
   onVoteUpdate,
+  onEnterResult,
   hasTeamFormation = false
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -46,10 +48,10 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
       return { attending: 0, notAttending: 0, pending: 0, total: 0, percentage: 0 }
     }
 
-    const attending = attendees.filter(att => 
+    const attending = attendees.filter(att =>
       att.status === 'attending' || att.status === 'attended'
     ).length
-    const notAttending = attendees.filter(att => 
+    const notAttending = attendees.filter(att =>
       att.status === 'not_attending' || att.status === 'not_attended'
     ).length
     const pending = attendees.filter(att => att.status === 'pending').length
@@ -72,6 +74,7 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
       case 'internal': return 'bg-blue-100 text-blue-800 border-blue-300'
       case 'external': return 'bg-green-100 text-green-800 border-green-300'
       case 'friendly': return 'bg-purple-100 text-purple-800 border-purple-300'
+      case 'match': return 'bg-red-100 text-red-800 border-red-300'
       default: return 'bg-gray-100 text-gray-800 border-gray-300'
     }
   }
@@ -79,7 +82,7 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
   // 게스트 허용 상태 토글
   const handleGuestToggle = async () => {
     if (isSubmitting) return
-    
+
     setIsSubmitting(true)
     try {
       const response = await fetch('/api/schedule/toggle-guests', {
@@ -125,19 +128,20 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
     </div>
   )
 
+  const hasResult = schedule.ourScore !== null && schedule.ourScore !== undefined
+
   return (
-    <Card className={`transition-shadow ${
-      isPastSchedule 
-        ? 'bg-gray-50 border-gray-200' 
+    <Card className={`transition-shadow ${isPastSchedule
+        ? 'bg-gray-50 border-gray-200'
         : 'hover:shadow-lg'
-    }`}>
+      }`}>
       {isUpdating ? (
         <ScheduleSkeleton />
       ) : (
-        <CardContent className={`p-6 ${isPastSchedule ? 'opacity-75' : ''}`}>
+        <CardContent className={`p-6 ${isPastSchedule ? 'opacity-90' : ''}`}>
           <div className="space-y-4">
-            <div className="flex justify-between items-center">                      
-              {/* 일정 기본 정보 */}                    
+            <div className="flex justify-between items-center">
+              {/* 일정 기본 정보 */}
               <h3 className={`text-base font-semibold ${isPastSchedule ? 'text-gray-600' : ''}`}>
                 {(() => {
                   // 한국시간으로 저장된 날짜를 그대로 표시
@@ -152,13 +156,13 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
               </h3>
               <div className="flex justify-center gap-2 flex-wrap">
                 <Badge className={getTypeColor(schedule.type)} variant="secondary">
-                  {schedule.type === 'internal' ? '내부경기' : 
-                   schedule.type === 'external' ? '외부경기' : 
-                   schedule.type === 'friendly' ? '친선경기' : schedule.type}
+                  {schedule.type === "internal" ? "자체경기" :
+                    schedule.type === "match" ? "A매치" :
+                      schedule.type === "training" ? "연습" : schedule.type}
                 </Badge>
                 {isPastSchedule && (
                   <Badge variant="outline" className="text-gray-500 border-gray-300">
-                    지난 경기
+                    종료
                   </Badge>
                 )}
               </div>
@@ -167,52 +171,48 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
             {/* D-Day 표시 */}
             <div className="space-y-2">
               <div className="flex items-center justify-center gap-3">
-                <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-full font-semibold">
-                  <CalendarIcon className="h-4 w-4" />
-                  {(() => {
-                    if (daysLeft === 0) return "오늘 경기!"
-                    if (daysLeft === 1) return "내일 경기!"
-                    if (daysLeft > 0) return `D-${daysLeft}`
-                    return "지난 경기"
-                  })()}
+                <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full font-semibold ${hasResult ? 'bg-slate-800 text-white' : 'bg-blue-50 text-blue-700'}`}>
+                  {hasResult ? (
+                    <>
+                      <span className="text-xl">{schedule.ourScore}</span>
+                      <span className="text-xs text-slate-400">vs</span>
+                      <span className="text-xl">{schedule.opponentScore}</span>
+                    </>
+                  ) : (
+                    <>
+                      <CalendarIcon className="h-4 w-4" />
+                      {(() => {
+                        if (daysLeft === 0) return "오늘 경기!"
+                        if (daysLeft === 1) return "내일 경기!"
+                        if (daysLeft > 0) return `D-${daysLeft}`
+                        return "경기 종료"
+                      })()}
+                    </>
+                  )}
                 </div>
               </div>
 
               {/* 관리자 아이콘 버튼들 */}
               {isManagerMode && (
                 <div className="flex items-center justify-center gap-2">
-                  {/* 이후 일정: 수정/삭제 */}
-                  {!isPastSchedule && (
-                    <>
-                      <Button
-                        onClick={() => onEditSchedule(schedule)}
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0 text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        onClick={() => onDeleteSchedule(schedule.id)}
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </>
-                  )}
-                  {/* 지난 경기: 삭제만 */}
-                  {isPastSchedule && (
-                    <Button
-                      onClick={() => onDeleteSchedule(schedule.id)}
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  )}
+                  <Button
+                    onClick={() => onEditSchedule(schedule)}
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                    title="일정 수정"
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    onClick={() => onDeleteSchedule(schedule.id)}
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                    title="일정 삭제"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
               )}
             </div>
@@ -222,6 +222,9 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
               <div className="flex items-center gap-2 text-sm text-gray-600">
                 <MapPinIcon className={`h-4 w-4 ${isPastSchedule ? 'text-gray-400' : ''}`} />
                 <span className={isPastSchedule ? 'text-gray-500' : ''}>{schedule.location}</span>
+                {schedule.matchSummary && isPastSchedule && (
+                  <span className="text-xs bg-gray-200 px-2 py-0.5 rounded text-gray-600">후기 있음</span>
+                )}
               </div>
             )}
 
@@ -232,14 +235,22 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
               </div>
             )}
 
-            {/* 지난 경기 안내 메시지 */}
-            {isPastSchedule && (
-              <div className="bg-gray-100 text-gray-600 text-sm p-3 rounded-lg text-center">
-                이 경기는 더 이상 관리되지 않는 지난 경기입니다.
+            {/* 경기 결과 입력 버튼 (관리자용) */}
+            {isManagerMode && onEnterResult && (
+              <div className="pt-2">
+                <Button
+                  onClick={() => onEnterResult(schedule)}
+                  variant={hasResult ? "outline" : "default"}
+                  size="sm"
+                  className="w-full"
+                >
+                  <Trophy className="h-4 w-4 mr-2" />
+                  {hasResult ? "경기 결과 수정" : "경기 결과 입력"}
+                </Button>
               </div>
             )}
 
-            {/* 참석 투표 */}
+            {/* 참석 투표 (지난 경기가 아니거나, 지난 경기여도 결과가 없을 때 보여줄 수 있음 - 정책상 지난 경기는 투표 마감) */}
             {!isPastSchedule && currentUser?.id && (
               <div className="pt-4 border-t">
                 <AttendanceVoting
