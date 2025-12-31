@@ -476,6 +476,8 @@ export function DashboardHome({ currentUser }: DashboardHomeProps) {
                                                     if (result.success && result.schedules.length > 0) {
                                                         const now = new Date()
                                                         now.setHours(0, 0, 0, 0)
+
+                                                        // Update next schedule
                                                         const upcoming = result.schedules
                                                             .filter((schedule: any) => {
                                                                 const [year, month, day] = schedule.date.split('-')
@@ -493,6 +495,28 @@ export function DashboardHome({ currentUser }: DashboardHomeProps) {
                                                         if (upcoming.length > 0) {
                                                             setNextSchedule(upcoming[0])
                                                         }
+
+                                                        // Update attendance stats
+                                                        const currentYear = new Date().getFullYear()
+                                                        const thisYearSchedules = result.schedules.filter((schedule: any) => {
+                                                            const [year] = schedule.date.split('-')
+                                                            return Number(year) === currentYear
+                                                        })
+
+                                                        let attendedCount = 0
+                                                        thisYearSchedules.forEach((schedule: any) => {
+                                                            const hasAttended = schedule.attendances.some((att: any) =>
+                                                                att.userId === currentUser?.id && att.status === 'ATTENDING'
+                                                            )
+                                                            if (hasAttended) attendedCount++
+                                                        })
+
+                                                        const totalThisYear = thisYearSchedules.length
+                                                        setAttendanceStats({
+                                                            attended: attendedCount,
+                                                            total: totalThisYear,
+                                                            rate: totalThisYear > 0 ? (attendedCount / totalThisYear) * 100 : 0
+                                                        })
                                                     }
                                                 })
                                         }
