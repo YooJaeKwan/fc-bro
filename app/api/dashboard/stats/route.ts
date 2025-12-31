@@ -138,7 +138,8 @@ export async function GET(request: NextRequest) {
     if (nextSchedule) {
       formattedNextSchedule = {
         ...nextSchedule,
-        date: nextSchedule.matchDate.toISOString().split('T')[0], // YYYY-MM-DD
+        // KST 기준 날짜 변환 (UTC+9)
+        date: new Date(nextSchedule.matchDate.getTime() + 9 * 60 * 60 * 1000).toISOString().split('T')[0],
         // 필요한 필드만
         myAttendance: nextSchedule.attendances[0]?.status || 'PENDING'
       }

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { CalendarIcon, MapPin, Trophy, TrendingUp, Calendar as CalendarDays, Award } from "lucide-react"
+import { CalendarIcon, MapPin, Trophy, TrendingUp, Calendar as CalendarDays, Award, Clock } from "lucide-react"
 import { AttendanceVoting } from "./attendance-voting"
 import { getLevelLabel } from '@/lib/level-system'
 import { BadgeNotification } from './badge-notification'
@@ -203,16 +203,36 @@ export function DashboardHome({ currentUser }: DashboardHomeProps) {
                                         day: 'numeric',
                                         weekday: 'short'
                                     })
-                                })()} {nextSchedule.time}
+                                })()}
                             </h3>
+
+                            {/* 경기 시간 및 타입 */}
+                            <div className="flex flex-col items-center gap-2 mb-3">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-2xl font-bold text-blue-600">{nextSchedule.time}</span>
+                                    <Badge variant="secondary" className={`
+                                        ${nextSchedule.type === 'internal' ? 'bg-green-100 text-green-800' :
+                                            nextSchedule.type === 'match' ? 'bg-red-100 text-red-800' :
+                                                'bg-blue-100 text-blue-800'}
+                                    `}>
+                                        {nextSchedule.type === 'internal' ? '자체경기' :
+                                            nextSchedule.type === 'match' ? 'A매치' : '훈련'}
+                                    </Badge>
+                                </div>
+                                <div className="flex items-center gap-1 text-sm font-medium text-red-500">
+                                    <Clock className="h-3.5 w-3.5" />
+                                    <span>집합 {nextSchedule.gatherTime}</span>
+                                </div>
+                            </div>
+
                             {nextSchedule.location && (
-                                <div className="flex items-center justify-center gap-1 text-sm text-muted-foreground">
+                                <div className="flex items-center justify-center gap-1 text-sm text-gray-600">
                                     <MapPin className="h-4 w-4" />
                                     <span>{nextSchedule.location}</span>
                                 </div>
                             )}
                             {nextSchedule.description && (
-                                <p className="text-sm text-muted-foreground">{nextSchedule.description}</p>
+                                <p className="text-sm text-muted-foreground mt-2">{nextSchedule.description}</p>
                             )}
                         </div>
 
@@ -554,26 +574,7 @@ export function DashboardHome({ currentUser }: DashboardHomeProps) {
                             {selectedBadge?.description}
                         </DialogDescription>
                     </DialogHeader>
-                    {selectedBadge?.tier && (
-                        <div className="flex justify-end mt-3">
-                            <Badge variant="outline" className={`
-                                text-[10px] px-2 py-0.5 h-5
-                                ${selectedBadge.tier === 'platinum' ? 'bg-slate-100 text-slate-700 border-slate-300' :
-                                    selectedBadge.tier === 'gold' ? 'bg-yellow-50 text-yellow-700 border-yellow-300' :
-                                        selectedBadge.tier === 'silver' ? 'bg-gray-100 text-gray-700 border-gray-300' :
-                                            'bg-orange-50 text-orange-800 border-orange-300'}
-                            `}>
-                                {(() => {
-                                    switch (selectedBadge.tier) {
-                                        case 'platinum': return '플래티넘 등급'
-                                        case 'gold': return '골드 등급'
-                                        case 'silver': return '실버 등급'
-                                        default: return '브론즈 등급'
-                                    }
-                                })()}
-                            </Badge>
-                        </div>
-                    )}
+                    {/* Tier Badge Removed as per user request */}
                 </DialogContent>
             </Dialog>
 

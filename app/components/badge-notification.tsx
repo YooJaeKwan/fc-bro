@@ -80,31 +80,8 @@ export function BadgeNotification({ userId }: BadgeNotificationProps) {
 
     const currentBadge = newBadges[currentIndex].badge
 
-    const getTierGradient = (tier: string) => {
-        switch (tier) {
-            case 'legendary':
-                return 'from-yellow-500 via-amber-500 to-orange-500'
-            case 'epic':
-                return 'from-purple-500 via-violet-500 to-fuchsia-500'
-            case 'rare':
-                return 'from-blue-500 via-cyan-500 to-sky-500'
-            default:
-                return 'from-gray-500 via-slate-500 to-zinc-500'
-        }
-    }
-
-    const getTierBg = (tier: string) => {
-        switch (tier) {
-            case 'legendary':
-                return 'from-yellow-50 via-amber-50 to-orange-50'
-            case 'epic':
-                return 'from-purple-50 via-violet-50 to-fuchsia-50'
-            case 'rare':
-                return 'from-blue-50 via-cyan-50 to-sky-50'
-            default:
-                return 'from-gray-50 via-slate-50 to-zinc-50'
-        }
-    }
+    const getBadgeGradient = () => 'from-blue-600 via-indigo-600 to-violet-600'
+    const getBadgeBg = () => 'from-blue-50 via-indigo-50 to-violet-50'
 
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -122,17 +99,17 @@ export function BadgeNotification({ userId }: BadgeNotificationProps) {
                     {/* Badge card */}
                     <div className={`
             relative overflow-hidden
-            bg-gradient-to-br ${getTierBg(currentBadge.tier)}
+            bg-gradient-to-br ${getBadgeBg()}
             rounded-2xl shadow-2xl
             border-2 border-white/50
           `}>
                         {/* Sparkle effect */}
                         <div className="absolute top-0 left-0 w-full h-full">
                             <div className="absolute top-4 right-4 animate-pulse">
-                                <Sparkles className={`h-6 w-6 text-${currentBadge.tier === 'legendary' ? 'yellow' : 'purple'}-400`} />
+                                <Sparkles className={`h-6 w-6 text-blue-400`} />
                             </div>
                             <div className="absolute bottom-8 left-6 animate-pulse delay-150">
-                                <Sparkles className={`h-4 w-4 text-${currentBadge.tier === 'legendary' ? 'yellow' : 'purple'}-300`} />
+                                <Sparkles className={`h-4 w-4 text-violet-300`} />
                             </div>
                         </div>
 
@@ -140,7 +117,7 @@ export function BadgeNotification({ userId }: BadgeNotificationProps) {
                             {/* Header */}
                             <div className={`
                 inline-block px-4 py-1.5 rounded-full mb-4
-                bg-gradient-to-r ${getTierGradient(currentBadge.tier)}
+                bg-gradient-to-r ${getBadgeGradient()}
                 text-white text-xs sm:text-sm font-semibold
                 shadow-lg
               `}>
@@ -171,7 +148,7 @@ export function BadgeNotification({ userId }: BadgeNotificationProps) {
                                         <div
                                             key={idx}
                                             className={`h-1.5 rounded-full transition-all ${idx === currentIndex
-                                                ? `w-8 bg-gradient-to-r ${getTierGradient(currentBadge.tier)}`
+                                                ? `w-8 bg-gradient-to-r ${getBadgeGradient()}`
                                                 : 'w-1.5 bg-gray-300'
                                                 }`}
                                         />
@@ -183,7 +160,7 @@ export function BadgeNotification({ userId }: BadgeNotificationProps) {
                             <Button
                                 onClick={handleNext}
                                 className={`
-                  w-full bg-gradient-to-r ${getTierGradient(currentBadge.tier)}
+                  w-full bg-gradient-to-r ${getBadgeGradient()}
                   hover:opacity-90 text-white font-semibold
                   shadow-lg hover:shadow-xl transition-all
                 `}

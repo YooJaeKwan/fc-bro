@@ -1110,52 +1110,70 @@ export function ScheduleManagement({
                       )}
 
                       {/* 자동 팀편성 버튼 (총무 전용, 내부 경기만) */}
-                      {isManagerMode && nextUpcomingSchedule.type === "internal" && (
-                        <Button
-                          onClick={async () => {
-                            if (!confirm('자동 팀편성을 실행하시겠습니까?')) return
+                      {isManagerMode && nextUpcomingSchedule.type === "internal" && (() => {
+                        const [year, month, day] = nextUpcomingSchedule.date.split('-')
+                        const targetDate = new Date(Number(year), Number(month) - 1, Number(day))
+                        const today = new Date()
+                        today.setHours(0, 0, 0, 0)
+                        const diffTime = targetDate.getTime() - today.getTime()
+                        const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
 
-                            startScheduleUpdate(nextUpcomingSchedule.id)
-                            try {
-                              const response = await fetch('/api/schedule/team-formation', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                  scheduleId: nextUpcomingSchedule.id,
-                                  userId: currentUser?.id
+                        const attendingCount = nextUpcomingSchedule.attendances?.filter((a: any) => a.status === 'ATTENDING').length || 0
+                        const isEnoughMembers = attendingCount >= 10
+                        const isTimeReady = daysLeft <= 2
+                        const isEnabled = isEnoughMembers && isTimeReady && !isScheduleUpdating(nextUpcomingSchedule.id)
+
+                        return (
+                          <Button
+                            onClick={async () => {
+                              if (!confirm('자동 팀편성을 실행하시겠습니까?')) return
+
+                              startScheduleUpdate(nextUpcomingSchedule.id)
+                              try {
+                                const response = await fetch('/api/schedule/team-formation', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({
+                                    scheduleId: nextUpcomingSchedule.id,
+                                    userId: currentUser?.id
+                                  })
                                 })
-                              })
 
-                              if (!response.ok) {
-                                const errorText = await response.text()
-                                console.error('팀편성 API 오류:', errorText)
-                                throw new Error('팀편성 API 호출 실패')
+                                if (!response.ok) {
+                                  const errorText = await response.text()
+                                  console.error('팀편성 API 오류:', errorText)
+                                  throw new Error('팀편성 API 호출 실패')
+                                }
+
+                                const result = await response.json()
+
+                                if (result.success) {
+                                  alert('팀편성이 완료되었습니다.')
+                                  fetchSchedules()
+                                } else {
+                                  alert(result.error || '팀편성 중 오류가 발생했습니다.')
+                                }
+                              } catch (error) {
+                                console.error('팀편성 처리 중 오류:', error)
+                                alert('팀편성 처리 중 오류가 발생했습니다.')
+                              } finally {
+                                endScheduleUpdate(nextUpcomingSchedule.id)
                               }
-
-                              const result = await response.json()
-
-                              if (result.success) {
-                                alert('팀편성이 완료되었습니다.')
-                                fetchSchedules()
-                              } else {
-                                alert(result.error || '팀편성 중 오류가 발생했습니다.')
-                              }
-                            } catch (error) {
-                              console.error('팀편성 처리 중 오류:', error)
-                              alert('팀편성 처리 중 오류가 발생했습니다.')
-                            } finally {
-                              endScheduleUpdate(nextUpcomingSchedule.id)
+                            }}
+                            disabled={!isEnabled}
+                            variant="default"
+                            size="sm"
+                            className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:text-gray-500"
+                          >
+                            <UsersRound className="h-4 w-4 mr-1" />
+                            {isScheduleUpdating(nextUpcomingSchedule.id) ? "처리 중..." :
+                              !isEnoughMembers ? `팀편성 (${attendingCount}/10명)` :
+                                !isTimeReady ? `팀편성 (D-${daysLeft})` :
+                                  "자동 팀편성"
                             }
-                          }}
-                          disabled={isScheduleUpdating(nextUpcomingSchedule.id)}
-                          variant="default"
-                          size="sm"
-                          className="flex-1 bg-blue-600 hover:bg-blue-700"
-                        >
-                          <UsersRound className="h-4 w-4 mr-1" />
-                          {isScheduleUpdating(nextUpcomingSchedule.id) ? "처리 중..." : "자동 팀편성"}
-                        </Button>
-                      )}
+                          </Button>
+                        )
+                      })()}
                     </div>
                   </div>
 

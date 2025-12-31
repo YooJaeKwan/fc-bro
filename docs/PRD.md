@@ -45,38 +45,28 @@
 
 ### 3.3 📊 대시보드 (Dashboard)
 실제 DB 데이터를 기반으로 실시간 통계 제공:
+*   **성능 최적화**: `/api/dashboard/stats` 통합 API를 통해 로딩 속도 개선 (Next Schedule, Recent Matches, Stats, Badges 일괄 조회).
+*   **스켈레톤 UI**: 데이터 로딩 중 스켈레톤 화면 제공으로 UX 개선.
 *   **팀 현황**: 총 팀원 수, 활성 멤버 수(최근 30일 활동).
 *   **평균 참석률**: 전체 일정 대비 평균 참석 비율.
 *   **다음 경기 (D-Day)**: 가장 가까운 예정 경기 정보 및 카운트다운.
-*   **우수 출석왕**: 참석률 기반 상위 5명 랭킹 (메달 표시).
+*   **최근 경기 결과**: 지난 3경기의 승패 및 스코어 표시.
+*   **뱃지 시스템**:
+    *   신규 가입 시 "팀의 새 식구" 뱃지 자동 수여.
+    *   활동(참석, 승리 등)에 따른 뱃지 획득 및 축하 알림 팝업.
+    *   모바일 최적화된 뱃지 알림 및 상세 정보 UI.
 
 ### 3.4 ⚽ 경기 기록 및 팀 운영 (In Progress)
-*   **팀 편성**: 참석 확정 인원 대상 팀(조끼) 배정 로직 (저장: JSON).
-*   **경기 기록**: `SchedulePlayerStat`을 통한 개인별 득점, 어시스트, 평점 기록.
+*   **자동 팀 편성**:
+    *   조건: 참석 인원 **10명 이상** AND 경기일 **2일 전(D-2)** 부터 활성화.
+    *   알고리즘: (예정) 포지션/실력 기반 자동 밸런싱.
+*   **경기 결과 (Scoreboard)**:
+    *   `ScheduleCard` 내 직관적인 스코어보드 UI.
+    *   장소 정보 포함, 양 팀 명단 펼치기/접기 기능.
+    *   MVP 표시는 현재 비활성화(숨김) 처리.
 
-## 4. �️ 기술 스택 (Current Stack)
-
-| 영역 | 기술 스택 | 비고 |
-|------|-----------|------|
-| **Frontend** | **Next.js 15 (App Router)** | React 19, Server Components |
-| **Language** | **TypeScript** | Strict typing 적용 |
-| **UI Framework** | **Tailwind CSS** | Styling |
-| **UI Components**| **shadcn/ui** | Radix UI 기반 컴포넌트 (Dialog, Select, Card 등) |
-| **Icons** | lucide-react | 아이콘 라이브러리 |
-| **Database** | **PostgreSQL** | NeonDB (Serverless Postgres) |
-| **ORM** | **Prisma** | 스키마 관리 및 DB Client |
-| **Auth** | **NextAuth.js v4** | Kakao Provider |
-| **Forms** | react-hook-form + zod | 폼 유효성 검사 |
-| **Visualization**| reCharts | 대시보드 차트/통계 |
-
-## 5. 📊 데이터베이스 모델 (Schema Summary)
-
-### Key Models
-*   **User**: `id`, `kakaoId`, `role` (ADMIN/MEMBER), `mainPosition`, `subPositions`, `level`.
-*   **Schedule**: `id`, `type`, `matchDate`, `location`, `status` (SCHEDULED/COMPLETED), `teamFormation`(JSON).
-*   **ScheduleAttendance**: `scheduleId`, `userId`, `status`, `isGuest` (게스트 여부).
-*   **SchedulePlayerStat**: `goals`, `assists`, `rating` (경기 후 기록).
-*   **Team**: (확장 예정) 현재는 단일 팀 구조로 운영 중이나 DB상 존재.
+## 4. 🛠️ 기술 스택 (Current Stack)
+(기존 내용 동일, shadcn/ui 컴포넌트 활용도 증가)
 
 ## 6. 📌 우선순위 및 향후 계획
 
@@ -86,10 +76,29 @@
 - [x] 카카오 로그인 및 자동 회원가입/로그인 플로우
 - [x] 포지션 선택 시스템 (주/부 포지션 로직 개선)
 - [x] 일정 생성, 조회, 참석 투표 기능
-- [x] 메인 대시보드 (실시간 데이터 연동)
+- [x] 메인 대시보드 (실시간 데이터 연동 & 성능 최적화)
+- [x] 뱃지 시스템 도입 (알림 및 모바일 UI 최적화)
+- [x] 경기 스코어보드 UI 개선 (명단 확인 기능)
+- [x] 자동 팀 편성 활성화 조건 구현
 
 ### 🚀 진행 중 / 예정 (Todo)
-- [ ] **팀 편성 알고리즘**: 포지션/실력 기반 자동 밸런싱.
-- [ ] **매치 결과 입력 UI**: 쿼터별 점수 및 개인 기록 입력 화면.
-- [ ] **전술 보드**: 드래그 앤 드롭으로 포메이션 짜기.
-- [ ] **커뮤니티**: 공지사항 및 게시판 댓글 기능 고도화.
+- [ ] **팀 편성 알고리즘**: 실제 밸런싱 로직 구현.
+- [ ] **매치 결과 입력 UI**: 기록 상세 입력 화면 고도화.
+- [ ] **커뮤니티**: 공지사항 및 게시판 댓글 기능.
+
+## 7. 🗣️ User Prompts History (Recent)
+사용자가 요청했던 주요 프롬프트 및 요구사항 기록:
+
+1.  **대시보드 성능 개선**
+    *   "Optimizing Dashboard Loading": 대시보드 로딩이 느리니 최적화해달라. -> API 통합 및 DB 쿼리 최적화로 해결.
+2.  **뱃지 시스템 및 UI**
+    *   "Award Badges and Hide MVP": 모든 유저에게 '팀의 새 식구' 뱃지 수여 및 MVP 숨김 처리.
+    *   "Badge Notification UI": 모바일에서 뱃지 알림 팝업이 너무 꽉 차지 않게 디자인 조정.
+    *   "Badge Detail Dialog UI": 뱃지 상세 팝업도 모바일 가로폭 최적화.
+    *   "Fix Dialog Accessibility": `DialogTitle` 관련 접근성 에러 해결.
+3.  **UI/UX 개선**
+    *   "Add Jersey Number": 모바일 메뉴 유저 정보에 등번호 표시.
+    *   "Implement Skeleton Loading": 데이터 로딩 시 스켈레톤 UI 적용.
+    *   "Enhance Match Scoreboard": 경기 결과 카드 디자인 개선 (명단 접기/펴기, 장소 표시 등).
+4.  **자동 팀 편성**
+    *   "Auto Team Formation Conditions": 최소 10명 이상 참석 & 경기 2일 전부터 버튼 활성화되도록 조건 설정.
