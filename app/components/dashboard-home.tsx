@@ -60,154 +60,36 @@ export function DashboardHome({ currentUser }: DashboardHomeProps) {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const response = await fetch('/api/schedule/list')
+                // Use optimized single endpoint
+                const response = await fetch(`/api/dashboard/stats?userId=${currentUser.id}`)
                 const result = await response.json()
 
-                if (result.success && result.schedules.length > 0) {
-                    const now = new Date()
-                    now.setHours(0, 0, 0, 0)
+                if (result.success && result.data) {
+                    const { nextSchedule, stats, recentMatches, badges } = result.data
 
-                    // Find next schedule
-                    const upcoming = result.schedules
-                        .filter((schedule: any) => {
-                            const [year, month, day] = schedule.date.split('-')
-                            const scheduleDate = new Date(Number(year), Number(month) - 1, Number(day))
-                            scheduleDate.setHours(0, 0, 0, 0)
-                            return scheduleDate >= now
-                        })
-                        .sort((a: any, b: any) => {
-                            const [yearA, monthA, dayA] = a.date.split('-')
-                            const [yearB, monthB, dayB] = b.date.split('-')
-                            const dateA = new Date(Number(yearA), Number(monthA) - 1, Number(dayA))
-                            const dateB = new Date(Number(yearB), Number(monthB) - 1, Number(dayB))
-                            return dateA.getTime() - dateB.getTime()
-                        })
-
-                    if (upcoming.length > 0) {
-                        setNextSchedule(upcoming[0])
+                    // 1. Next Schedule
+                    if (nextSchedule) {
+                        setNextSchedule(nextSchedule)
                     }
 
-                    // Calculate attendance stats for this year
-                    const currentYear = new Date().getFullYear()
-                    const yearStart = new Date(currentYear, 0, 1)
-                    yearStart.setHours(0, 0, 0, 0)
+                    // 2. Stats
+                    setAttendanceStats(stats.attendance)
+                    setMatchStats(stats.matches)
 
-                    const thisYearSchedules = result.schedules.filter((schedule: any) => {
-                        const [year] = schedule.date.split('-')
-                        return Number(year) === currentYear
-                    })
+                    // 3. Recent Matches
+                    setRecentMatches(recentMatches)
 
-                    let attendedCount = 0
-                    thisYearSchedules.forEach((schedule: any) => {
-                        const hasAttended = schedule.attendances.some((att: any) =>
-                            att.userId === currentUser?.id && att.status === 'ATTENDING'
-                        )
-                        if (hasAttended) attendedCount++
-                    })
+                    // 4. Badges
+                    setUserBadges(badges)
 
-                    const totalThisYear = thisYearSchedules.length
-                    setAttendanceStats({
-                        attended: attendedCount,
-                        total: totalThisYear,
-                        rate: totalThisYear > 0 ? (attendedCount / totalThisYear) * 100 : 0
-                    })
-
-                    // Calculate match statistics and recent matches
-                    const pastMatches = result.schedules.filter((schedule: any) => {
-                        const [year, month, day] = schedule.date.split('-')
-                        const scheduleDate = new Date(Number(year), Number(month) - 1, Number(day))
-                        scheduleDate.setHours(0, 0, 0, 0)
-                        return scheduleDate < now
-                    }).sort((a: any, b: any) => {
-                        const [yearA, monthA, dayA] = a.date.split('-')
-                        const [yearB, monthB, dayB] = b.date.split('-')
-                        const dateA = new Date(Number(yearA), Number(monthA) - 1, Number(dayA))
-                        const dateB = new Date(Number(yearB), Number(monthB) - 1, Number(dayB))
-                        return dateB.getTime() - dateA.getTime() // Most recent first
-                    })
-
-                    let wins = 0, draws = 0, losses = 0
-                    const recentMatchesList: RecentMatch[] = []
-
-                    pastMatches.forEach((match: any) => {
-                        // Check if user participated
-                        const hasAttended = match.attendances.some((att: any) =>
-                            att.userId === currentUser?.id && att.status === 'ATTENDING'
-                        )
-
-                        if (hasAttended && recentMatchesList.length < 3) {
-                            let result: 'win' | 'draw' | 'loss' | undefined = undefined
-
-                            if (match.type === 'internal' && match.teamFormation &&
-                                match.ourScore !== null && match.ourScore !== undefined &&
-                                match.opponentScore !== null && match.opponentScore !== undefined) {
-
-                                const formation = match.teamFormation
-                                const yellowTeam = formation.yellowTeam || []
-                                const blueTeam = formation.blueTeam || []
-                                const isOnYellow = yellowTeam.some((player: any) => player.userId === currentUser?.id)
-                                const isOnBlue = blueTeam.some((player: any) => player.userId === currentUser?.id)
-
-                                if (isOnYellow) {
-                                    if (match.ourScore > match.opponentScore) result = 'win'
-                                    else if (match.ourScore === match.opponentScore) result = 'draw'
-                                    else result = 'loss'
-                                } else if (isOnBlue) {
-                                    if (match.opponentScore > match.ourScore) result = 'win'
-                                    else if (match.opponentScore === match.ourScore) result = 'draw'
-                                    else result = 'loss'
-                                }
-                            }
-
-                            recentMatchesList.push({
-                                date: match.date,
-                                type: match.type,
-                                location: match.location || '',
-                                result
-                            })
-                        }
-
-                        //Calculate match stats (only internal matches with results)
-                        if (match.type === 'internal' && match.teamFormation &&
-                            match.ourScore !== null && match.ourScore !== undefined &&
-                            match.opponentScore !== null && match.opponentScore !== undefined) {
-
-                            const formation = match.teamFormation
-                            const yellowTeam = formation.yellowTeam || []
-                            const blueTeam = formation.blueTeam || []
-                            const isOnYellow = yellowTeam.some((player: any) => player.userId === currentUser?.id)
-                            const isOnBlue = blueTeam.some((player: any) => player.userId === currentUser?.id)
-
-                            if (!isOnYellow && !isOnBlue) return
-
-                            if (isOnYellow) {
-                                if (match.ourScore > match.opponentScore) wins++
-                                else if (match.ourScore === match.opponentScore) draws++
-                                else losses++
-                            } else if (isOnBlue) {
-                                if (match.opponentScore > match.ourScore) wins++
-                                else if (match.opponentScore === match.ourScore) draws++
-                                else losses++
-                            }
-                        }
-                    })
-
-                    setMatchStats({ wins, draws, losses, total: wins + draws + losses })
-                    setRecentMatches(recentMatchesList)
-
-                    // Fetch user badges
-                    const badgesResponse = await fetch(`/api/user/badges?userId=${currentUser.id}`)
-                    const badgesData = await badgesResponse.json()
-                    if (badgesData.success) {
-                        setUserBadges(badgesData.badges)
-                    }
-
-                    // Check for new badges
-                    await fetch('/api/user/badges/check', {
+                    // Check for new badges (background check)
+                    // This is still needed to trigger new calculations if something changed recently
+                    // but we can do it silently
+                    fetch('/api/user/badges/check', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ userId: currentUser.id })
-                    })
+                    }).catch(console.error)
                 }
             } catch (error) {
                 console.error('데이터 조회 오류:', error)
@@ -662,7 +544,7 @@ export function DashboardHome({ currentUser }: DashboardHomeProps) {
 
             {/* Badge Detail Dialog */}
             <Dialog open={!!selectedBadge} onOpenChange={(open) => !open && setSelectedBadge(null)}>
-                <DialogContent className="sm:max-w-[320px] p-5 rounded-2xl">
+                <DialogContent className="w-[85vw] max-w-sm sm:max-w-[320px] p-5 rounded-2xl mx-auto">
                     <DialogHeader className="gap-1">
                         <DialogTitle className="flex items-center gap-2 text-lg">
                             <span className="text-2xl">{selectedBadge?.icon}</span>

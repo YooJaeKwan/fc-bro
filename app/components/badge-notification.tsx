@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from 'react'
-import { Dialog, DialogContent } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Sparkles, X } from 'lucide-react'
 
@@ -108,7 +108,8 @@ export function BadgeNotification({ userId }: BadgeNotificationProps) {
 
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
-            <DialogContent className="sm:max-w-md border-0 bg-transparent shadow-none p-0">
+            <DialogContent className="w-[85vw] max-w-sm sm:max-w-md border-0 bg-transparent shadow-none p-0 rounded-2xl mx-auto">
+                <DialogTitle className="sr-only">새로운 뱃지 획득</DialogTitle>
                 <div className="relative">
                     {/* Close button */}
                     <button
@@ -135,12 +136,12 @@ export function BadgeNotification({ userId }: BadgeNotificationProps) {
                             </div>
                         </div>
 
-                        <div className="relative p-8 text-center">
+                        <div className="relative p-5 sm:p-8 text-center">
                             {/* Header */}
                             <div className={`
                 inline-block px-4 py-1.5 rounded-full mb-4
                 bg-gradient-to-r ${getTierGradient(currentBadge.tier)}
-                text-white text-sm font-semibold
+                text-white text-xs sm:text-sm font-semibold
                 shadow-lg
               `}>
                                 업적 달성!
@@ -148,18 +149,18 @@ export function BadgeNotification({ userId }: BadgeNotificationProps) {
 
                             {/* Badge icon */}
                             <div className="my-6">
-                                <div className="text-7xl mb-4 animate-bounce">
+                                <div className="text-5xl sm:text-7xl mb-4 animate-bounce">
                                     {currentBadge.icon}
                                 </div>
                             </div>
 
                             {/* Badge name */}
-                            <h2 className="text-2xl font-bold mb-2" style={{ color: currentBadge.color }}>
+                            <h2 className="text-xl sm:text-2xl font-bold mb-2" style={{ color: currentBadge.color }}>
                                 {currentBadge.name}
                             </h2>
 
                             {/* Badge description */}
-                            <p className="text-gray-600 text-sm mb-6">
+                            <p className="text-gray-600 text-xs sm:text-sm mb-6">
                                 {currentBadge.description}
                             </p>
 
@@ -170,8 +171,8 @@ export function BadgeNotification({ userId }: BadgeNotificationProps) {
                                         <div
                                             key={idx}
                                             className={`h-1.5 rounded-full transition-all ${idx === currentIndex
-                                                    ? `w-8 bg-gradient-to-r ${getTierGradient(currentBadge.tier)}`
-                                                    : 'w-1.5 bg-gray-300'
+                                                ? `w-8 bg-gradient-to-r ${getTierGradient(currentBadge.tier)}`
+                                                : 'w-1.5 bg-gray-300'
                                                 }`}
                                         />
                                     ))}

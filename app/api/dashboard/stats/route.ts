@@ -1,302 +1,204 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
 
-export async function GET() {
+export const dynamic = 'force-dynamic'
+
+export async function GET(request: NextRequest) {
   try {
-    console.log('대시보드 통계 데이터 조회 요청')
+    const { searchParams } = new URL(request.url)
+    const userId = searchParams.get('userId')
 
-    // 1. 팀원 통계
-    const totalMembers = await prisma.user.count()
-    
-    // 2. 다가오는 일정 조회 (가장 빠른 일정 1개)
-    const upcomingSchedule = await prisma.schedule.findFirst({
+    if (!userId) {
+      return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
+    }
+
+    const now = new Date()
+    now.setHours(0, 0, 0, 0)
+
+    // 1. 다음 일정 (가장 가까운 미래 일정 1개)
+    const nextScheduleRequest = prisma.schedule.findFirst({
       where: {
         matchDate: {
-          gte: new Date()
-        },
-        status: 'SCHEDULED'
+          gte: now
+        }
       },
       orderBy: {
         matchDate: 'asc'
       },
       include: {
         attendances: {
-          include: {
-            user: {
-              select: {
-                realName: true,
-                nickname: true,
-                preferredPosition: true,
-                subPositions: true,
-                level: true
-              }
-            }
-          }
+          where: { userId } // 내 참석 정보만 가져옴
         }
       }
     })
 
-    // 3. 전체 참석률 계산 (모든 일정의 평균 참석률)
-    const allSchedules = await prisma.schedule.findMany({
+    // 2. 최근 경기 (과거 일정 3개)
+    const recentMatchesRequest = prisma.schedule.findMany({
+      where: {
+        matchDate: {
+          lt: now
+        },
+        // 결과가 있는 경기만? 아니면 참석한 경기만? -> 기존 로직은 "참석한" 경기
+        attendances: {
+          some: {
+            userId: userId,
+            status: 'ATTENDING'
+          }
+        }
+      },
+      orderBy: {
+        matchDate: 'desc'
+      },
+      take: 3,
       include: {
-        attendances: true
+        attendances: {
+          where: { userId }
+        }
       }
     })
 
-    let totalAttendanceRate = 0
-    if (allSchedules.length > 0) {
-      const attendanceRates = allSchedules.map(schedule => {
-        const totalAttendances = schedule.attendances.length
-        const actualAttendances = schedule.attendances.filter(a => a.status === 'ATTENDING').length
-        
-        if (totalAttendances === 0) return 0
-        return (actualAttendances / totalAttendances) * 100
-      })
+    // 3. 올해 통계 계산용 (올해 모든 일정)
+    const currentYear = new Date().getFullYear()
+    const yearStart = new Date(currentYear, 0, 1) // 1월 1일
 
-      totalAttendanceRate = Math.round(
-        attendanceRates.reduce((sum, rate) => sum + rate, 0) / attendanceRates.length
-      )
-    }
-
-    // 4. 최근 활동한 팀원 수 (지난 30일 내 일정 참석 투표한 사용자)
-    const thirtyDaysAgo = new Date()
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-
-    const activeMembers = await prisma.scheduleAttendance.findMany({
+    const yearSchedulesRequest = prisma.schedule.findMany({
       where: {
-        createdAt: {
-          gte: thirtyDaysAgo
+        matchDate: {
+          gte: yearStart
         }
       },
       select: {
-        userId: true
-      },
-      distinct: ['userId']
-    })
-
-    // 5. 개별 사용자 참석률 계산 (우수 출석왕용)
-    const userAttendanceStats = await prisma.user.findMany({
-      include: {
-        scheduleAttendances: {
-          include: {
-            schedule: true
+        id: true,
+        type: true,
+        matchDate: true,
+        ourScore: true,
+        opponentScore: true,
+        teamFormation: true,
+        attendances: {
+          where: {
+            userId,
+            status: 'ATTENDING'
           }
         }
       }
     })
 
-    const topAttendancePlayers = userAttendanceStats
-      .map(user => {
-        const totalSchedules = user.scheduleAttendances.length
-        const attendedSchedules = user.scheduleAttendances.filter(a => a.status === 'ATTENDING').length
-        
-        const attendanceRate = totalSchedules > 0 ? Math.round((attendedSchedules / totalSchedules) * 100) : 0
-        
-        return {
-          name: user.realName || user.nickname || '이름 없음',
-          position: user.preferredPosition || 'MC',
-          attendanceRate,
-          totalMatches: totalSchedules,
-          userId: user.id
+    // 4. 뱃지 정보
+    const badgesRequest = prisma.userBadge.findMany({
+      where: { userId },
+      include: { badge: true },
+      orderBy: { earnedAt: 'desc' }
+    })
+
+    // 병렬 실행
+    const [nextSchedule, recentMatches, yearSchedules, userBadges] = await Promise.all([
+      nextScheduleRequest,
+      recentMatchesRequest,
+      yearSchedulesRequest,
+      badgesRequest
+    ])
+
+    // --- 데이터 가공 ---
+
+    // 1. 통계 계산
+    let attendedCount = 0
+    let wins = 0, draws = 0, losses = 0
+
+    yearSchedules.forEach((schedule: any) => {
+      const isAttended = schedule.attendances.length > 0
+      if (isAttended) attendedCount++
+
+      // 전적 계산 (내전인 경우만 or A매치 포함? -> 기존 로직은 internal만 승패 계산)
+      if (isAttended && schedule.type === 'internal' && schedule.teamFormation &&
+        schedule.ourScore !== null && schedule.opponentScore !== null) {
+
+        const formation: any = schedule.teamFormation
+        const yellowTeam = formation.yellowTeam || []
+        const blueTeam = formation.blueTeam || []
+        const isOnYellow = yellowTeam.some((p: any) => p.userId === userId)
+        const isOnBlue = blueTeam.some((p: any) => p.userId === userId)
+
+        if (isOnYellow) {
+          if (schedule.ourScore > schedule.opponentScore) wins++
+          else if (schedule.ourScore === schedule.opponentScore) draws++
+          else losses++
+        } else if (isOnBlue) {
+          if (schedule.opponentScore > schedule.ourScore) wins++
+          else if (schedule.opponentScore === schedule.ourScore) draws++
+          else losses++
         }
-      })
-      .filter(player => player.totalMatches > 0) // 참여한 일정이 있는 사용자만
-      .sort((a, b) => b.attendanceRate - a.attendanceRate) // 참석률 높은 순
-      .slice(0, 5) // 상위 5명
+      }
+    })
 
-    // 6. 다가오는 일정 정보 구성
-    let upcomingMatchInfo = null
-    if (upcomingSchedule) {
-      const matchDate = new Date(upcomingSchedule.matchDate)
-      const today = new Date()
-      const diffTime = matchDate.getTime() - today.getTime()
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    const totalYearSchedules = yearSchedules.length
+    const attendanceRate = totalYearSchedules > 0 ? (attendedCount / totalYearSchedules) * 100 : 0
 
-      const attendees = upcomingSchedule.attendances.filter(a => a.status === 'ATTENDING').length
-      const totalInvited = upcomingSchedule.attendances.length
-
-      // 참석자 세부 정보 구성
-      const attendeesList = upcomingSchedule.attendances.map(attendance => {
-        // 게스트인 경우
-        if (attendance.isGuest) {
-          return {
-            userId: attendance.guestId || attendance.userId,
-            name: attendance.guestName || '게스트',
-            position: 'GUEST',
-            subPositions: [],
-            status: attendance.status.toLowerCase(),
-            level: attendance.guestLevel || 7,
-            isGuest: true
-          }
-        }
-        // 일반 사용자인 경우
-        return {
-          userId: attendance.userId,
-          name: attendance.user?.realName || attendance.user?.nickname || '이름 없음',
-          position: attendance.user?.preferredPosition || 'MC',
-          subPositions: attendance.user?.subPositions || [],
-          status: attendance.status.toLowerCase(),
-          level: attendance.user?.level || 1,
-          isGuest: false
-        }
-      })
-
-      upcomingMatchInfo = {
-        id: upcomingSchedule.id,
-        title: upcomingSchedule.title,
-        date: upcomingSchedule.matchDate.toISOString().split('T')[0],
-        time: upcomingSchedule.startTime,
-        gatherTime: upcomingSchedule.gatherTime,
-        location: upcomingSchedule.location,
-        type: upcomingSchedule.type,
-        daysLeft: diffDays,
-        attendees: attendeesList, // 배열 형태로 변경
-        total: Math.max(totalInvited, totalMembers),
-        attendanceRate: totalInvited > 0 ? Math.round((attendees / totalInvited) * 100) : 0,
-        teamFormation: upcomingSchedule.teamFormation, // 저장된 팀편성 결과 포함
-        formationDate: upcomingSchedule.formationDate?.toISOString() || null
+    // 2. 다음 일정 가공
+    let formattedNextSchedule = null
+    if (nextSchedule) {
+      formattedNextSchedule = {
+        ...nextSchedule,
+        date: nextSchedule.matchDate.toISOString().split('T')[0], // YYYY-MM-DD
+        // 필요한 필드만
+        myAttendance: nextSchedule.attendances[0]?.status || 'PENDING'
       }
     }
 
-    // 7. 최근 활동 데이터 생성
-    const recentActivities = []
+    // 3. 최근 경기 가공
+    const formattedRecentMatches = recentMatches.map((match: any) => {
+      let result = undefined
+      // 승패 계산 로직 (위와 동일) - 함수로 분리하면 좋음
+      if (match.type === 'internal' && match.teamFormation &&
+        match.ourScore !== null && match.opponentScore !== null) {
+        // ... (승패 로직)
+        const formation: any = match.teamFormation
+        const yellowTeam = formation.yellowTeam || []
+        const blueTeam = formation.blueTeam || []
+        const isOnYellow = yellowTeam.some((p: any) => p.userId === userId)
+        const isOnBlue = blueTeam.some((p: any) => p.userId === userId)
 
-    // 최근 7일 내 새로 가입한 팀원들
-    const sevenDaysAgo = new Date()
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+        if (isOnYellow) {
+          if (match.ourScore > match.opponentScore) result = 'win'
+          else if (match.ourScore === match.opponentScore) result = 'draw'
+          else result = 'loss'
+        } else if (isOnBlue) {
+          if (match.opponentScore > match.ourScore) result = 'win'
+          else if (match.opponentScore === match.ourScore) result = 'draw'
+          else result = 'loss'
+        }
+      }
 
-    const recentUsers = await prisma.user.findMany({
-      where: {
-        createdAt: { gte: sevenDaysAgo }
-      },
-      select: {
-        realName: true,
-        nickname: true,
-        createdAt: true
-      },
-      orderBy: {
-        createdAt: 'desc'
-      },
-      take: 3
-    })
-
-    // 최근 가입자 활동 추가
-    recentUsers.forEach(user => {
-      recentActivities.push({
-        type: 'user_joined',
-        title: '새로운 팀원 등록',
-        description: `${user.realName || user.nickname}님이 팀에 합류했습니다`,
-        timestamp: user.createdAt,
-        badge: '신규',
-        color: 'blue'
-      })
-    })
-
-    // 최근 7일 내 등록된 일정들
-    const recentSchedules = await prisma.schedule.findMany({
-      where: {
-        createdAt: { gte: sevenDaysAgo }
-      },
-      select: {
-        title: true,
-        type: true,
-        location: true,
-        matchDate: true,
-        createdAt: true
-      },
-      orderBy: {
-        createdAt: 'desc'
-      },
-      take: 3
-    })
-
-    // 최근 일정 활동 추가
-    recentSchedules.forEach(schedule => {
-      const scheduleDate = format(schedule.matchDate, 'M월 d일', { locale: ko })
-      recentActivities.push({
-        type: 'schedule_created',
-        title: `${scheduleDate} 일정 등록`,
-        description: schedule.location,
-        timestamp: schedule.createdAt,
-        badge: schedule.type === 'internal' ? '자체경기' : schedule.type === 'match' ? 'A매치' : '연습',
-        color: 'orange'
-      })
-    })
-
-    // 최근 7일 내 완료된 일정들
-    const completedSchedules = await prisma.schedule.findMany({
-      where: {
-        status: 'COMPLETED',
-        updatedAt: { gte: sevenDaysAgo }
-      },
-      select: {
-        title: true,
-        type: true,
-        location: true,
-        matchDate: true,
-        updatedAt: true
-      },
-      orderBy: {
-        updatedAt: 'desc'
-      },
-      take: 2
-    })
-
-    // 완료된 일정 활동 추가
-    completedSchedules.forEach(schedule => {
-      const scheduleDate = format(schedule.matchDate, 'M월 d일', { locale: ko })
-      recentActivities.push({
-        type: 'schedule_completed',
-        title: `${scheduleDate} 일정 완료`,
-        description: schedule.location,
-        timestamp: schedule.updatedAt,
-        badge: '완료',
-        color: 'green'
-      })
-    })
-
-    // 시간순으로 정렬하고 최대 5개까지
-    const sortedActivities = recentActivities
-      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-      .slice(0, 5)
-
-    console.log('대시보드 통계 조회 완료:', {
-      totalMembers,
-      activeMembers: activeMembers.length,
-      attendanceRate: totalAttendanceRate,
-      upcomingMatch: upcomingMatchInfo?.title || '없음',
-      topPlayers: topAttendancePlayers.length,
-      recentActivities: sortedActivities.length
+      return {
+        id: match.id,
+        date: match.matchDate.toISOString().split('T')[0],
+        location: match.location,
+        type: match.type,
+        result
+      }
     })
 
     return NextResponse.json({
       success: true,
       data: {
-        team: {
-          name: "FC BRO",
-          emblem: "/fc-bro-emblem.jpg",
-          totalMembers,
-          activeMembers: activeMembers.length,
-          skillCategories: ["속도", "패스", "수비", "슈팅", "드리블", "체력", "멘탈"]
+        nextSchedule: formattedNextSchedule,
+        stats: {
+          attendance: {
+            attended: attendedCount,
+            total: totalYearSchedules,
+            rate: attendanceRate
+          },
+          matches: {
+            wins, draws, losses,
+            total: wins + draws + losses
+          }
         },
-        upcomingMatch: upcomingMatchInfo,
-        recentStats: {
-          attendanceRate: totalAttendanceRate,
-          totalSchedules: allSchedules.length
-        },
-        topAttendancePlayers,
-        recentActivities: sortedActivities
+        recentMatches: formattedRecentMatches,
+        badges: userBadges
       }
     })
 
   } catch (error) {
-    console.error('대시보드 통계 조회 중 오류:', error)
-    
-    return NextResponse.json(
-      { error: '대시보드 통계 조회 중 오류가 발생했습니다.' },
-      { status: 500 }
-    )
+    console.error('대시보드 데이터 조회 실패:', error)
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }
 }
