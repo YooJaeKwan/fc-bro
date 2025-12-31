@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
+export const dynamic = 'force-dynamic' // API 캐싱 방지
+
 export async function GET() {
   try {
     console.log('일정 목록 조회 요청')
@@ -134,9 +136,16 @@ export async function GET() {
         opponentTeam: schedule.opponentTeam,
         trainingContent: schedule.trainingContent,
         status: schedule.status.toLowerCase(), // SCHEDULED -> scheduled
+        // 경기 결과 필드 추가
+        ourScore: schedule.ourScore,
+        opponentScore: schedule.opponentScore,
+        mvpUserId: schedule.mvpUserId,
+        matchSummary: schedule.matchSummary,
         attendees: finalAttendees.map(addTempRating),
+        attendances: schedule.attendances, // MVP 조회를 위한 참석 정보
         teamFormation: schedule.teamFormation, // 팀편성 결과 포함
         formationDate: schedule.formationDate?.toISOString() || null,
+        formationConfirmed: schedule.formationConfirmed || false, // 팀편성 확정 상태
         allowGuests: schedule.allowGuests || false, // 게스트 허용 상태
         createdBy: {
           id: schedule.creator.id,
@@ -154,7 +163,7 @@ export async function GET() {
 
   } catch (error) {
     console.error('일정 목록 조회 중 오류:', error)
-    
+
     return NextResponse.json(
       { error: '일정 목록 조회 중 오류가 발생했습니다.' },
       { status: 500 }

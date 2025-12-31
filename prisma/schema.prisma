@@ -144,6 +144,7 @@ model Schedule {
   // 팀편성 결과 저장
   teamFormation   Json?     // 팀편성 결과 (노랑팀/파랑팀 정보)
   formationDate   DateTime? // 팀편성 생성 일시
+  formationConfirmed Boolean @default(false) // 팀편성 확정 상태 (총무만 확정 가능)
 
   // 게스트 허용 여부
   allowGuests     Boolean   @default(false)

@@ -93,10 +93,11 @@ export async function POST(request: NextRequest) {
           where: { id: scheduleId },
           data: {
             teamFormation: null,
-            formationDate: null
+            formationDate: null,
+            formationConfirmed: false
           }
         })
-        console.log('참석 투표 변경으로 인한 팀편성 초기화 완료:', scheduleId)
+        console.log('참석 투표 변경으로 인한 팀편성 및 확정 상태 초기화 완료:', scheduleId)
       }
     } catch (error) {
       console.error('팀편성 초기화 중 오류 (무시됨):', error)
@@ -121,7 +122,7 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('참석 투표 처리 중 오류:', error)
-    
+
     return NextResponse.json(
       { error: '참석 투표 처리 중 오류가 발생했습니다.' },
       { status: 500 }
@@ -243,7 +244,7 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('참석자 목록 조회 중 오류:', error)
-    
+
     return NextResponse.json(
       { error: '참석자 목록 조회 중 오류가 발생했습니다.' },
       { status: 500 }
@@ -335,10 +336,11 @@ export async function DELETE(request: NextRequest) {
           where: { id: scheduleId },
           data: {
             teamFormation: null,
-            formationDate: null
+            formationDate: null,
+            formationConfirmed: false
           }
         })
-        console.log('참석 투표 삭제로 인한 팀편성 초기화 완료:', scheduleId)
+        console.log('참석 투표 삭제로 인한 팀편성 및 확정 상태 초기화 완료:', scheduleId)
       }
     } catch (error) {
       console.error('팀편성 초기화 중 오류 (무시됨):', error)
@@ -352,7 +354,7 @@ export async function DELETE(request: NextRequest) {
 
   } catch (error: any) {
     console.error('참석 투표 삭제 중 오류:', error)
-    
+
     // 레코드를 찾을 수 없는 경우
     if (error.code === 'P2025') {
       return NextResponse.json(
@@ -360,7 +362,7 @@ export async function DELETE(request: NextRequest) {
         { status: 404 }
       )
     }
-    
+
     return NextResponse.json(
       { error: '참석 투표 삭제 중 오류가 발생했습니다.' },
       { status: 500 }

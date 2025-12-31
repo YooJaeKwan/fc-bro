@@ -13,11 +13,14 @@ import {
   LogOut,
   BarChart3,
   Calendar,
+  Trophy,
 } from "lucide-react"
 import { TeamManagement } from "./components/team-management"
 import { UserProfile } from "./components/user-profile"
 import { AttendanceStats } from "./components/attendance-stats"
 import { ScheduleManagement } from "./components/schedule-management"
+import { MatchResultsView } from "./components/match-results-view"
+import { DashboardHome } from "./components/dashboard-home"
 // import { useSession, signOut } from "next-auth/react" // NextAuth 제거됨
 
 // 기본 팀 정보 (고정값)
@@ -62,10 +65,9 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
 
 
   const tabItems = [
-    { value: "schedule", label: isManagerMode ? "일정관리" : "경기일정", icon: Calendar },
-    { value: "dashboard", label: "대시보드 (임시)", icon: BarChart3 },
-    { value: "team", label: "팀 멤버", icon: Users },
-    { value: "profile", label: "내 정보", icon: User },
+    { value: "schedule", label: "경기일정", icon: Calendar },
+    { value: "team", label: "팀멤버", icon: Users },
+    { value: "dashboard", label: "내 정보", icon: BarChart3 },
   ]
 
 
@@ -152,10 +154,10 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
                         <p className="font-medium">{user?.realName || user?.nickname}</p>
                         <p className="text-sm text-muted-foreground">
                           {user?.preferredPosition}
-                          {user?.subPositions && user.subPositions.length > 0 && 
+                          {user?.subPositions && user.subPositions.length > 0 &&
                             ` (+ ${user.subPositions.join(', ')})`
                           }
-                           {/* • {user?.region} {user?.city} */}
+                          {/* • {user?.region} {user?.city} */}
                           {/* {user?.preferredFoot && ` • ${user.preferredFoot === 'RIGHT' ? '오른발' : user.preferredFoot === 'LEFT' ? '왼발' : '양발'}`} */}
                         </p>
                       </div>
@@ -224,7 +226,7 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-3">
           {/* Desktop Tabs */}
           <div className="hidden lg:block">
-            <TabsList className="grid w-full grid-cols-4 lg:w-auto">
+            <TabsList className="grid w-full grid-cols-3 lg:w-auto">
               {tabItems.map((item) => {
                 const Icon = item.icon
                 return (
@@ -236,25 +238,22 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
               })}
             </TabsList>
           </div>
+          {/* 대시보드 */}
+          <TabsContent value="dashboard" className="mt-6">
+            <DashboardHome currentUser={user} onUserUpdate={handleUserUpdate} />
+          </TabsContent>
 
           <TabsContent value="schedule">
             <ScheduleManagement isManagerMode={isManagerMode} currentUser={user} />
           </TabsContent>
 
-          <TabsContent value="dashboard">
-            <AttendanceStats isManagerMode={isManagerMode} />
-          </TabsContent>
-
-          <TabsContent value="team">
+          {/* 팀 멤버 */}
+          <TabsContent value="team" className="mt-6">
             <TeamManagement isManagerMode={isManagerMode} currentUser={user} />
-          </TabsContent>
-
-          <TabsContent value="profile">
-            <UserProfile userInfo={user} onUserUpdate={handleUserUpdate} />
           </TabsContent>
 
         </Tabs>
       </div>
-    </div>
+    </div >
   )
 }

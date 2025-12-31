@@ -68,14 +68,14 @@ const positionFullNames: Record<string, string> = {
 const formatPhoneNumber = (phone: string) => {
   if (!phone) return '정보 없음'
   const numbers = phone.replace(/[^0-9]/g, '')
-  
+
   if (numbers.length === 11) {
     return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7)}`
   }
   if (numbers.length === 10) {
     return `${numbers.slice(0, 3)}-${numbers.slice(3, 6)}-${numbers.slice(6)}`
   }
-  
+
   return phone
 }
 
@@ -130,7 +130,7 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
 
     // 요청 키 생성
     const requestKey = `${requesterId}-${showInactive}`
-    
+
     // 동일한 요청이 이미 진행 중이면 중단
     if (fetchingRef.current && lastRequestRef.current === requestKey) {
       return
@@ -167,7 +167,7 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
         }
 
         const result = await response.json()
-        
+
         // 요청이 취소되었으면 상태 업데이트 하지 않음
         if (!abortController.signal.aborted) {
           setTeamMembers(result.members)
@@ -178,7 +178,7 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
         if (error?.name === 'AbortError') {
           return
         }
-        
+
         // 요청이 취소되었으면 에러 설정하지 않음
         if (!abortController.signal.aborted) {
           setError(error instanceof Error ? error.message : '팀원 목록 조회 중 오류가 발생했습니다.')
@@ -293,7 +293,7 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
         const aPosition = positionMapping[a.mainPosition || a.preferredPosition] || "미분류"
         const bPosition = positionMapping[b.mainPosition || b.preferredPosition] || "미분류"
         const orderDiff = (positionOrder[aPosition] || 99) - (positionOrder[bPosition] || 99)
-        
+
         // 같은 포지션이면 이름순
         if (orderDiff === 0) {
           return a.name.localeCompare(b.name, 'ko')
@@ -302,7 +302,7 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
       } else if (sortBy === "level") {
         // 레벨순 (높은 순 > 낮은 순)
         const levelDiff = (b.level || 1) - (a.level || 1)
-        
+
         // 같은 레벨이면 이름순
         if (levelDiff === 0) {
           return a.name.localeCompare(b.name, 'ko')
@@ -325,7 +325,7 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
   // 포지션 대분류로 멤버 그룹화
   const getGroupedMembers = () => {
     const filtered = getFilteredMembers()
-    
+
     if (sortBy === "level") {
       // 레벨순일 때는 레벨 카테고리별로 그룹화
       const grouped: { [key: string]: any[] } = {
@@ -399,12 +399,12 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
   // 출석왕 확인 함수 (상위 3명)
   const isTopAttender = (member: any) => {
     if (!member.attendanceRate || teamMembers.length < 3) return false
-    
-  // 참석률 기준으로 정렬하여 상위 3명 찾기
+
+    // 참석률 기준으로 정렬하여 상위 3명 찾기
     const sortedByAttendance = [...teamMembers]
       .filter(m => m.attendanceRate > 0) // 참석률이 0보다 큰 사람만
       .sort((a, b) => (b.attendanceRate || 0) - (a.attendanceRate || 0))
-    
+
     // 상위 3명에 포함되는지 확인
     const top3 = sortedByAttendance.slice(0, 3)
     return top3.some(m => m.id === member.id)
@@ -628,21 +628,21 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
               }
             }
 
-            const config = sortBy === "level" 
+            const config = sortBy === "level"
               ? (levelConfig[categoryType as keyof typeof levelConfig] || {
-                  icon: Users,
-                  color: "text-gray-600",
-                  bgColor: "bg-gradient-to-r from-gray-50 to-gray-100/50",
-                  borderColor: "border-gray-300",
-                  iconBg: "bg-gray-100"
-                })
+                icon: Users,
+                color: "text-gray-600",
+                bgColor: "bg-gradient-to-r from-gray-50 to-gray-100/50",
+                borderColor: "border-gray-300",
+                iconBg: "bg-gray-100"
+              })
               : (positionConfig[categoryType as keyof typeof positionConfig] || {
-                  icon: Users,
-                  color: "text-gray-600",
-                  bgColor: "bg-gradient-to-r from-gray-50 to-gray-100/50",
-                  borderColor: "border-gray-300",
-                  iconBg: "bg-gray-100"
-                })
+                icon: Users,
+                color: "text-gray-600",
+                bgColor: "bg-gradient-to-r from-gray-50 to-gray-100/50",
+                borderColor: "border-gray-300",
+                iconBg: "bg-gray-100"
+              })
             const Icon = config.icon
 
             return (
@@ -660,198 +660,198 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                 {/* 멤버 카드 그리드 */}
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
                   {members.map((member) => (
-                <Card key={member.id} className={`relative overflow-hidden transition-all duration-200 hover:-translate-y-1 hover:shadow-lg ${!member.isActive ? 'opacity-60 border-dashed border-gray-300' : 'border border-gray-200'}`}>
-                  {/* 우측 상단 포지션 인디케이터 */}
-                  {member.isActive && (
-                    <div className={`absolute top-0 right-0 w-8 h-8 ${getPositionIndicatorColor(member.mainPosition || member.preferredPosition)} opacity-90`} style={{ clipPath: 'polygon(100% 0, 100% 100%, 0 0)' }} />
-                  )}
-                  <CardHeader className="pb-3 relative z-10">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="relative">
-                          <Avatar className="h-12 w-12 ring-2 ring-white shadow-md">
-                            <AvatarImage src={member.profileImage || "/placeholder.svg"} />
-                            <AvatarFallback className="bg-gradient-to-br from-blue-400 to-blue-600 text-white font-semibold">
-                              {member.name[0]}
-                            </AvatarFallback>
-                          </Avatar>
-                          {member.jerseyNumber && (
-                            <div className="absolute -bottom-1 -right-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white text-xs rounded-full h-6 w-6 flex items-center justify-center font-bold shadow-md border-2 border-white">
-                              {member.jerseyNumber}
-                            </div>
-                          )}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <CardTitle className="text-base sm:text-lg">
-                            <div className="space-y-1.5">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="font-bold text-gray-900">{member.name}</span>
-                                {/* 레벨 배지 */}
-                                <Badge
-                                  variant="outline"
-                                  className={`text-xs ${(() => {
-                                    const level = member.level || 1
-                                    if (level === 1) return 'bg-gray-50 text-gray-600 border-gray-200'
-                                    if (level <= 6) return 'bg-blue-50 text-blue-600 border-blue-200'
-                                    if (level <= 9) return 'bg-purple-50 text-purple-600 border-purple-200'
-                                    return 'bg-yellow-50 text-yellow-600 border-yellow-200'
-                                  })()}`}
-                                >
-                                  {getLevelLabel(member.level)}
-                                </Badge>
-                                {!member.isActive && (
-                                  <Badge variant="destructive" className="text-xs">
-                                    비활성
-                                  </Badge>
-                                )}
-                              </div>
-                              {/* 출석왕/출석우수 뱃지 - 이름 아래 표시 */}
-                              <div className="flex items-center gap-1.5 flex-wrap">
-                                {isTopAttender(member) && (
-                                  <Badge className="text-xs bg-gradient-to-r from-yellow-400 to-orange-400 text-white border-0">
-                                    👑 출석왕
-                                  </Badge>
-                                )}
-                                {isExcellentAttender(member) && !isTopAttender(member) && (
-                                  <Badge className="text-xs bg-gradient-to-r from-blue-400 to-blue-500 text-white border-0">
-                                    ⭐ 출석우수
-                                  </Badge>
-                                )}
-                              </div>
-                            </div>
-                          </CardTitle>
-                        </div>
-                        </div>
-                      <div className="flex items-center gap-1">
-                        {/* 상세보기/수정 버튼 - 총무만 */}
-                      {isManagerMode && (
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button variant="ghost" size="sm" className="flex-shrink-0">
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="max-w-3xl max-h-[95vh] overflow-y-auto">
-                          <DialogHeader className="pb-6">
-                            <div className="flex items-center gap-4">
-                              <Avatar className="h-16 w-16">
-                                {member.profileImage ? (
-                                  <img src={member.profileImage} alt={member.name} className="h-full w-full object-cover" />
-                                ) : (
-                                  <AvatarFallback className="text-2xl font-bold bg-blue-100 text-blue-600">
-                                    {member.name[0]}
-                                  </AvatarFallback>
-                                )}
+                    <Card key={member.id} className={`relative overflow-hidden transition-all duration-200 hover:-translate-y-1 hover:shadow-lg ${!member.isActive ? 'opacity-60 border-dashed border-gray-300' : 'border border-gray-200'}`}>
+                      {/* 우측 상단 포지션 인디케이터 */}
+                      {member.isActive && (
+                        <div className={`absolute top-0 right-0 w-8 h-8 ${getPositionIndicatorColor(member.mainPosition || member.preferredPosition)} opacity-90`} style={{ clipPath: 'polygon(100% 0, 100% 100%, 0 0)' }} />
+                      )}
+                      <CardHeader className="pb-3 relative z-10">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="relative">
+                              <Avatar className="h-12 w-12 ring-2 ring-white shadow-md">
+                                <AvatarImage src={member.profileImage || "/placeholder.svg"} />
+                                <AvatarFallback className="bg-gradient-to-br from-blue-400 to-blue-600 text-white font-semibold">
+                                  {member.name[0]}
+                                </AvatarFallback>
                               </Avatar>
-                              <div className="flex-1">
-                                <DialogTitle className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                                  {member.name}
-                                  {!member.isActive && (
-                                    <Badge variant="destructive" className="text-xs">비활성</Badge>
-                                  )}
-                                </DialogTitle>
-                                {/* <p className="text-muted-foreground mt-1">선수 상세 정보</p> */}
-                              </div>
-                            </div>
-                          </DialogHeader>
-                          
-                          <div className="space-y-6">
-                            {/* 기본 정보 카드 */}
-                            <Card className="border-l-4 border-l-blue-500">
-                              <CardHeader className="pb-3">
-                                <CardTitle className="text-sm flex items-center gap-2">
-                                  <User className="h-4 w-4 text-blue-500" />
-                                  기본 정보
-                                </CardTitle>
-                              </CardHeader>
-                              <CardContent className="space-y-4">
-                                <div className="space-y-2">
-                                  <Label className="text-xs font-medium text-gray-700">이름</Label>
-                                  <div className="p-2 bg-gray-50 rounded-lg border">
-                                    <span className="text-sm">{member.name}</span>
-                                  </div>
+                              {member.jerseyNumber && (
+                                <div className="absolute -bottom-1 -right-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white text-xs rounded-full h-6 w-6 flex items-center justify-center font-bold shadow-md border-2 border-white">
+                                  {member.jerseyNumber}
                                 </div>
-                                
-                            <div className="grid grid-cols-2 gap-4">
-                              <div className="space-y-2">
-                                    <Label className="text-xs font-medium text-gray-700">전화번호</Label>
-                                    <div className="p-2 bg-gray-50 rounded-lg border flex items-center gap-2">
-                                      <span className="text-sm">{formatPhoneNumber(member.phone)}</span>
-                              </div>
+                              )}
                             </div>
-                            <div className="space-y-2">
-                                    <Label className="text-xs font-medium text-gray-700">거주지역</Label>
-                                    <div className="p-2 bg-gray-50 rounded-lg border flex items-center gap-2">
-                                      <span className="text-sm">{member.region} {member.city}</span>
-                                    </div>
-                            </div>
-                              </div>
-                                
-                                <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                    <Label className="text-xs font-medium text-gray-700">주발</Label>
-                                    <div className="p-2 bg-gray-50 rounded-lg border">
-                                      <span className="text-sm">
-                                        {member.preferredFoot === 'RIGHT' ? '오른발' : 
-                                         member.preferredFoot === 'LEFT' ? '왼발' : 
-                                         member.preferredFoot === 'BOTH' ? '양발' : '정보 없음'}
-                                      </span>
-                              </div>
-                            </div>
-                                  
-                              <div className="space-y-2">
-                                    <Label className="text-xs font-medium text-gray-700">등번호</Label>
-                                    <div className="p-2 bg-gray-50 rounded-lg border flex items-center gap-2">
-                                      <span className="text-sm">
-                                        {member.jerseyNumber ? `${member.jerseyNumber}번` : '미배정'}
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-                                
-                                <div className="space-y-2">
-                                  <Label className="text-xs font-medium text-gray-700">가입일</Label>
-                                  <div className="p-2 bg-gray-50 rounded-lg border flex items-center gap-2">
-                                    <Calendar className="h-3 w-3 text-muted-foreground" />
-                                    <span className="text-sm">{member.joinDate}</span>
-                                  </div>
-                                </div>
-                                
-                              </CardContent>
-                            </Card>
-                            
-                            {/* 포지션 정보 카드 */}
-                            <Card className="border-l-4 border-l-green-500">
-                              <CardHeader className="pb-3">
-                                <CardTitle className="text-sm flex items-center gap-2">
-                                  <Shield className="h-4 w-4 text-green-500" />
-                                  포지션 정보
-                                </CardTitle>
-                              </CardHeader>
-                              <CardContent>
-                                <div className="space-y-3">
-                                  <div>
-                                    <Label className="text-xs font-medium text-gray-700 mb-2 block">주포지션</Label>
-                                    <Badge className={`${getMainPositionColor()} text-xs px-2 py-1 border`} variant="default">
-                                      {positionFullNames[member.mainPosition || member.preferredPosition] || (member.mainPosition || member.preferredPosition)}
+                            <div className="min-w-0 flex-1">
+                              <CardTitle className="text-base sm:text-lg">
+                                <div className="space-y-1.5">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="font-bold text-gray-900">{member.name}</span>
+                                    {/* 레벨 배지 */}
+                                    <Badge
+                                      variant="outline"
+                                      className={`text-xs ${(() => {
+                                        const level = member.level || 1
+                                        if (level === 1) return 'bg-gray-50 text-gray-600 border-gray-200'
+                                        if (level <= 6) return 'bg-blue-50 text-blue-600 border-blue-200'
+                                        if (level <= 9) return 'bg-purple-50 text-purple-600 border-purple-200'
+                                        return 'bg-yellow-50 text-yellow-600 border-yellow-200'
+                                      })()}`}
+                                    >
+                                      {getLevelLabel(member.level)}
                                     </Badge>
+                                    {!member.isActive && (
+                                      <Badge variant="destructive" className="text-xs">
+                                        비활성
+                                      </Badge>
+                                    )}
                                   </div>
-                                  
-                                  {member.subPositions && member.subPositions.length > 0 && (
-                                    <div>
-                                      <Label className="text-xs font-medium text-gray-700 mb-2 block">부포지션</Label>
-                                      <div className="flex flex-wrap gap-1">
-                                        {member.subPositions.map((pos: string) => (
-                                          <Badge key={pos} variant="outline" className="text-xs px-1.5 py-0.5">
-                                            {positionFullNames[pos] || pos}
-                                          </Badge>
-                                        ))}
+                                  {/* 출석왕/출석우수 뱃지 - 이름 아래 표시 */}
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    {isTopAttender(member) && (
+                                      <Badge className="text-xs bg-gradient-to-r from-yellow-400 to-orange-400 text-white border-0">
+                                        👑 출석왕
+                                      </Badge>
+                                    )}
+                                    {isExcellentAttender(member) && !isTopAttender(member) && (
+                                      <Badge className="text-xs bg-gradient-to-r from-blue-400 to-blue-500 text-white border-0">
+                                        ⭐ 출석우수
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </div>
+                              </CardTitle>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            {/* 상세보기/수정 버튼 - 총무만 */}
+                            {isManagerMode && (
+                              <Dialog>
+                                <DialogTrigger asChild>
+                                  <Button variant="ghost" size="sm" className="flex-shrink-0">
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                </DialogTrigger>
+                                <DialogContent className="max-w-3xl max-h-[95vh] overflow-y-auto">
+                                  <DialogHeader className="pb-6">
+                                    <div className="flex items-center gap-4">
+                                      <Avatar className="h-16 w-16">
+                                        {member.profileImage ? (
+                                          <img src={member.profileImage} alt={member.name} className="h-full w-full object-cover" />
+                                        ) : (
+                                          <AvatarFallback className="text-2xl font-bold bg-blue-100 text-blue-600">
+                                            {member.name[0]}
+                                          </AvatarFallback>
+                                        )}
+                                      </Avatar>
+                                      <div className="flex-1">
+                                        <DialogTitle className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                                          {member.name}
+                                          {!member.isActive && (
+                                            <Badge variant="destructive" className="text-xs">비활성</Badge>
+                                          )}
+                                        </DialogTitle>
+                                        {/* <p className="text-muted-foreground mt-1">선수 상세 정보</p> */}
                                       </div>
                                     </div>
-                                  )}
+                                  </DialogHeader>
 
-                                  {/* 참석률 */}
-                                  <div>
+                                  <div className="space-y-6">
+                                    {/* 기본 정보 카드 */}
+                                    <Card className="border-l-4 border-l-blue-500">
+                                      <CardHeader className="pb-3">
+                                        <CardTitle className="text-sm flex items-center gap-2">
+                                          <User className="h-4 w-4 text-blue-500" />
+                                          기본 정보
+                                        </CardTitle>
+                                      </CardHeader>
+                                      <CardContent className="space-y-4">
+                                        <div className="space-y-2">
+                                          <Label className="text-xs font-medium text-gray-700">이름</Label>
+                                          <div className="p-2 bg-gray-50 rounded-lg border">
+                                            <span className="text-sm">{member.name}</span>
+                                          </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-4">
+                                          <div className="space-y-2">
+                                            <Label className="text-xs font-medium text-gray-700">전화번호</Label>
+                                            <div className="p-2 bg-gray-50 rounded-lg border flex items-center gap-2">
+                                              <span className="text-sm">{formatPhoneNumber(member.phone)}</span>
+                                            </div>
+                                          </div>
+                                          <div className="space-y-2">
+                                            <Label className="text-xs font-medium text-gray-700">거주지역</Label>
+                                            <div className="p-2 bg-gray-50 rounded-lg border flex items-center gap-2">
+                                              <span className="text-sm">{member.region} {member.city}</span>
+                                            </div>
+                                          </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-4">
+                                          <div className="space-y-2">
+                                            <Label className="text-xs font-medium text-gray-700">주발</Label>
+                                            <div className="p-2 bg-gray-50 rounded-lg border">
+                                              <span className="text-sm">
+                                                {member.preferredFoot === 'RIGHT' ? '오른발' :
+                                                  member.preferredFoot === 'LEFT' ? '왼발' :
+                                                    member.preferredFoot === 'BOTH' ? '양발' : '정보 없음'}
+                                              </span>
+                                            </div>
+                                          </div>
+
+                                          <div className="space-y-2">
+                                            <Label className="text-xs font-medium text-gray-700">등번호</Label>
+                                            <div className="p-2 bg-gray-50 rounded-lg border flex items-center gap-2">
+                                              <span className="text-sm">
+                                                {member.jerseyNumber ? `${member.jerseyNumber}번` : '미배정'}
+                                              </span>
+                                            </div>
+                                          </div>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                          <Label className="text-xs font-medium text-gray-700">가입일</Label>
+                                          <div className="p-2 bg-gray-50 rounded-lg border flex items-center gap-2">
+                                            <Calendar className="h-3 w-3 text-muted-foreground" />
+                                            <span className="text-sm">{member.joinDate}</span>
+                                          </div>
+                                        </div>
+
+                                      </CardContent>
+                                    </Card>
+
+                                    {/* 포지션 정보 카드 */}
+                                    <Card className="border-l-4 border-l-green-500">
+                                      <CardHeader className="pb-3">
+                                        <CardTitle className="text-sm flex items-center gap-2">
+                                          <Shield className="h-4 w-4 text-green-500" />
+                                          포지션 정보
+                                        </CardTitle>
+                                      </CardHeader>
+                                      <CardContent>
+                                        <div className="space-y-3">
+                                          <div>
+                                            <Label className="text-xs font-medium text-gray-700 mb-2 block">주포지션</Label>
+                                            <Badge className={`${getMainPositionColor()} text-xs px-2 py-1 border`} variant="default">
+                                              {positionFullNames[member.mainPosition || member.preferredPosition] || (member.mainPosition || member.preferredPosition)}
+                                            </Badge>
+                                          </div>
+
+                                          {member.subPositions && member.subPositions.length > 0 && (
+                                            <div>
+                                              <Label className="text-xs font-medium text-gray-700 mb-2 block">부포지션</Label>
+                                              <div className="flex flex-wrap gap-1">
+                                                {member.subPositions.map((pos: string) => (
+                                                  <Badge key={pos} variant="outline" className="text-xs px-1.5 py-0.5">
+                                                    {positionFullNames[pos] || pos}
+                                                  </Badge>
+                                                ))}
+                                              </div>
+                                            </div>
+                                          )}
+
+                                          {/* 참석률 - 임시 숨김 */}
+                                          {/* <div>
                                     <div className="flex items-center justify-between mb-2">
                                       <Label className="text-xs font-medium text-gray-700">참석률</Label>
                                       <div className="flex items-center gap-1.5">
@@ -867,375 +867,374 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                                       value={member.attendanceRate || 0} 
                                       className="h-2 bg-gray-200" 
                                     />
-                                  </div>
-                                </div>
-                              </CardContent>
-                            </Card>
-                            
-                            {/* 레벨 관리 (총무 전용) */}
-                            {isManagerMode && (
-                              <div className="space-y-3">
-                                {editingMember?.id !== member.id ? (
-                                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-sm text-gray-600">레벨:</span>
-                                      <Badge className="text-sm px-2 py-1">
-                                        {getLevelLabel(member.level)}
-                                      </Badge>
-                                    </div>
-                                    <Button
-                                      onClick={() => {
-                                        setEditingMember(member)
-                                        setTempLevel(member.level || 1)
-                                        setSaveMessage("")
-                                      }}
-                                      variant="outline"
-                                      size="sm"
-                                    >
-                                      <Edit className="h-3 w-3 mr-1" />
-                                      수정
-                                    </Button>
-                                  </div>
-                                ) : (
-                                  <div className="space-y-3 p-3 bg-gray-50 rounded-lg border">
-                                    <div className="flex items-center gap-2">
-                                      <Label className="text-sm text-gray-700 min-w-[50px]">레벨:</Label>
-                                      <Select
-                                        value={tempLevel.toString()}
-                                        onValueChange={(value) => {
-                                          setTempLevel(parseInt(value))
-                                          setSaveMessage("")
-                                        }}
-                                      >
-                                        <SelectTrigger className="w-full">
-                                          <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          {LEVEL_OPTIONS.map((option) => (
-                                            <SelectItem key={option.value} value={option.value.toString()}>
-                                              {option.label}
-                                            </SelectItem>
-                                          ))}
-                                        </SelectContent>
-                                      </Select>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      <Button
-                                        onClick={async () => {
-                                          setIsSaving(true)
-                                          setSaveMessage("")
-                                          try {
-                                            const response = await fetch('/api/user/update', {
-                                              method: 'PUT',
-                                              headers: { 'Content-Type': 'application/json' },
-                                              body: JSON.stringify({
-                                                userId: member.id,
-                                                level: tempLevel
-                                              })
-                                            })
-                                            if (response.ok) {
-                                              const updatedData = await response.json()
-                                              setSaveMessage("저장되었습니다")
-                                              
-                                              if (updatedData.user) {
-                                                setTeamMembers(prevMembers => 
-                                                  prevMembers.map(m => 
-                                                    m.id === member.id 
-                                                      ? { ...m, level: updatedData.user.level }
-                                                      : m
-                                                  )
-                                                )
-                                              }
-                                              
-                                              setTimeout(() => {
-                                                setEditingMember(null)
+                                  </div> */}
+                                        </div>
+                                      </CardContent>
+                                    </Card>
+
+                                    {/* 레벨 관리 (총무 전용) */}
+                                    {isManagerMode && (
+                                      <div className="space-y-3">
+                                        {editingMember?.id !== member.id ? (
+                                          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+                                            <div className="flex items-center gap-2">
+                                              <span className="text-sm text-gray-600">레벨:</span>
+                                              <Badge className="text-sm px-2 py-1">
+                                                {getLevelLabel(member.level)}
+                                              </Badge>
+                                            </div>
+                                            <Button
+                                              onClick={() => {
+                                                setEditingMember(member)
+                                                setTempLevel(member.level || 1)
                                                 setSaveMessage("")
-                                              }, 1500)
-                                            } else {
-                                              setSaveMessage("저장 실패")
+                                              }}
+                                              variant="outline"
+                                              size="sm"
+                                            >
+                                              <Edit className="h-3 w-3 mr-1" />
+                                              수정
+                                            </Button>
+                                          </div>
+                                        ) : (
+                                          <div className="space-y-3 p-3 bg-gray-50 rounded-lg border">
+                                            <div className="flex items-center gap-2">
+                                              <Label className="text-sm text-gray-700 min-w-[50px]">레벨:</Label>
+                                              <Select
+                                                value={tempLevel.toString()}
+                                                onValueChange={(value) => {
+                                                  setTempLevel(parseInt(value))
+                                                  setSaveMessage("")
+                                                }}
+                                              >
+                                                <SelectTrigger className="w-full">
+                                                  <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                  {LEVEL_OPTIONS.map((option) => (
+                                                    <SelectItem key={option.value} value={option.value.toString()}>
+                                                      {option.label}
+                                                    </SelectItem>
+                                                  ))}
+                                                </SelectContent>
+                                              </Select>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                              <Button
+                                                onClick={async () => {
+                                                  setIsSaving(true)
+                                                  setSaveMessage("")
+                                                  try {
+                                                    const response = await fetch('/api/user/update', {
+                                                      method: 'PUT',
+                                                      headers: { 'Content-Type': 'application/json' },
+                                                      body: JSON.stringify({
+                                                        userId: member.id,
+                                                        level: tempLevel
+                                                      })
+                                                    })
+                                                    if (response.ok) {
+                                                      const updatedData = await response.json()
+                                                      setSaveMessage("저장되었습니다")
+
+                                                      if (updatedData.user) {
+                                                        setTeamMembers(prevMembers =>
+                                                          prevMembers.map(m =>
+                                                            m.id === member.id
+                                                              ? { ...m, level: updatedData.user.level }
+                                                              : m
+                                                          )
+                                                        )
+                                                      }
+
+                                                      setTimeout(() => {
+                                                        setEditingMember(null)
+                                                        setSaveMessage("")
+                                                      }, 1500)
+                                                    } else {
+                                                      setSaveMessage("저장 실패")
+                                                    }
+                                                  } catch (error) {
+                                                    console.error('레벨 수정 오류:', error)
+                                                    setSaveMessage("오류가 발생했습니다")
+                                                  } finally {
+                                                    setIsSaving(false)
+                                                  }
+                                                }}
+                                                disabled={isSaving}
+                                                size="sm"
+                                                className="flex-1"
+                                              >
+                                                {isSaving ? "저장 중..." : "저장"}
+                                              </Button>
+                                              <Button
+                                                variant="outline"
+                                                onClick={() => {
+                                                  setEditingMember(null)
+                                                  setTempLevel(member.level || 1)
+                                                  setSaveMessage("")
+                                                }}
+                                                size="sm"
+                                                className="flex-1"
+                                              >
+                                                취소
+                                              </Button>
+                                            </div>
+                                            {saveMessage && (
+                                              <p className={`text-xs ${saveMessage.includes('저장되었습니다')
+                                                ? 'text-green-600'
+                                                : 'text-red-600'
+                                                }`}>
+                                                {saveMessage}
+                                              </p>
+                                            )}
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+                                    {/* 출석 통계 카드 */}
+                                    <Card className="border-l-4 border-l-orange-500">
+                                      <CardHeader className="pb-3">
+                                        <CardTitle className="text-sm flex items-center gap-2">
+                                          <BarChart3 className="h-4 w-4 text-orange-500" />
+                                          출석 통계
+                                        </CardTitle>
+                                      </CardHeader>
+                                      <CardContent>
+                                        <div className="space-y-3">
+                                          <div className="flex items-center justify-between">
+                                            <Label className="text-xs font-medium text-gray-700">전체 참석률</Label>
+                                            <div className="flex items-center gap-2">
+                                              <Badge variant="outline" className="text-sm px-2 py-1 font-bold">
+                                                {member.attendanceRate}%
+                                              </Badge>
+                                            </div>
+                                          </div>
+                                          <div className="space-y-2">
+                                            <Progress
+                                              value={member.attendanceRate}
+                                              className="h-3 bg-gray-200"
+                                            />
+                                            <div className="flex justify-between text-xs text-muted-foreground">
+                                              <span>0%</span>
+                                              <span>50%</span>
+                                              <span>100%</span>
+                                            </div>
+                                          </div>
+                                          <div className="flex items-center gap-4 pt-2">
+                                            <div className="flex items-center gap-2">
+                                              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                                              <span className="text-xs text-muted-foreground">
+                                                {member.attendanceRate >= 80 ? '우수' :
+                                                  member.attendanceRate >= 60 ? '양호' : '개선 필요'}
+                                              </span>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </CardContent>
+                                    </Card>
+
+                                    {/* 관리 버튼들 (총무 전용) */}
+                                    {isManagerMode && (
+                                      <div className="flex flex-col gap-3 pt-4 border-t">
+                                        {/* 비활성화/활성화 버튼 */}
+                                        <Button
+                                          variant={member.isActive ? "outline" : "default"}
+                                          className={`w-full ${member.isActive ? 'text-orange-600 border-orange-300 hover:bg-orange-50' : 'bg-green-600 hover:bg-green-700 text-white'}`}
+                                          onClick={async () => {
+                                            try {
+                                              const user = currentUser || JSON.parse(sessionStorage.getItem('user') || '{}')
+
+                                              if (!user?.id) {
+                                                alert('로그인 정보를 찾을 수 없습니다. 다시 로그인해주세요.')
+                                                return
+                                              }
+
+                                              const endpoint = '/api/user/deactivate'
+                                              const method = member.isActive ? 'PUT' : 'POST'
+
+                                              console.log('Deactivate request:', {
+                                                targetUserId: member.id,
+                                                adminUserId: user.id,
+                                                method
+                                              })
+
+                                              const response = await fetch(endpoint, {
+                                                method,
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify({
+                                                  targetUserId: member.id,
+                                                  adminUserId: user.id
+                                                })
+                                              })
+
+                                              if (response.ok) {
+                                                const updatedData = await response.json()
+                                                // 현재 멤버 상태 즉시 업데이트
+                                                if (updatedData.user) {
+                                                  setTeamMembers(prevMembers =>
+                                                    prevMembers.map(m =>
+                                                      m.id === member.id
+                                                        ? { ...m, isActive: updatedData.user.isActive }
+                                                        : m
+                                                    )
+                                                  )
+                                                }
+                                                alert(member.isActive ? '선수가 비활성화되었습니다.' : '선수가 활성화되었습니다.')
+                                              } else {
+                                                const error = await response.json()
+                                                alert(error.error || '상태 변경에 실패했습니다.')
+                                              }
+                                            } catch (error) {
+                                              console.error('상태 변경 중 오류:', error)
+                                              alert('상태 변경 중 오류가 발생했습니다.')
                                             }
-                                          } catch (error) {
-                                            console.error('레벨 수정 오류:', error)
-                                            setSaveMessage("오류가 발생했습니다")
-                                          } finally {
-                                            setIsSaving(false)
-                                          }
-                                        }}
-                                        disabled={isSaving}
-                                        size="sm"
-                                        className="flex-1"
-                                      >
-                                        {isSaving ? "저장 중..." : "저장"}
-                                      </Button>
-                                      <Button
-                                        variant="outline"
-                                        onClick={() => {
-                                          setEditingMember(null)
-                                          setTempLevel(member.level || 1)
-                                          setSaveMessage("")
-                                        }}
-                                        size="sm"
-                                        className="flex-1"
-                                      >
-                                        취소
-                                      </Button>
-                                    </div>
-                                    {saveMessage && (
-                                      <p className={`text-xs ${
-                                        saveMessage.includes('저장되었습니다') 
-                                          ? 'text-green-600' 
-                                          : 'text-red-600'
-                                      }`}>
-                                        {saveMessage}
-                                      </p>
+                                          }}
+                                        >
+                                          {member.isActive ? (
+                                            <>
+                                              <UserMinus className="h-4 w-4 mr-2" />
+                                              비활성화
+                                            </>
+                                          ) : (
+                                            <>
+                                              <Power className="h-4 w-4 mr-2" />
+                                              활성화
+                                            </>
+                                          )}
+                                        </Button>
+
+                                        {/* 삭제 버튼 */}
+                                        <Button
+                                          variant="destructive"
+                                          className="w-full"
+                                          onClick={async () => {
+                                            const confirmed = confirm(`${member.name} 선수를 완전히 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없으며, 해당 선수의 모든 데이터가 삭제됩니다.`)
+                                            if (!confirmed) return
+
+                                            try {
+                                              const user = currentUser || JSON.parse(sessionStorage.getItem('user') || '{}')
+                                              const response = await fetch('/api/user/delete', {
+                                                method: 'DELETE',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify({
+                                                  targetUserId: member.id,
+                                                  adminUserId: user.id,
+                                                  confirmDelete: true
+                                                })
+                                              })
+
+                                              if (response.ok) {
+                                                // 삭제된 멤버를 목록에서 즉시 제거
+                                                setTeamMembers(prevMembers =>
+                                                  prevMembers.filter(m => m.id !== member.id)
+                                                )
+                                                alert('선수가 성공적으로 삭제되었습니다.')
+                                              } else {
+                                                const error = await response.json()
+                                                alert(error.error || '삭제에 실패했습니다.')
+                                              }
+                                            } catch (error) {
+                                              console.error('삭제 중 오류:', error)
+                                              alert('삭제 중 오류가 발생했습니다.')
+                                            }
+                                          }}
+                                        >
+                                          <UserX className="h-4 w-4 mr-2" />
+                                          선수 삭제
+                                        </Button>
+                                      </div>
                                     )}
                                   </div>
-                                )}
-                              </div>
-                            )}
-                            {/* 출석 통계 카드 */}
-                            <Card className="border-l-4 border-l-orange-500">
-                              <CardHeader className="pb-3">
-                                <CardTitle className="text-sm flex items-center gap-2">
-                                  <BarChart3 className="h-4 w-4 text-orange-500" />
-                                  출석 통계
-                                </CardTitle>
-                              </CardHeader>
-                              <CardContent>
-                                <div className="space-y-3">
-                                  <div className="flex items-center justify-between">
-                                    <Label className="text-xs font-medium text-gray-700">전체 참석률</Label>
-                                    <div className="flex items-center gap-2">
-                                      <Badge variant="outline" className="text-sm px-2 py-1 font-bold">
-                                        {member.attendanceRate}%
-                                      </Badge>
-                                    </div>
-                                  </div>
-                            <div className="space-y-2">
-                                    <Progress 
-                                      value={member.attendanceRate} 
-                                      className="h-3 bg-gray-200" 
-                                    />
-                                    <div className="flex justify-between text-xs text-muted-foreground">
-                                      <span>0%</span>
-                                      <span>50%</span>
-                                      <span>100%</span>
-                                    </div>
-                                  </div>
-                                  <div className="flex items-center gap-4 pt-2">
-                                    <div className="flex items-center gap-2">
-                                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                                      <span className="text-xs text-muted-foreground">
-                                        {member.attendanceRate >= 80 ? '우수' : 
-                                         member.attendanceRate >= 60 ? '양호' : '개선 필요'}
-                                      </span>
-                              </div>
-                            </div>
-                                </div>
-                              </CardContent>
-                            </Card>
-
-                            {/* 관리 버튼들 (총무 전용) */}
-                            {isManagerMode && (
-                              <div className="flex flex-col gap-3 pt-4 border-t">
-                                {/* 비활성화/활성화 버튼 */}
-                                <Button
-                                  variant={member.isActive ? "outline" : "default"}
-                                  className={`w-full ${member.isActive ? 'text-orange-600 border-orange-300 hover:bg-orange-50' : 'bg-green-600 hover:bg-green-700 text-white'}`}
-                                  onClick={async () => {
-                                    try {
-                                      const user = currentUser || JSON.parse(sessionStorage.getItem('user') || '{}')
-
-                                      if (!user?.id) {
-                                        alert('로그인 정보를 찾을 수 없습니다. 다시 로그인해주세요.')
-                                        return
-                                      }
-
-                                      const endpoint = '/api/user/deactivate'
-                                      const method = member.isActive ? 'PUT' : 'POST'
-
-                                      console.log('Deactivate request:', {
-                                        targetUserId: member.id,
-                                        adminUserId: user.id,
-                                        method
-                                      })
-
-                                      const response = await fetch(endpoint, {
-                                        method,
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({
-                                          targetUserId: member.id,
-                                          adminUserId: user.id
-                                        })
-                                      })
-
-                                      if (response.ok) {
-                                        const updatedData = await response.json()
-                                        // 현재 멤버 상태 즉시 업데이트
-                                        if (updatedData.user) {
-                                          setTeamMembers(prevMembers =>
-                                            prevMembers.map(m =>
-                                              m.id === member.id
-                                                ? { ...m, isActive: updatedData.user.isActive }
-                                                : m
-                                            )
-                                          )
-                                        }
-                                        alert(member.isActive ? '선수가 비활성화되었습니다.' : '선수가 활성화되었습니다.')
-                                      } else {
-                                        const error = await response.json()
-                                        alert(error.error || '상태 변경에 실패했습니다.')
-                                      }
-                                    } catch (error) {
-                                      console.error('상태 변경 중 오류:', error)
-                                      alert('상태 변경 중 오류가 발생했습니다.')
-                                    }
-                                  }}
-                                >
-                                  {member.isActive ? (
-                                    <>
-                                      <UserMinus className="h-4 w-4 mr-2" />
-                                      비활성화
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Power className="h-4 w-4 mr-2" />
-                                      활성화
-                                    </>
-                                  )}
-                                </Button>
-
-                                {/* 삭제 버튼 */}
-                                <Button
-                                  variant="destructive"
-                                  className="w-full"
-                                  onClick={async () => {
-                                    const confirmed = confirm(`${member.name} 선수를 완전히 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없으며, 해당 선수의 모든 데이터가 삭제됩니다.`)
-                                    if (!confirmed) return
-
-                                    try {
-                                      const user = currentUser || JSON.parse(sessionStorage.getItem('user') || '{}')
-                                      const response = await fetch('/api/user/delete', {
-                                        method: 'DELETE',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({
-                                          targetUserId: member.id,
-                                          adminUserId: user.id,
-                                          confirmDelete: true
-                                        })
-                                      })
-
-                                      if (response.ok) {
-                                        // 삭제된 멤버를 목록에서 즉시 제거
-                                        setTeamMembers(prevMembers =>
-                                          prevMembers.filter(m => m.id !== member.id)
-                                        )
-                                        alert('선수가 성공적으로 삭제되었습니다.')
-                                      } else {
-                                        const error = await response.json()
-                                        alert(error.error || '삭제에 실패했습니다.')
-                                      }
-                                    } catch (error) {
-                                      console.error('삭제 중 오류:', error)
-                                      alert('삭제 중 오류가 발생했습니다.')
-                                    }
-                                  }}
-                                >
-                                  <UserX className="h-4 w-4 mr-2" />
-                                  선수 삭제
-                                </Button>
-                              </div>
+                                </DialogContent>
+                              </Dialog>
                             )}
                           </div>
-                        </DialogContent>
-                      </Dialog>
-                      )}
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pt-3 pb-3 px-4 space-y-3">
-                    {/* 포지션 정보 */}
-                    <div className="space-y-2">
-                      <div className="space-y-1.5">
-                        <Label className="text-xs font-medium text-muted-foreground">주포지션</Label>
-                        <div>
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getMainPositionColor()}`}>
-                            {positionFullNames[member.mainPosition || member.preferredPosition] || (member.mainPosition || member.preferredPosition)}
-                          </span>
                         </div>
-                      </div>
-                      
-                      <div className="space-y-1.5 pb-1">
-                        <Label className="text-xs font-medium text-muted-foreground">부포지션</Label>
-                        <div className="flex flex-wrap gap-1.5">
-                          {member.subPositions && member.subPositions.length > 0 ? (
-                            member.subPositions.map((pos: string, idx: number) => (
-                              <span
-                                key={idx}
-                                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getSubPositionColor()}`}
-                              >
-                                {positionFullNames[pos] || pos}
+                      </CardHeader>
+                      <CardContent className="pt-3 pb-3 px-4 space-y-3">
+                        {/* 포지션 정보 */}
+                        <div className="space-y-2">
+                          <div className="space-y-1.5">
+                            <Label className="text-xs font-medium text-muted-foreground">주포지션</Label>
+                            <div>
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getMainPositionColor()}`}>
+                                {positionFullNames[member.mainPosition || member.preferredPosition] || (member.mainPosition || member.preferredPosition)}
                               </span>
-                            ))
-                          ) : (
-                            <span className="text-xs text-muted-foreground">-</span>
-                          )}
+                            </div>
+                          </div>
+
+                          <div className="space-y-1.5 pb-1">
+                            <Label className="text-xs font-medium text-muted-foreground">부포지션</Label>
+                            <div className="flex flex-wrap gap-1.5">
+                              {member.subPositions && member.subPositions.length > 0 ? (
+                                member.subPositions.map((pos: string, idx: number) => (
+                                  <span
+                                    key={idx}
+                                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getSubPositionColor()}`}
+                                  >
+                                    {positionFullNames[pos] || pos}
+                                  </span>
+                                ))
+                              ) : (
+                                <span className="text-xs text-muted-foreground">-</span>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                      </div>
+
+                        <Separator />
+
+                        {/* 세부정보 - 2열 그리드 */}
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          {/* 전화번호 */}
+                          <div className="flex items-center gap-1.5">
+                            <Phone className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                            <span className="text-muted-foreground truncate">{formatPhoneNumber(member.phone)}</span>
+                          </div>
+
+                          {/* 거주지역 */}
+                          <div className="flex items-center gap-1.5">
+                            <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                            <span className="text-muted-foreground truncate">{member.region} {member.city}</span>
+                          </div>
+
+                          {/* 주발 */}
+                          <div className="flex items-center gap-1.5">
+                            <Footprints className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                            <span className="text-muted-foreground">
+                              {member.preferredFoot === 'RIGHT' ? '오른발' :
+                                member.preferredFoot === 'LEFT' ? '왼발' :
+                                  member.preferredFoot === 'BOTH' ? '양발' : '정보없음'}
+                            </span>
+                          </div>
+
+                          {/* 가입일 */}
+                          <div className="flex items-center gap-1.5">
+                            <Calendar className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                            <span className="text-muted-foreground truncate">가입일: {member.joinDate}</span>
+                          </div>
+
+                          {/* 최근 참석경기 */}
+                          <div className="flex items-center gap-1.5 col-span-2">
+                            <TrendingUp className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                            <span className="text-muted-foreground truncate">
+                              최근 참석일: {member.lastAttendedDate || '참석 이력 없음'}
+                            </span>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
-
-                <Separator />
-
-                {/* 세부정보 - 2열 그리드 */}
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  {/* 전화번호 */}
-                  <div className="flex items-center gap-1.5">
-                    <Phone className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                    <span className="text-muted-foreground truncate">{formatPhoneNumber(member.phone)}</span>
-                  </div>
-                  
-                  {/* 거주지역 */}
-                  <div className="flex items-center gap-1.5">
-                    <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                    <span className="text-muted-foreground truncate">{member.region} {member.city}</span>
-                  </div>
-
-                  {/* 주발 */}
-                  <div className="flex items-center gap-1.5">
-                    <Footprints className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                    <span className="text-muted-foreground">
-                      {member.preferredFoot === 'RIGHT' ? '오른발' :
-                       member.preferredFoot === 'LEFT' ? '왼발' :
-                       member.preferredFoot === 'BOTH' ? '양발' : '정보없음'}
-                    </span>
-                  </div>
-
-                  {/* 가입일 */}
-                  <div className="flex items-center gap-1.5">
-                    <Calendar className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                    <span className="text-muted-foreground truncate">가입일: {member.joinDate}</span>
-                  </div>
-
-                  {/* 최근 참석경기 */}
-                  <div className="flex items-center gap-1.5 col-span-2">
-                    <TrendingUp className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                    <span className="text-muted-foreground truncate">
-                      최근 참석일: {member.lastAttendedDate || '참석 이력 없음'}
-                    </span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+              </div>
+            )
+          })}
         </div>
-        </div>
-      )
-    })}
-  </div>
-  ) : (
-    // 가나다순일 때는 그룹화 없이 단순 리스트
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
-      {getFilteredMembers().map((member) => (
+      ) : (
+        // 가나다순일 때는 그룹화 없이 단순 리스트
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
+          {getFilteredMembers().map((member) => (
             <Card key={member.id} className={`relative overflow-hidden transition-all duration-200 hover:-translate-y-1 hover:shadow-lg ${!member.isActive ? 'opacity-60 border-dashed border-gray-300' : 'border border-gray-200'}`}>
               {/* 우측 상단 포지션 인디케이터 */}
               {member.isActive && (
@@ -1257,55 +1256,55 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                         </div>
                       )}
                     </div>
-                     <div className="min-w-0 flex-1">
-                       <CardTitle className="text-base sm:text-lg">
-                         <div className="space-y-1.5">
-                           <div className="flex items-center gap-2 flex-wrap">
-                             <span className="font-bold text-gray-900">{member.name}</span>
-                             {/* 포지션 카테고리 배지 - 가나다순에서만 표시 */}
-                             {sortBy === "name" && (
-                               <Badge 
-                                 variant="outline"
-                                 className={`text-xs border ${getCategoryColor(member.mainPosition || member.preferredPosition)}`}
-                               >
-                                 {positionMapping[member.mainPosition || member.preferredPosition] || '미분류'}
-                               </Badge>
-                             )}
-                             {/* 레벨 배지 */}
-                             <Badge
-                               variant="outline"
-                                  className={`text-xs ${(() => {
-                                    const level = member.level || 1
-                                    if (level === 1) return 'bg-gray-50 text-gray-600 border-gray-200'
-                                    if (level <= 6) return 'bg-blue-50 text-blue-600 border-blue-200'
-                                    if (level <= 9) return 'bg-purple-50 text-purple-600 border-purple-200'
-                                    return 'bg-yellow-50 text-yellow-600 border-yellow-200'
-                                  })()}`}
-                             >
-                               {getLevelLabel(member.level)}
-                             </Badge>
-                             {!member.isActive && (
-                               <Badge variant="destructive" className="text-xs">
-                                 비활성
-                               </Badge>
-                             )}
-                           </div>
-                           {/* 출석왕/출석우수 뱃지 - 이름 아래 표시 */}
-                           <div className="flex items-center gap-1.5 flex-wrap">
-                             {isTopAttender(member) && (
-                               <Badge className="text-xs bg-gradient-to-r from-yellow-400 to-orange-400 text-white border-0">
-                                 👑 출석왕
-                               </Badge>
-                             )}
-                             {isExcellentAttender(member) && !isTopAttender(member) && (
-                               <Badge className="text-xs bg-gradient-to-r from-blue-400 to-blue-500 text-white border-0">
-                                 ⭐ 출석우수
-                               </Badge>
-                             )}
-                           </div>
-                         </div>
-                       </CardTitle>
-                     </div>
+                    <div className="min-w-0 flex-1">
+                      <CardTitle className="text-base sm:text-lg">
+                        <div className="space-y-1.5">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-bold text-gray-900">{member.name}</span>
+                            {/* 포지션 카테고리 배지 - 가나다순에서만 표시 */}
+                            {sortBy === "name" && (
+                              <Badge
+                                variant="outline"
+                                className={`text-xs border ${getCategoryColor(member.mainPosition || member.preferredPosition)}`}
+                              >
+                                {positionMapping[member.mainPosition || member.preferredPosition] || '미분류'}
+                              </Badge>
+                            )}
+                            {/* 레벨 배지 */}
+                            <Badge
+                              variant="outline"
+                              className={`text-xs ${(() => {
+                                const level = member.level || 1
+                                if (level === 1) return 'bg-gray-50 text-gray-600 border-gray-200'
+                                if (level <= 6) return 'bg-blue-50 text-blue-600 border-blue-200'
+                                if (level <= 9) return 'bg-purple-50 text-purple-600 border-purple-200'
+                                return 'bg-yellow-50 text-yellow-600 border-yellow-200'
+                              })()}`}
+                            >
+                              {getLevelLabel(member.level)}
+                            </Badge>
+                            {!member.isActive && (
+                              <Badge variant="destructive" className="text-xs">
+                                비활성
+                              </Badge>
+                            )}
+                          </div>
+                          {/* 출석왕/출석우수 뱃지 - 이름 아래 표시 */}
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {isTopAttender(member) && (
+                              <Badge className="text-xs bg-gradient-to-r from-yellow-400 to-orange-400 text-white border-0">
+                                👑 출석왕
+                              </Badge>
+                            )}
+                            {isExcellentAttender(member) && !isTopAttender(member) && (
+                              <Badge className="text-xs bg-gradient-to-r from-blue-400 to-blue-500 text-white border-0">
+                                ⭐ 출석우수
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      </CardTitle>
+                    </div>
                   </div>
                   {/* 상세보기/수정 버튼 - 총무만 표시 (선수는 숨김) */}
                   {isManagerMode && (
@@ -1338,7 +1337,7 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                               </div>
                             </div>
                           </DialogHeader>
-                          
+
                           <div className="space-y-6">
                             {/* 기본 정보 카드 */}
                             <Card className="border-l-4 border-l-blue-500">
@@ -1355,44 +1354,44 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                                     <span className="text-sm">{member.name}</span>
                                   </div>
                                 </div>
-                                
-                            <div className="grid grid-cols-2 gap-4">
-                              <div className="space-y-2">
+
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div className="space-y-2">
                                     <Label className="text-xs font-medium text-gray-700">전화번호</Label>
                                     <div className="p-2 bg-gray-50 rounded-lg border flex items-center gap-2">
                                       <span className="text-sm">{formatPhoneNumber(member.phone)}</span>
-                              </div>
-                            </div>
-                            <div className="space-y-2">
+                                    </div>
+                                  </div>
+                                  <div className="space-y-2">
                                     <Label className="text-xs font-medium text-gray-700">거주지역</Label>
                                     <div className="p-2 bg-gray-50 rounded-lg border flex items-center gap-2">
                                       <span className="text-sm">{member.region} {member.city}</span>
                                     </div>
-                            </div>
-                              </div>
-                                
+                                  </div>
+                                </div>
+
                                 <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
+                                  <div className="space-y-2">
                                     <Label className="text-xs font-medium text-gray-700">주발</Label>
                                     <div className="p-2 bg-gray-50 rounded-lg border">
                                       <span className="text-sm">
-                                        {member.preferredFoot === 'RIGHT' ? '오른발' : 
-                                         member.preferredFoot === 'LEFT' ? '왼발' : 
-                                         member.preferredFoot === 'BOTH' ? '양발' : '정보 없음'}
+                                        {member.preferredFoot === 'RIGHT' ? '오른발' :
+                                          member.preferredFoot === 'LEFT' ? '왼발' :
+                                            member.preferredFoot === 'BOTH' ? '양발' : '정보 없음'}
                                       </span>
-                              </div>
-                            </div>
-                                  
-                              <div className="space-y-2">
+                                    </div>
+                                  </div>
+
+                                  <div className="space-y-2">
                                     <Label className="text-xs font-medium text-gray-700">등번호</Label>
                                     <div className="p-2 bg-gray-50 rounded-lg border flex items-center gap-2">
                                       <span className="text-sm">
                                         {member.jerseyNumber ? `${member.jerseyNumber}번` : '미배정'}
-                                    </span>
+                                      </span>
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
-                                
+
                                 <div className="space-y-2">
                                   <Label className="text-xs font-medium text-gray-700">가입일</Label>
                                   <div className="p-2 bg-gray-50 rounded-lg border flex items-center gap-2">
@@ -1400,10 +1399,10 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                                     <span className="text-sm">{member.joinDate}</span>
                                   </div>
                                 </div>
-                                
+
                               </CardContent>
                             </Card>
-                            
+
                             {/* 포지션 정보 카드 */}
                             <Card className="border-l-4 border-l-green-500">
                               <CardHeader className="pb-3">
@@ -1420,7 +1419,7 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                                       {positionFullNames[member.mainPosition || member.preferredPosition] || (member.mainPosition || member.preferredPosition)}
                                     </Badge>
                                   </div>
-                                  
+
                                   {member.subPositions && member.subPositions.length > 0 && (
                                     <div>
                                       <Label className="text-xs font-medium text-gray-700 mb-2 block">부포지션</Label>
@@ -1434,8 +1433,8 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                                     </div>
                                   )}
 
-                                  {/* 참석률 */}
-                                  <div>
+                                  {/* 참석률 - 임시 숨김 */}
+                                  {/* <div>
                                     <div className="flex items-center justify-between mb-2">
                                       <Label className="text-xs font-medium text-gray-700">참석률</Label>
                                       <div className="flex items-center gap-1.5">
@@ -1451,11 +1450,11 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                                       value={member.attendanceRate || 0} 
                                       className="h-2 bg-gray-200" 
                                     />
-                                  </div>
+                                  </div> */}
                                 </div>
                               </CardContent>
                             </Card>
-                            
+
                             {/* 레벨 관리 (총무 전용) */}
                             {isManagerMode && (
                               <div className="space-y-3">
@@ -1520,17 +1519,17 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                                             if (response.ok) {
                                               const updatedData = await response.json()
                                               setSaveMessage("저장되었습니다")
-                                              
+
                                               if (updatedData.user) {
-                                                setTeamMembers(prevMembers => 
-                                                  prevMembers.map(m => 
-                                                    m.id === member.id 
+                                                setTeamMembers(prevMembers =>
+                                                  prevMembers.map(m =>
+                                                    m.id === member.id
                                                       ? { ...m, level: updatedData.user.level }
                                                       : m
                                                   )
                                                 )
                                               }
-                                              
+
                                               setTimeout(() => {
                                                 setEditingMember(null)
                                                 setSaveMessage("")
@@ -1565,11 +1564,10 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                                       </Button>
                                     </div>
                                     {saveMessage && (
-                                      <p className={`text-xs ${
-                                        saveMessage.includes('저장되었습니다') 
-                                          ? 'text-green-600' 
-                                          : 'text-red-600'
-                                      }`}>
+                                      <p className={`text-xs ${saveMessage.includes('저장되었습니다')
+                                        ? 'text-green-600'
+                                        : 'text-red-600'
+                                        }`}>
                                         {saveMessage}
                                       </p>
                                     )}
@@ -1596,9 +1594,9 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                                     </div>
                                   </div>
                                   <div className="space-y-2">
-                                    <Progress 
-                                      value={member.attendanceRate} 
-                                      className="h-3 bg-gray-200" 
+                                    <Progress
+                                      value={member.attendanceRate}
+                                      className="h-3 bg-gray-200"
                                     />
                                     <div className="flex justify-between text-xs text-muted-foreground">
                                       <span>0%</span>
@@ -1610,8 +1608,8 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                                     <div className="flex items-center gap-2">
                                       <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                                       <span className="text-xs text-muted-foreground">
-                                        {member.attendanceRate >= 80 ? '우수' : 
-                                         member.attendanceRate >= 60 ? '양호' : '개선 필요'}
+                                        {member.attendanceRate >= 80 ? '우수' :
+                                          member.attendanceRate >= 60 ? '양호' : '개선 필요'}
                                       </span>
                                     </div>
                                   </div>
@@ -1740,7 +1738,7 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                       </span>
                     </div>
                   </div>
-                  
+
                   <div className="space-y-1.5 pb-1">
                     <Label className="text-xs font-medium text-muted-foreground">부포지션</Label>
                     <div className="flex flex-wrap gap-1.5">
@@ -1759,8 +1757,8 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                     </div>
                   </div>
 
-                  {/* 참석률 */}
-                  <div className="space-y-1.5">
+                  {/* 참석률 - 임시 숨김 */}
+                  {/* <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
                       <Label className="text-xs font-medium text-muted-foreground">참석률 (임시)</Label>
                       <div className="flex items-center gap-1.5">
@@ -1772,11 +1770,11 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                         </span>
                       </div>
                     </div>
-                    <Progress 
-                      value={member.attendanceRate || 0} 
-                      className="h-2 bg-gray-200" 
+                    <Progress
+                      value={member.attendanceRate || 0}
+                      className="h-2 bg-gray-200"
                     />
-                  </div>
+                  </div> */}
 
                 </div>
 
@@ -1789,7 +1787,7 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                     <Phone className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                     <span className="text-muted-foreground truncate">{formatPhoneNumber(member.phone)}</span>
                   </div>
-                  
+
                   {/* 거주지역 */}
                   <div className="flex items-center gap-1.5">
                     <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
@@ -1801,8 +1799,8 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                     <Footprints className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                     <span className="text-muted-foreground">
                       {member.preferredFoot === 'RIGHT' ? '오른발' :
-                       member.preferredFoot === 'LEFT' ? '왼발' :
-                       member.preferredFoot === 'BOTH' ? '양발' : '정보없음'}
+                        member.preferredFoot === 'LEFT' ? '왼발' :
+                          member.preferredFoot === 'BOTH' ? '양발' : '정보없음'}
                     </span>
                   </div>
 

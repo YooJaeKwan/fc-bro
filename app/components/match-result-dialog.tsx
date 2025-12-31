@@ -3,11 +3,7 @@
 import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Trophy, Users } from "lucide-react"
+import { Minus, Plus } from "lucide-react"
 
 interface MatchResultDialogProps {
     isOpen: boolean
@@ -17,27 +13,39 @@ interface MatchResultDialogProps {
 }
 
 export function MatchResultDialog({ isOpen, onClose, schedule, onSuccess }: MatchResultDialogProps) {
-    const [ourScore, setOurScore] = useState("")
-    const [opponentScore, setOpponentScore] = useState("")
-    const [matchSummary, setMatchSummary] = useState("")
-    const [mvpUserId, setMvpUserId] = useState("")
+    const [ourScore, setOurScore] = useState(0)
+    const [opponentScore, setOpponentScore] = useState(0)
     const [isSubmitting, setIsSubmitting] = useState(false)
 
-    // 일정이 변경될 때 초기값 설정
+    // 일정이 변경되거나 다이얼로그가 열릴 때 초기값 설정
     useEffect(() => {
-        if (schedule && isOpen) {
-            setOurScore(schedule.ourScore !== null && schedule.ourScore !== undefined ? String(schedule.ourScore) : "")
-            setOpponentScore(schedule.opponentScore !== null && schedule.opponentScore !== undefined ? String(schedule.opponentScore) : "")
-            setMatchSummary(schedule.matchSummary || "")
-            setMvpUserId(schedule.mvpUserId || "")
+        if (isOpen && schedule) {
+            // 결과가 이미 입력된 경우 기존 값 표시, 없으면 0
+            setOurScore(schedule.ourScore !== null && schedule.ourScore !== undefined ? Number(schedule.ourScore) : 0)
+            setOpponentScore(schedule.opponentScore !== null && schedule.opponentScore !== undefined ? Number(schedule.opponentScore) : 0)
+        } else if (!isOpen) {
+            // 다이얼로그가 닫힐 때 초기화
+            resetForm()
         }
-    }, [schedule, isOpen])
+    }, [isOpen, schedule?.id]) // isOpen과 schedule.id가 변경될 때마다 실행
 
-    // 참석자 목록 (참석한 사람만)
-    // API returns flat structure: { name, status, userId, ... }
-    const attendees = schedule?.attendees?.filter((a: any) =>
-        a.status === 'attending' || a.status === 'attended'
-    ) || []
+    // 폼 초기화 함수
+    const resetForm = () => {
+        setOurScore(0)
+        setOpponentScore(0)
+    }
+
+    // 다이얼로그 닫기 핸들러
+    const handleClose = () => {
+        resetForm()
+        onClose()
+    }
+
+    // 점수 증가/감소 핸들러
+    const incrementOurScore = () => setOurScore(prev => Math.min(prev + 1, 99))
+    const decrementOurScore = () => setOurScore(prev => Math.max(prev - 1, 0))
+    const incrementOpponentScore = () => setOpponentScore(prev => Math.min(prev + 1, 99))
+    const decrementOpponentScore = () => setOpponentScore(prev => Math.max(prev - 1, 0))
 
     const handleSubmit = async () => {
         try {
@@ -49,22 +57,24 @@ export function MatchResultDialog({ isOpen, onClose, schedule, onSuccess }: Matc
                 },
                 body: JSON.stringify({
                     scheduleId: schedule.id,
-                    ourScore,
-                    opponentScore,
-                    matchSummary,
-                    mvpUserId: mvpUserId === "none" ? null : mvpUserId,
+                    ourScore: ourScore,
+                    opponentScore: opponentScore,
                 }),
             })
 
+            const data = await response.json()
+
             if (!response.ok) {
-                throw new Error("결과 저장에 실패했습니다.")
+                throw new Error(data.error || "결과 저장에 실패했습니다.")
             }
 
+            console.log('경기 결과 저장 성공:', data)
+            resetForm()
             onSuccess()
             onClose()
-        } catch (error) {
+        } catch (error: any) {
             console.error("결과 저장 오류:", error)
-            alert("결과 저장 중 오류가 발생했습니다.")
+            alert(error.message || "결과 저장 중 오류가 발생했습니다.")
         } finally {
             setIsSubmitting(false)
         }
@@ -73,7 +83,7 @@ export function MatchResultDialog({ isOpen, onClose, schedule, onSuccess }: Matc
     if (!schedule) return null
 
     return (
-        <Dialog open={isOpen} onOpenChange={onClose}>
+        <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
             <DialogContent className="max-w-md">
                 <DialogHeader>
                     <DialogTitle>경기 결과 입력</DialogTitle>
@@ -84,75 +94,114 @@ export function MatchResultDialog({ isOpen, onClose, schedule, onSuccess }: Matc
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="grid gap-4 py-4">
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="ourScore" className="text-blue-600 font-bold">우리팀 점수</Label>
-                            <Input
-                                id="ourScore"
-                                type="number"
-                                value={ourScore}
-                                onChange={(e) => setOurScore(e.target.value)}
-                                placeholder="0"
-                                className="text-center text-lg font-bold"
-                            />
+                <div className="py-6">
+                    {schedule.type === 'training' ? (
+                        <div className="text-center py-4 text-muted-foreground">
+                            연습 경기는 별도의 점수를 기록하지 않습니다.<br />
+                            특이사항이 있다면 아래 코멘트에 남겨주세요.
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="opponentScore" className="text-red-600 font-bold">상대팀 점수</Label>
-                            <Input
-                                id="opponentScore"
-                                type="number"
-                                value={opponentScore}
-                                onChange={(e) => setOpponentScore(e.target.value)}
-                                placeholder="0"
-                                className="text-center text-lg font-bold"
-                            />
-                        </div>
-                    </div>
+                    ) : (
+                        <div className="space-y-6">
+                            {/* 스코어보드 스타일 */}
+                            <div className="bg-slate-900 rounded-xl p-6 text-white shadow-lg">
+                                <div className="flex items-center justify-between gap-6">
+                                    {/* 우리팀/노랑팀 */}
+                                    <div className="flex-1 space-y-3">
+                                        <div className="text-center">
+                                            <div className={`text-xs font-bold mb-2 px-3 py-1 rounded-full inline-block ${schedule.type === 'internal'
+                                                ? 'bg-yellow-400/20 text-yellow-200'
+                                                : 'bg-sky-400/20 text-sky-200'
+                                                }`}>
+                                                {schedule.type === 'internal' ? 'YELLOW' : 'HOME'}
+                                            </div>
+                                            <div className={`text-6xl font-bold font-mono tracking-wider ${schedule.type === 'internal' ? 'text-yellow-400' : 'text-sky-400'
+                                                }`}>
+                                                {ourScore}
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <Button
+                                                type="button"
+                                                onClick={decrementOurScore}
+                                                variant="secondary"
+                                                size="sm"
+                                                className="flex-1 h-10 bg-slate-700 hover:bg-slate-600 text-white"
+                                                disabled={ourScore === 0}
+                                            >
+                                                <Minus className="h-4 w-4" />
+                                            </Button>
+                                            <Button
+                                                type="button"
+                                                onClick={incrementOurScore}
+                                                variant="secondary"
+                                                size="sm"
+                                                className="flex-1 h-10 bg-slate-700 hover:bg-slate-600 text-white"
+                                                disabled={ourScore === 99}
+                                            >
+                                                <Plus className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    </div>
 
-                    <div className="space-y-2">
-                        <Label htmlFor="mvp" className="flex items-center gap-2">
-                            <Trophy className="w-4 h-4 text-yellow-500" />
-                            MOM (Man of the Match)
-                        </Label>
-                        <Select value={mvpUserId} onValueChange={setMvpUserId}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="MOM을 선택해주세요" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="none">선택 안 함</SelectItem>
-                                {attendees.map((attendee: any) => (
-                                    <SelectItem key={attendee.userId} value={attendee.userId}>
-                                        {attendee.name} {attendee.isGuest ? "(게스트)" : ""}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        {attendees.length === 0 && (
-                            <p className="text-xs text-muted-foreground text-red-500">
-                                * 참석 투표 완료된 인원이 없어 MOM을 선택할 수 없습니다.
+                                    {/* VS */}
+                                    <div className="flex flex-col items-center">
+                                        <span className="text-slate-500 text-sm font-bold">VS</span>
+                                        <div className="h-12 w-px bg-slate-700/50 my-2"></div>
+                                    </div>
+
+                                    {/* 상대팀/파랑팀 */}
+                                    <div className="flex-1 space-y-3">
+                                        <div className="text-center">
+                                            <div className={`text-xs font-bold mb-2 px-3 py-1 rounded-full inline-block ${schedule.type === 'internal'
+                                                ? 'bg-blue-400/20 text-blue-200'
+                                                : 'bg-rose-400/20 text-rose-200'
+                                                }`}>
+                                                {schedule.type === 'internal' ? 'BLUE' : 'AWAY'}
+                                            </div>
+                                            <div className={`text-6xl font-bold font-mono tracking-wider ${schedule.type === 'internal' ? 'text-blue-400' : 'text-rose-400'
+                                                }`}>
+                                                {opponentScore}
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <Button
+                                                type="button"
+                                                onClick={decrementOpponentScore}
+                                                variant="secondary"
+                                                size="sm"
+                                                className="flex-1 h-10 bg-slate-700 hover:bg-slate-600 text-white"
+                                                disabled={opponentScore === 0}
+                                            >
+                                                <Minus className="h-4 w-4" />
+                                            </Button>
+                                            <Button
+                                                type="button"
+                                                onClick={incrementOpponentScore}
+                                                variant="secondary"
+                                                size="sm"
+                                                className="flex-1 h-10 bg-slate-700 hover:bg-slate-600 text-white"
+                                                disabled={opponentScore === 99}
+                                            >
+                                                <Plus className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <p className="text-xs text-center text-muted-foreground">
+                                +/- 버튼을 눌러 점수를 조정하세요
                             </p>
-                        )}
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="summary">경기 총평 / 코멘트</Label>
-                        <Textarea
-                            id="summary"
-                            value={matchSummary}
-                            onChange={(e) => setMatchSummary(e.target.value)}
-                            placeholder="경기 내용, 특이사항, 피드백 등을 자유롭게 적어주세요."
-                            className="h-24"
-                        />
-                    </div>
+                        </div>
+                    )}
                 </div>
 
                 <DialogFooter>
-                    <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
+                    <Button variant="outline" onClick={handleClose} disabled={isSubmitting}>
                         취소
                     </Button>
                     <Button onClick={handleSubmit} disabled={isSubmitting}>
-                        {isSubmitting ? "저장 중..." : "저장완료"}
+                        {isSubmitting ? "저장 중..." : "저장"}
                     </Button>
                 </DialogFooter>
             </DialogContent>

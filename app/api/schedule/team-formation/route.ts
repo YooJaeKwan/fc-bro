@@ -218,9 +218,12 @@ export async function DELETE(request: NextRequest) {
       where: { id: scheduleId },
       data: {
         teamFormation: Prisma.JsonNull,
-        formationDate: null
+        formationDate: null,
+        formationConfirmed: false
       }
     })
+
+    console.log('팀편성 및 확정 상태 삭제 완료:', scheduleId)
 
     return NextResponse.json({
       success: true

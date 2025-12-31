@@ -21,12 +21,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 활성 상태 필터링 조건 설정
-    let whereClause: any = {
-      // 기본 정보가 입력된 사용자만 조회
-      realName: { not: null },
-      phoneNumber: { not: null },
-      preferredPosition: { not: null }
-    }
+    let whereClause: any = {}
 
     // 일반 사용자거나 총무가 비활성화 사용자를 포함하지 않는 경우
     if (!isAdmin || !includeInactive) {
@@ -65,7 +60,7 @@ export async function GET(request: NextRequest) {
     const generateTempSkills = (position: string) => {
       const baseSkills = {
         "속도": 5,
-        "패스": 5, 
+        "패스": 5,
         "수비": 5,
         "슈팅": 5,
         "드리블": 5,
@@ -108,7 +103,13 @@ export async function GET(request: NextRequest) {
     // 현재 연도의 시작일과 종료일
     const currentYear = new Date().getFullYear()
     const yearStart = new Date(currentYear, 0, 1)
-    const yearEnd = new Date(currentYear, 11, 31, 23, 59, 59)
+    const yearEnd = new Date(currentYear, 11, 31)
+    yearEnd.setHours(23, 59, 59, 999) // 23시 59분 59초 999밀리초로 설정
+
+    console.log('=== 참석률 계산을 위한 연도 범위 ===')
+    console.log('현재 연도:', currentYear)
+    console.log('yearStart:', yearStart.toISOString())
+    console.log('yearEnd:', yearEnd.toISOString())
 
     // 올해 전체 일정 수 조회
     let totalSchedulesThisYear = 0
@@ -121,6 +122,24 @@ export async function GET(request: NextRequest) {
           }
         }
       })
+      console.log(`올해 전체 일정 수: ${totalSchedulesThisYear}`)
+
+      // 디버깅: 모든 일정 확인
+      const allSchedules = await prisma.schedule.findMany({
+        select: {
+          id: true,
+          matchDate: true,
+          title: true
+        },
+        orderBy: {
+          matchDate: 'desc'
+        },
+        take: 10
+      })
+      console.log('최근 일정 10개:', allSchedules.map(s => ({
+        title: s.title,
+        date: s.matchDate.toISOString()
+      })))
     } catch (scheduleCountError) {
       console.error('일정 수 조회 실패:', scheduleCountError)
       // 일정 수 조회 실패해도 계속 진행
@@ -131,7 +150,7 @@ export async function GET(request: NextRequest) {
     // 성능 최적화: 모든 참석 정보를 한 번에 조회
     const memberIds = teamMembers.map(m => m.id).filter((id): id is string => id !== null)
     let attendanceMap: Map<string, { count: number; lastDate: string | null }> = new Map()
-    
+
     if (memberIds.length > 0) {
       try {
         // 모든 멤버의 올해 참석 정보를 한 번에 조회
@@ -162,10 +181,10 @@ export async function GET(request: NextRequest) {
 
         // 사용자별로 참석 정보 그룹화
         const userAttendanceGroups = new Map<string, Array<{ matchDate: Date; createdAt: Date }>>()
-        
+
         for (const attendance of allAttendances) {
           if (!attendance.schedule?.matchDate || !attendance.userId) continue
-          
+
           const userId = attendance.userId
           if (!userAttendanceGroups.has(userId)) {
             userAttendanceGroups.set(userId, [])
@@ -180,13 +199,13 @@ export async function GET(request: NextRequest) {
         for (const [userId, attendances] of userAttendanceGroups.entries()) {
           const count = attendances.length
           // 가장 최근 참석 날짜 (matchDate 기준)
-          const sortedByMatchDate = [...attendances].sort((a, b) => 
+          const sortedByMatchDate = [...attendances].sort((a, b) =>
             b.matchDate.getTime() - a.matchDate.getTime()
           )
-          const lastDate = sortedByMatchDate.length > 0 
+          const lastDate = sortedByMatchDate.length > 0
             ? sortedByMatchDate[0].matchDate.toLocaleDateString('ko-KR')
             : null
-          
+
           attendanceMap.set(userId, { count, lastDate })
         }
       } catch (attendanceError: any) {
@@ -206,8 +225,8 @@ export async function GET(request: NextRequest) {
         const attendedCount = attendanceInfo.count
         const lastAttendedDate = attendanceInfo.lastDate
 
-        const attendanceRate = totalSchedulesThisYear > 0 
-          ? Math.round((attendedCount / totalSchedulesThisYear) * 100) 
+        const attendanceRate = totalSchedulesThisYear > 0
+          ? Math.round((attendedCount / totalSchedulesThisYear) * 100)
           : 0
 
         return {
@@ -274,9 +293,9 @@ export async function GET(request: NextRequest) {
     console.error('팀원 목록 조회 중 오류:', error)
     console.error('에러 상세:', error?.message)
     console.error('에러 스택:', error?.stack)
-    
+
     return NextResponse.json(
-      { 
+      {
         error: '팀원 목록 조회 중 오류가 발생했습니다.',
         details: process.env.NODE_ENV === 'development' ? error?.message : undefined
       },

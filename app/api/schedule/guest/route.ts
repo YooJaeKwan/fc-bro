@@ -123,10 +123,11 @@ export async function POST(request: NextRequest) {
           where: { id: scheduleId },
           data: {
             teamFormation: null,
-            formationDate: null
+            formationDate: null,
+            formationConfirmed: false
           }
         })
-        console.log('게스트 초대로 인한 팀편성 초기화 완료:', scheduleId)
+        console.log('게스트 초대로 인한 팀편성 및 확정 상태 초기화 완료:', scheduleId)
       }
     } catch (error) {
       console.error('팀편성 초기화 중 오류 (무시됨):', error)
@@ -189,16 +190,17 @@ export async function DELETE(request: NextRequest) {
           where: { id: scheduleId },
           data: {
             teamFormation: null,
-            formationDate: null
+            formationDate: null,
+            formationConfirmed: false
           }
         })
-        console.log('게스트 삭제로 인한 팀편성 초기화 완료:', scheduleId)
+        console.log('게스트 삭제로 인한 팀편성 및 확정 상태 초기화 완료:', scheduleId)
       }
     } catch (error) {
       console.error('팀편성 초기화 중 오류 (무시됨):', error)
     }
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       success: true,
       teamFormationReset: true
     })

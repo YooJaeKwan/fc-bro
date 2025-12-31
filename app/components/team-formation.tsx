@@ -12,22 +12,52 @@ interface TeamFormationProps {
   scheduleId: string
   teamFormation: any
   formationDate: string | null
+  formationConfirmed?: boolean
   isManagerMode: boolean
   currentUserId: string
   onFormationUpdate: () => void
   onFormationDelete: () => void
+  onFormationConfirm: () => void
 }
 
 export function TeamFormation({
   scheduleId,
   teamFormation,
   formationDate,
+  formationConfirmed = false,
   isManagerMode,
   currentUserId,
   onFormationUpdate,
-  onFormationDelete
+  onFormationDelete,
+  onFormationConfirm
 }: TeamFormationProps) {
   if (!teamFormation) return null
+
+  const handleConfirm = async () => {
+    if (!confirm('팀편성을 확정하시겠습니까? 확정 후에는 모든 팀원이 볼 수 있습니다.')) return
+
+    try {
+      const response = await fetch('/api/schedule/confirm-formation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          scheduleId,
+          userId: currentUserId
+        })
+      })
+
+      const result = await response.json()
+
+      if (response.ok && result.success) {
+        onFormationConfirm()
+      } else {
+        alert(result.error || '팀편성 확정 중 오류가 발생했습니다.')
+      }
+    } catch (error) {
+      console.error('팀편성 확정 오류:', error)
+      alert('팀편성 확정 중 오류가 발생했습니다.')
+    }
+  }
 
   const handleDelete = async () => {
     if (!confirm('팀편성 결과를 삭제하시겠습니까?')) return
@@ -79,17 +109,17 @@ export function TeamFormation({
         // 2. 없거나 미정이면 주포지션으로 계산
         // 3. 여전히 미정이면 공격수로 기본 분류
         let category: string = player.positionCategory
-        
+
         // positionCategory가 없거나 미정이면 주포지션으로 계산
         if (!category || category === '미정') {
           category = getPositionCategory(player.position)
         }
-        
+
         // 여전히 미정이거나 유효하지 않은 카테고리면 공격수로 기본 분류
         if (!category || category === '미정' || !grouped.hasOwnProperty(category)) {
           category = '공격수'
         }
-        
+
         // 최종 카테고리에 추가
         grouped[category].push(player)
       }
@@ -131,16 +161,30 @@ export function TeamFormation({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">팀편성 결과 (테스트)</h3>
+        <div className="flex items-center gap-2">
+          <h3 className="text-lg font-semibold">팀편성 결과</h3>
+          {formationConfirmed && (
+            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300">
+              확정됨
+            </Badge>
+          )}
+        </div>
         {isManagerMode && (
-          <Button
-            onClick={handleDelete}
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
+          <div className="flex gap-2">
+            {!formationConfirmed && (
+              <Button onClick={handleConfirm} size="sm" variant="default">
+                확정
+              </Button>
+            )}
+            <Button
+              onClick={handleDelete}
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
         )}
       </div>
 
@@ -185,7 +229,7 @@ export function TeamFormation({
                   })
                   .map(([category, players]) => {
                     if (players.length === 0) return null
-                    
+
                     return (
                       <div key={category} className="space-y-1">
                         <div className="text-xs font-semibold text-gray-600 border-b pb-1">
@@ -200,8 +244,8 @@ export function TeamFormation({
                                 </p>
                                 {(player.displayPosition || player.position) && (
                                   <>
-                                    <Badge 
-                                      variant="outline" 
+                                    <Badge
+                                      variant="outline"
                                       className={`text-xs font-medium ${getPositionTextColor(player.displayPosition || player.position)} border-current`}
                                     >
                                       {player.displayPosition || player.position}
@@ -266,7 +310,7 @@ export function TeamFormation({
                   })
                   .map(([category, players]) => {
                     if (players.length === 0) return null
-                    
+
                     return (
                       <div key={category} className="space-y-1">
                         <div className="text-xs font-semibold text-gray-600 border-b pb-1">
@@ -281,8 +325,8 @@ export function TeamFormation({
                                 </p>
                                 {(player.displayPosition || player.position) && (
                                   <>
-                                    <Badge 
-                                      variant="outline" 
+                                    <Badge
+                                      variant="outline"
                                       className={`text-xs font-medium ${getPositionTextColor(player.displayPosition || player.position)} border-current`}
                                     >
                                       {player.displayPosition || player.position}
