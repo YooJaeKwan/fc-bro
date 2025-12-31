@@ -154,9 +154,10 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
                       <div>
                         <p className="font-medium">{user?.realName || user?.nickname}</p>
                         <p className="text-sm text-muted-foreground">
+                          {user?.jerseyNumber && <span className="mr-1">#{user.jerseyNumber}</span>}
                           {user?.preferredPosition}
                           {user?.subPositions && user.subPositions.length > 0 &&
-                            ` (+ ${user.subPositions.join(', ')})`
+                            ` (+${user.subPositions.join(',')})`
                           }
                           {/* • {user?.region} {user?.city} */}
                           {/* {user?.preferredFoot && ` • ${user.preferredFoot === 'RIGHT' ? '오른발' : user.preferredFoot === 'LEFT' ? '왼발' : '양발'}`} */}

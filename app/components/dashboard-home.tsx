@@ -9,6 +9,7 @@ import { AttendanceVoting } from "./attendance-voting"
 import { getLevelLabel } from '@/lib/level-system'
 import { BadgeNotification } from './badge-notification'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import { Skeleton } from "@/components/ui/skeleton"
 
 interface DashboardHomeProps {
     currentUser: any
@@ -264,6 +265,27 @@ export function DashboardHome({ currentUser }: DashboardHomeProps) {
 
 
 
+            {/* Next Schedule Skeleton */}
+            {isLoading && (
+                <Card className="border-l-4 border-l-gray-200">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-xl">
+                            <CalendarIcon className="h-5 w-5 text-gray-300" />
+                            <Skeleton className="h-6 w-24" />
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="flex justify-center">
+                            <Skeleton className="h-8 w-32 rounded-full" />
+                        </div>
+                        <div className="flex flex-col items-center space-y-2">
+                            <Skeleton className="h-8 w-48" />
+                            <Skeleton className="h-4 w-32" />
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+
             {/* Next Schedule */}
             {!isLoading && nextSchedule && (
                 <Card className="border-l-4 border-l-blue-500">
@@ -391,191 +413,252 @@ export function DashboardHome({ currentUser }: DashboardHomeProps) {
                 </Card>
             )}
 
-            {/* Integrated Statistics Card */}
-            <Card>
-                <CardContent className="space-y-6 pt-6">
-                    {/* User Profile Section */}
-                    <div className="flex items-center gap-4 pb-6 border-b">
-                        <div className="relative">
-                            <Avatar className="h-16 w-16 ring-4 ring-white shadow-lg">
-                                <AvatarImage src={user?.profileImage || user?.image || "/placeholder.svg"} />
-                                <AvatarFallback className="bg-gradient-to-br from-blue-400 to-blue-600 text-white text-xl font-bold">
-                                    {user?.realName?.[0] || user?.nickname?.[0] || 'U'}
-                                </AvatarFallback>
-                            </Avatar>
-                            {user?.jerseyNumber && (
-                                <div className="absolute -bottom-1 -right-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white text-xs rounded-full h-6 w-6 flex items-center justify-center font-bold shadow-md border-2 border-white">
-                                    {user.jerseyNumber}
+            {/* Stats Card Skeleton */}
+            {isLoading && (
+                <Card>
+                    <CardContent className="space-y-6 pt-6">
+                        {/* Profile Skeleton */}
+                        <div className="flex items-center gap-4 pb-6 border-b">
+                            <Skeleton className="h-16 w-16 rounded-full" />
+                            <div className="space-y-2">
+                                <Skeleton className="h-6 w-32" />
+                                <div className="flex gap-2">
+                                    <Skeleton className="h-5 w-16" />
+                                    <Skeleton className="h-5 w-16" />
                                 </div>
-                            )}
+                            </div>
                         </div>
 
-                        <div className="flex-1 min-w-0">
-                            <div>
-                                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2 mb-1">
-                                    {user?.realName || user?.nickname || '사용자'}
-                                </h2>
-                                <div className="flex items-center gap-2 flex-wrap">
-                                    <Badge
-                                        variant="outline"
-                                        className={`text-xs ${(() => {
-                                            const level = user?.level || 1
-                                            if (level === 1) return 'bg-gray-50 text-gray-600 border-gray-200'
-                                            if (level <= 6) return 'bg-blue-50 text-blue-600 border-blue-200'
-                                            if (level <= 9) return 'bg-purple-50 text-purple-600 border-purple-200'
-                                            return 'bg-yellow-50 text-yellow-600 border-yellow-200'
-                                        })()}`}
-                                    >
-                                        {getLevelLabel(user?.level)}
-                                    </Badge>
-                                    {user?.preferredPosition && (
-                                        <Badge className="text-xs font-semibold bg-gradient-to-r from-green-500 to-emerald-500 text-white border-0 shadow-sm">
-                                            {user.preferredPosition}
-                                        </Badge>
-                                    )}
-                                </div>
+                        {/* Attendance Skeleton */}
+                        <div className="pb-4 border-b space-y-3">
+                            <div className="flex justify-between">
+                                <Skeleton className="h-4 w-24" />
+                                <Skeleton className="h-4 w-12" />
+                            </div>
+                            <div className="flex items-center gap-4">
+                                <Skeleton className="h-3 w-full rounded-full" />
+                                <Skeleton className="h-8 w-16" />
                             </div>
                         </div>
-                    </div>
 
-                    {/* Attendance Rate */}
-                    <div className="pb-4 border-b">
-                        <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-                                <CalendarDays className="h-4 w-4 text-blue-500" />
-                                <span>올해 출석률</span>
-                            </div>
-                            <span className="text-xs text-muted-foreground">{attendanceStats.total}경기</span>
-                        </div>
-                        <div className="flex items-center gap-4">
-                            <div className="flex-1">
-                                <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
-                                    <div
-                                        className="h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-300"
-                                        style={{ width: `${attendanceStats.rate}%` }}
-                                    />
-                                </div>
-                            </div>
-                            <div className="text-right">
-                                <div className="text-2xl font-bold text-blue-600">{attendanceStats.rate.toFixed(0)}%</div>
-                                <div className="text-xs text-muted-foreground">{attendanceStats.attended}/{attendanceStats.total}</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Match Statistics */}
-                    {matchStats.total > 0 && (
-                        <div className="pb-4 border-b">
-                            <div className="flex items-center justify-between mb-2">
-                                <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-                                    <Trophy className="h-4 w-4 text-yellow-500" />
-                                    <span>경기 전적</span>
-                                </div>
-                                <span className="text-xs text-muted-foreground">{matchStats.total}경기</span>
+                        {/* Stats Grid Skeleton */}
+                        <div className="pb-4 border-b space-y-3">
+                            <div className="flex justify-between">
+                                <Skeleton className="h-4 w-24" />
+                                <Skeleton className="h-4 w-12" />
                             </div>
                             <div className="grid grid-cols-3 gap-2">
-                                <div className="text-center p-2 bg-green-50 rounded-lg border border-green-200">
-                                    <div className="text-xl font-bold text-green-600">{matchStats.wins}</div>
-                                    <div className="text-xs text-green-600">승</div>
-                                </div>
-                                <div className="text-center p-2 bg-gray-50 rounded-lg border border-gray-200">
-                                    <div className="text-xl font-bold text-gray-600">{matchStats.draws}</div>
-                                    <div className="text-xs text-gray-600">무</div>
-                                </div>
-                                <div className="text-center p-2 bg-red-50 rounded-lg border border-red-200">
-                                    <div className="text-xl font-bold text-red-600">{matchStats.losses}</div>
-                                    <div className="text-xs text-red-600">패</div>
-                                </div>
+                                <Skeleton className="h-16 w-full rounded-lg" />
+                                <Skeleton className="h-16 w-full rounded-lg" />
+                                <Skeleton className="h-16 w-full rounded-lg" />
                             </div>
                         </div>
-                    )}
 
-                    {/* Recent Matches */}
-                    {recentMatches.length > 0 && (
-                        <div className="pb-4 border-b">
-                            <div className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
-                                <CalendarIcon className="h-4 w-4 text-purple-500" />
-                                <span>최근 참석 경기</span>
+                        {/* Badges Skeleton */}
+                        <div className="space-y-3">
+                            <div className="flex justify-between">
+                                <Skeleton className="h-4 w-24" />
+                                <Skeleton className="h-4 w-12" />
                             </div>
-                            <div className="space-y-2">
-                                {recentMatches.map((match, idx) => (
-                                    <div key={idx} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
-                                        <div className="flex-1">
-                                            <div className="text-sm font-medium">
-                                                {(() => {
-                                                    const [year, month, day] = match.date.split('-')
-                                                    const date = new Date(Number(year), Number(month) - 1, Number(day))
-                                                    return date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })
-                                                })()}
-                                            </div>
-                                            <div className="text-xs text-muted-foreground">{match.location}</div>
-                                        </div>
-                                        {match.result && (
-                                            <Badge
-                                                variant="outline"
-                                                className={`text-xs ${match.result === 'win' ? 'bg-green-50 text-green-600 border-green-200' :
-                                                    match.result === 'draw' ? 'bg-gray-50 text-gray-600 border-gray-200' :
-                                                        'bg-red-50 text-red-600 border-red-200'
-                                                    }`}
-                                            >
-                                                {match.result === 'win' ? '승' : match.result === 'draw' ? '무' : '패'}
-                                            </Badge>
-                                        )}
+                            <div className="grid grid-cols-5 gap-3">
+                                {[...Array(5)].map((_, i) => (
+                                    <div key={i} className="flex justify-center">
+                                        <Skeleton className="h-14 w-14 rounded-full" />
                                     </div>
                                 ))}
                             </div>
                         </div>
-                    )}
+                    </CardContent>
+                </Card>
+            )}
 
-                    {/* Badges Section */}
-                    {userBadges.length > 0 && (
-                        <div>
-                            <div className="flex items-center justify-between mb-3">
-                                <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-                                    <Award className="h-4 w-4 text-blue-500" />
-                                    <span>획득 업적</span>
-                                </div>
-                                <span className="text-xs text-muted-foreground">{userBadges.length}개</span>
+            {/* Integrated Statistics Card */}
+            {!isLoading && (
+                <Card>
+                    <CardContent className="space-y-6 pt-6">
+                        {/* User Profile Section */}
+                        <div className="flex items-center gap-4 pb-6 border-b">
+                            <div className="relative">
+                                <Avatar className="h-16 w-16 ring-4 ring-white shadow-lg">
+                                    <AvatarImage src={user?.profileImage || user?.image || "/placeholder.svg"} />
+                                    <AvatarFallback className="bg-gradient-to-br from-blue-400 to-blue-600 text-white text-xl font-bold">
+                                        {user?.realName?.[0] || user?.nickname?.[0] || 'U'}
+                                    </AvatarFallback>
+                                </Avatar>
+                                {user?.jerseyNumber && (
+                                    <div className="absolute -bottom-1 -right-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white text-xs rounded-full h-6 w-6 flex items-center justify-center font-bold shadow-md border-2 border-white">
+                                        {user.jerseyNumber}
+                                    </div>
+                                )}
                             </div>
-                            <div className="grid grid-cols-5 gap-3">
-                                {userBadges.map((userBadge: any) => {
-                                    const badge = userBadge.badge
-                                    const getTierStyles = (tier: string) => {
-                                        switch (tier) {
-                                            case 'platinum':
-                                                return 'bg-slate-50 border-slate-300 ring-1 ring-slate-100'
-                                            case 'gold':
-                                                return 'bg-yellow-50 border-yellow-300 ring-1 ring-yellow-100'
-                                            case 'silver':
-                                                return 'bg-gray-50 border-gray-300 ring-1 ring-gray-100'
-                                            default: // bronze
-                                                return 'bg-orange-50 border-orange-300 ring-1 ring-orange-100'
-                                        }
-                                    }
 
-                                    return (
-                                        <div
-                                            key={userBadge.id}
-                                            onClick={() => setSelectedBadge(badge)}
-                                            className="flex items-center justify-center"
+                            <div className="flex-1 min-w-0">
+                                <div>
+                                    <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2 mb-1">
+                                        {user?.realName || user?.nickname || '사용자'}
+                                    </h2>
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <Badge
+                                            variant="outline"
+                                            className={`text-xs ${(() => {
+                                                const level = user?.level || 1
+                                                if (level === 1) return 'bg-gray-50 text-gray-600 border-gray-200'
+                                                if (level <= 6) return 'bg-blue-50 text-blue-600 border-blue-200'
+                                                if (level <= 9) return 'bg-purple-50 text-purple-600 border-purple-200'
+                                                return 'bg-yellow-50 text-yellow-600 border-yellow-200'
+                                            })()}`}
                                         >
-                                            <div className="relative group cursor-pointer transition-transform duration-200 hover:scale-110">
-                                                {/* Outer Ring */}
-                                                <div className="w-14 h-14 rounded-full border-2 border-gray-100 bg-white p-1 shadow-sm flex items-center justify-center">
-                                                    {/* Inner Circle with Tier Style */}
-                                                    <div className={`w-full h-full rounded-full flex items-center justify-center border-2 ${getTierStyles(badge.tier)}`}>
-                                                        <span className="text-xl select-none leading-none pt-0.5">{badge.icon}</span>
+                                            {getLevelLabel(user?.level)}
+                                        </Badge>
+                                        {user?.preferredPosition && (
+                                            <Badge className="text-xs font-semibold bg-gradient-to-r from-green-500 to-emerald-500 text-white border-0 shadow-sm">
+                                                {user.preferredPosition}
+                                            </Badge>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Attendance Rate */}
+                        <div className="pb-4 border-b">
+                            <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+                                    <CalendarDays className="h-4 w-4 text-blue-500" />
+                                    <span>올해 출석률</span>
+                                </div>
+                                <span className="text-xs text-muted-foreground">{attendanceStats.total}경기</span>
+                            </div>
+                            <div className="flex items-center gap-4">
+                                <div className="flex-1">
+                                    <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
+                                        <div
+                                            className="h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-300"
+                                            style={{ width: `${attendanceStats.rate}%` }}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="text-right">
+                                    <div className="text-2xl font-bold text-blue-600">{attendanceStats.rate.toFixed(0)}%</div>
+                                    <div className="text-xs text-muted-foreground">{attendanceStats.attended}/{attendanceStats.total}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Match Statistics */}
+                        {matchStats.total > 0 && (
+                            <div className="pb-4 border-b">
+                                <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+                                        <Trophy className="h-4 w-4 text-yellow-500" />
+                                        <span>경기 전적</span>
+                                    </div>
+                                    <span className="text-xs text-muted-foreground">{matchStats.total}경기</span>
+                                </div>
+                                <div className="grid grid-cols-3 gap-2">
+                                    <div className="text-center p-2 bg-green-50 rounded-lg border border-green-200">
+                                        <div className="text-xl font-bold text-green-600">{matchStats.wins}</div>
+                                        <div className="text-xs text-green-600">승</div>
+                                    </div>
+                                    <div className="text-center p-2 bg-gray-50 rounded-lg border border-gray-200">
+                                        <div className="text-xl font-bold text-gray-600">{matchStats.draws}</div>
+                                        <div className="text-xs text-gray-600">무</div>
+                                    </div>
+                                    <div className="text-center p-2 bg-red-50 rounded-lg border border-red-200">
+                                        <div className="text-xl font-bold text-red-600">{matchStats.losses}</div>
+                                        <div className="text-xs text-red-600">패</div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Recent Matches */}
+                        {recentMatches.length > 0 && (
+                            <div className="pb-4 border-b">
+                                <div className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                                    <CalendarIcon className="h-4 w-4 text-purple-500" />
+                                    <span>최근 참석 경기</span>
+                                </div>
+                                <div className="space-y-2">
+                                    {recentMatches.map((match, idx) => (
+                                        <div key={idx} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                                            <div className="flex-1">
+                                                <div className="text-sm font-medium">
+                                                    {(() => {
+                                                        const [year, month, day] = match.date.split('-')
+                                                        const date = new Date(Number(year), Number(month) - 1, Number(day))
+                                                        return date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })
+                                                    })()}
+                                                </div>
+                                                <div className="text-xs text-muted-foreground">{match.location}</div>
+                                            </div>
+                                            {match.result && (
+                                                <Badge
+                                                    variant="outline"
+                                                    className={`text-xs ${match.result === 'win' ? 'bg-green-50 text-green-600 border-green-200' :
+                                                        match.result === 'draw' ? 'bg-gray-50 text-gray-600 border-gray-200' :
+                                                            'bg-red-50 text-red-600 border-red-200'
+                                                        }`}
+                                                >
+                                                    {match.result === 'win' ? '승' : match.result === 'draw' ? '무' : '패'}
+                                                </Badge>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Badges Section */}
+                        {userBadges.length > 0 && (
+                            <div>
+                                <div className="flex items-center justify-between mb-3">
+                                    <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+                                        <Award className="h-4 w-4 text-blue-500" />
+                                        <span>획득 업적</span>
+                                    </div>
+                                    <span className="text-xs text-muted-foreground">{userBadges.length}개</span>
+                                </div>
+                                <div className="grid grid-cols-5 gap-3">
+                                    {userBadges.map((userBadge: any) => {
+                                        const badge = userBadge.badge
+                                        const getTierStyles = (tier: string) => {
+                                            switch (tier) {
+                                                case 'platinum':
+                                                    return 'bg-slate-50 border-slate-300 ring-1 ring-slate-100'
+                                                case 'gold':
+                                                    return 'bg-yellow-50 border-yellow-300 ring-1 ring-yellow-100'
+                                                case 'silver':
+                                                    return 'bg-gray-50 border-gray-300 ring-1 ring-gray-100'
+                                                default: // bronze
+                                                    return 'bg-orange-50 border-orange-300 ring-1 ring-orange-100'
+                                            }
+                                        }
+
+                                        return (
+                                            <div
+                                                key={userBadge.id}
+                                                onClick={() => setSelectedBadge(badge)}
+                                                className="flex items-center justify-center"
+                                            >
+                                                <div className="relative group cursor-pointer transition-transform duration-200 hover:scale-110">
+                                                    {/* Outer Ring */}
+                                                    <div className="w-14 h-14 rounded-full border-2 border-gray-100 bg-white p-1 shadow-sm flex items-center justify-center">
+                                                        {/* Inner Circle with Tier Style */}
+                                                        <div className={`w-full h-full rounded-full flex items-center justify-center border-2 ${getTierStyles(badge.tier)}`}>
+                                                            <span className="text-xl select-none leading-none pt-0.5">{badge.icon}</span>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    )
-                                })}
+                                        )
+                                    })}
+                                </div>
                             </div>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
+                        )}
+                    </CardContent>
+                </Card>
+            )}
 
             {/* Badge Detail Dialog */}
             <Dialog open={!!selectedBadge} onOpenChange={(open) => !open && setSelectedBadge(null)}>
