@@ -6,12 +6,12 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     console.log('회원가입 요청 받음:', body)
 
-    const { 
-      kakaoId, 
-      nickname, 
-      profileImage, 
-      realName, 
-      phoneNumber, 
+    const {
+      kakaoId,
+      nickname,
+      profileImage,
+      realName,
+      phoneNumber,
       birthYear,
       preferredPosition,
       subPositions = [],
@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     // 필수 필드 검증
     if (!kakaoId || !realName || !phoneNumber || !birthYear || !preferredPosition || !region || !city) {
       return NextResponse.json(
-        { error: '필수 정보가 누락되었습니다.' }, 
+        { error: '필수 정보가 누락되었습니다.' },
         { status: 400 }
       )
     }
@@ -32,14 +32,14 @@ export async function POST(request: NextRequest) {
     // 부포지션 검증
     if (!Array.isArray(subPositions)) {
       return NextResponse.json(
-        { error: '부포지션 데이터 형식이 올바르지 않습니다.' }, 
+        { error: '부포지션 데이터 형식이 올바르지 않습니다.' },
         { status: 400 }
       )
     }
 
     if (subPositions.length > 2) {
       return NextResponse.json(
-        { error: '부포지션은 최대 2개까지 선택 가능합니다.' }, 
+        { error: '부포지션은 최대 2개까지 선택 가능합니다.' },
         { status: 400 }
       )
     }
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     // 부포지션에 희망포지션이 포함되어있는지 확인
     if (subPositions.includes(preferredPosition)) {
       return NextResponse.json(
-        { error: '부포지션에는 희망포지션과 다른 포지션을 선택해주세요.' }, 
+        { error: '부포지션에는 희망포지션과 다른 포지션을 선택해주세요.' },
         { status: 400 }
       )
     }
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     const phoneRegex = /^010\d{8}$/
     if (!phoneRegex.test(phoneNumber)) {
       return NextResponse.json(
-        { error: '올바른 전화번호 형식이 아닙니다.' }, 
+        { error: '올바른 전화번호 형식이 아닙니다.' },
         { status: 400 }
       )
     }
@@ -64,17 +64,17 @@ export async function POST(request: NextRequest) {
     // 출생연도 검증
     const currentYear = new Date().getFullYear()
     const birthYearNum = parseInt(birthYear)
-    
+
     if (!/^\d{4}$/.test(birthYear)) {
       return NextResponse.json(
-        { error: '출생연도는 4자리 숫자로 입력해주세요.' }, 
+        { error: '출생연도는 4자리 숫자로 입력해주세요.' },
         { status: 400 }
       )
     }
-    
+
     if (birthYearNum < 1900 || birthYearNum > currentYear - 5) {
       return NextResponse.json(
-        { error: `출생연도는 1900년부터 ${currentYear - 5}년 사이로 입력해주세요.` }, 
+        { error: `출생연도는 1900년부터 ${currentYear - 5}년 사이로 입력해주세요.` },
         { status: 400 }
       )
     }
@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
 
     if (existingUser) {
       return NextResponse.json(
-        { error: '이미 가입된 사용자입니다.' }, 
+        { error: '이미 가입된 사용자입니다.' },
         { status: 409 }
       )
     }
@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
 
     if (existingPhone) {
       return NextResponse.json(
-        { error: '이미 사용 중인 전화번호입니다.' }, 
+        { error: '이미 사용 중인 전화번호입니다.' },
         { status: 409 }
       )
     }
@@ -129,9 +129,29 @@ export async function POST(request: NextRequest) {
 
     console.log('새 사용자 생성 완료:', newUser.id)
 
+    // 신입 선수 뱃지 자동 부여
+    try {
+      const rookieBadge = await prisma.badge.findUnique({
+        where: { code: 'ROOKIE_MEMBER' }
+      })
+
+      if (rookieBadge) {
+        await prisma.userBadge.create({
+          data: {
+            userId: newUser.id,
+            badgeId: rookieBadge.id
+          }
+        })
+        console.log('신입 선수 뱃지 부여 완료')
+      }
+    } catch (badgeError) {
+      console.error('뱃지 부여 실패:', badgeError)
+      // 뱃지 부여 실패해도 회원가입은 성공으로 처리
+    }
+
     // 응답에서 민감한 정보 제외
     const { id, createdAt, updatedAt, ...safeUserData } = newUser
-    
+
     return NextResponse.json({
       success: true,
       message: '회원가입이 완료되었습니다.',
@@ -156,19 +176,19 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('회원가입 처리 중 오류:', error)
-    
+
     // Prisma 관련 오류 처리
     if (error instanceof Error) {
       if (error.message.includes('Unique constraint failed')) {
         return NextResponse.json(
-          { error: '중복된 정보가 있습니다. 다시 확인해주세요.' }, 
+          { error: '중복된 정보가 있습니다. 다시 확인해주세요.' },
           { status: 409 }
         )
       }
     }
 
     return NextResponse.json(
-      { error: '회원가입 처리 중 오류가 발생했습니다.' }, 
+      { error: '회원가입 처리 중 오류가 발생했습니다.' },
       { status: 500 }
     )
   }

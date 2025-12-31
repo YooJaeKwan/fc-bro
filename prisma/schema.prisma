@@ -49,8 +49,43 @@ model User {
   scheduleAttendances ScheduleAttendance[]
   playerStats      SchedulePlayerStat[]
   invitedGuests    ScheduleAttendance[] @relation("InvitedGuests")
+  badges           UserBadge[]
 
   @@unique([provider, providerId])
+}
+
+model Badge {
+  id          String   @id @default(cuid())
+  code        String   @unique // ROOKIE_MEMBER, FIRST_MATCH 등
+  name        String   // 신입 선수, 첫 출전 등
+  description String   // 뱃지 설명
+  icon        String   // 이모지 또는 아이콘 코드
+  category    String   // rookie, attendance, performance
+  tier        String   @default("common") // common, rare, epic, legendary
+  color       String   @default("#8B5CF6") // 뱃지 색상 (기본 보라색)
+  sortOrder   Int      @default(0) // 표시 순서
+  isActive    Boolean  @default(true) // 활성화 여부
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userBadges  UserBadge[]
+
+  @@index([category, sortOrder])
+}
+
+model UserBadge {
+  id             String    @id @default(cuid())
+  userId         String
+  badgeId        String
+  earnedAt       DateTime  @default(now())
+  acknowledged   Boolean   @default(false)
+  acknowledgedAt DateTime?
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge  Badge  @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badgeId])
+  @@index([userId, acknowledged])
 }
 
 model Team {
