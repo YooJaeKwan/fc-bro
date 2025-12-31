@@ -299,8 +299,8 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
               </div>
             )}
 
-            {/* MVP */}
-            {schedule.mvpUserId && (
+            {/* MVP (잠시 숨김) */}
+            {/* {schedule.mvpUserId && (
               <div className="pt-3 border-t border-slate-700/50 flex items-center justify-center gap-2">
                 <Trophy className="h-4 w-4 text-yellow-500" />
                 <span className="text-xs text-slate-300 font-medium">MOM: </span>
@@ -317,7 +317,7 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
                     '알 수 없음'}
                 </span>
               </div>
-            )}
+            )} */}
 
             {/* 총평 */}
             {schedule.matchSummary && (
@@ -489,8 +489,8 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
                         </div>
                       )}
 
-                      {/* MVP 표시 */}
-                      {schedule.mvpUserId && (
+                      {/* MVP 표시 (잠시 숨김) */}
+                      {/* {schedule.mvpUserId && (
                         <div className="mt-4 pt-3 border-t border-slate-700/50 flex items-center justify-center gap-2">
                           <Trophy className="h-3.5 w-3.5 text-yellow-500" />
                           <span className="text-xs text-slate-300 font-medium">MOM: </span>
@@ -507,7 +507,7 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
                               '알 수 없음'}
                           </span>
                         </div>
-                      )}
+                      )} */}
                     </div>
                   ) : (
                     <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full font-semibold bg-blue-50 text-blue-700`}>
