@@ -58,16 +58,17 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
     setIsManagerMode(user?.role === 'ADMIN')
   }, [user?.role])
 
-  const [activeTab, setActiveTab] = useState("schedule")
+  const [activeTab, setActiveTab] = useState("dashboard")
   // 사용자 role 기반으로 관리자 모드 결정 (DB에서 ADMIN 권한 확인)
   const [isManagerMode, setIsManagerMode] = useState(user?.role === 'ADMIN')
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
 
   const tabItems = [
+    { value: "dashboard", label: "대시보드", icon: BarChart3 },
     { value: "schedule", label: "경기일정", icon: Calendar },
     { value: "team", label: "팀멤버", icon: Users },
-    { value: "dashboard", label: "내 정보", icon: BarChart3 },
+    { value: "profile", label: "내 정보", icon: User },
   ]
 
 
@@ -226,7 +227,7 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-3">
           {/* Desktop Tabs */}
           <div className="hidden lg:block">
-            <TabsList className="grid w-full grid-cols-3 lg:w-auto">
+            <TabsList className="grid w-full grid-cols-4 lg:w-auto">
               {tabItems.map((item) => {
                 const Icon = item.icon
                 return (
@@ -250,6 +251,11 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
           {/* 팀 멤버 */}
           <TabsContent value="team" className="mt-6">
             <TeamManagement isManagerMode={isManagerMode} currentUser={user} />
+          </TabsContent>
+
+          {/* 내 정보 */}
+          <TabsContent value="profile" className="mt-6">
+            <UserProfile userInfo={user} onUserUpdate={handleUserUpdate} />
           </TabsContent>
 
         </Tabs>
