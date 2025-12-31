@@ -236,21 +236,21 @@ export function DashboardHome({ currentUser }: DashboardHomeProps) {
                 <CardHeader className="pb-3 relative z-10">
                     <div className="flex items-center gap-3">
                         <div className="relative">
-                            <Avatar className="h-16 w-16 ring-2 ring-white shadow-md">
-                                <AvatarImage src={user?.image || "/placeholder.svg"} />
-                                <AvatarFallback className="bg-gradient-to-br from-blue-400 to-blue-600 text-white font-semibold text-xl">
+                            <Avatar className="h-12 w-12 ring-2 ring-white shadow-md">
+                                <AvatarImage src={user?.profileImage || user?.image || "/placeholder.svg"} />
+                                <AvatarFallback className="bg-gradient-to-br from-blue-400 to-blue-600 text-white font-semibold">
                                     {user?.realName?.[0] || user?.nickname?.[0] || 'U'}
                                 </AvatarFallback>
                             </Avatar>
                             {user?.jerseyNumber && (
-                                <div className="absolute -bottom-1 -right-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white text-xs rounded-full h-7 w-7 flex items-center justify-center font-bold shadow-md border-2 border-white">
+                                <div className="absolute -bottom-1 -right-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white text-xs rounded-full h-6 w-6 flex items-center justify-center font-bold shadow-md border-2 border-white">
                                     {user.jerseyNumber}
                                 </div>
                             )}
                         </div>
                         <div className="min-w-0 flex-1">
-                            <CardTitle className="text-xl">
-                                <div className="space-y-2">
+                            <CardTitle className="text-base sm:text-lg">
+                                <div className="space-y-1.5">
                                     <div className="flex items-center gap-2 flex-wrap">
                                         <span className="font-bold text-gray-900">{user?.realName || user?.nickname || '사용자'}</span>
                                         {/* Level Badge */}
@@ -272,15 +272,28 @@ export function DashboardHome({ currentUser }: DashboardHomeProps) {
                                             </Badge>
                                         )}
                                     </div>
-                                    {/* Position Badges */}
+                                    {/* Attendance & Position Badges */}
                                     <div className="flex items-center gap-1.5 flex-wrap">
+                                        {/* Attendance Badges */}
+                                        {attendanceStats.total > 0 && attendanceStats.rate >= 90 && (
+                                            <Badge className="text-xs bg-gradient-to-r from-yellow-400 to-orange-400 text-white border-0">
+                                                👑 출석왕
+                                            </Badge>
+                                        )}
+                                        {attendanceStats.total > 0 && attendanceStats.rate >= 80 && attendanceStats.rate < 90 && (
+                                            <Badge className="text-xs bg-gradient-to-r from-blue-400 to-blue-500 text-white border-0">
+                                                ⭐ 출석우수
+                                            </Badge>
+                                        )}
+                                        {/* Main Position Badge */}
                                         {user?.preferredPosition && (
-                                            <Badge variant="outline" className="text-xs bg-green-100 text-green-800 border-green-300">
+                                            <Badge className="text-xs font-semibold bg-gradient-to-r from-green-500 to-emerald-500 text-white border-0 shadow-sm">
                                                 {user.preferredPosition}
                                             </Badge>
                                         )}
+                                        {/* Sub Position Badges */}
                                         {user?.subPositions && user.subPositions.length > 0 && user.subPositions.map((pos: string) => (
-                                            <Badge key={pos} variant="outline" className="text-xs bg-blue-100 text-blue-800 border-blue-300">
+                                            <Badge key={pos} variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-300">
                                                 {pos}
                                             </Badge>
                                         ))}
@@ -290,26 +303,6 @@ export function DashboardHome({ currentUser }: DashboardHomeProps) {
                         </div>
                     </div>
                 </CardHeader>
-
-                <CardContent className="space-y-3">
-                    {/* Basic Info Grid */}
-                    <div className="grid grid-cols-2 gap-3">
-                        <div className="text-center p-3 bg-gray-50 rounded-lg">
-                            <div className="text-xs text-muted-foreground mb-1">주발</div>
-                            <div className="font-semibold text-sm">
-                                {user?.preferredFoot === 'RIGHT' ? '오른발' :
-                                    user?.preferredFoot === 'LEFT' ? '왼발' :
-                                        user?.preferredFoot === 'BOTH' ? '양발' : '정보 없음'}
-                            </div>
-                        </div>
-                        <div className="text-center p-3 bg-gray-50 rounded-lg">
-                            <div className="text-xs text-muted-foreground mb-1">지역</div>
-                            <div className="font-semibold text-sm">
-                                {user?.city || '정보 없음'}
-                            </div>
-                        </div>
-                    </div>
-                </CardContent>
             </Card>
 
             {/* Statistics Card */}
