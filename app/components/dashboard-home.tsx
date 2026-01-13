@@ -269,7 +269,7 @@ export function DashboardHome({ currentUser }: DashboardHomeProps) {
                                     currentUserId={currentUser.id}
                                     isManagerMode={currentUser.role === 'ADMIN'}
                                     isPastSchedule={calculateDaysLeft(nextSchedule.date) < 0}
-                                    allowGuests={true}
+                                    allowGuests={nextSchedule.allowGuests}
                                     onVoteUpdate={() => {
                                         // Refresh data when vote is updated
                                         if (currentUser?.id) {
