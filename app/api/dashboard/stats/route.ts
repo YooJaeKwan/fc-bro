@@ -140,6 +140,7 @@ export async function GET(request: NextRequest) {
         ...nextSchedule,
         // KST 기준 날짜 변환 (UTC+9)
         date: new Date(nextSchedule.matchDate.getTime() + 9 * 60 * 60 * 1000).toISOString().split('T')[0],
+        time: nextSchedule.startTime,
         // 필요한 필드만
         myAttendance: nextSchedule.attendances[0]?.status || 'PENDING'
       }

@@ -5,8 +5,8 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { CalendarIcon, MapPinIcon, UsersIcon, ClockIcon, X, Check, UserPlus, UserMinus, Edit, Trash2, Trophy, ChevronDown, ChevronUp } from 'lucide-react'
-import { calculateDaysLeft } from '@/lib/utils'
+import { CalendarIcon, MapPinIcon, UsersIcon, ClockIcon, X, Check, UserPlus, UserMinus, Edit, Trash2, Trophy, ChevronDown, ChevronUp, Share2 } from 'lucide-react'
+import { calculateDaysLeft, generateKakaoShareText, getPositionOrder, sortByPosition } from '@/lib/utils'
 import { AttendanceVoting } from './attendance-voting'
 import {
   Collapsible,
@@ -156,23 +156,17 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
     return 'border-slate-400/50 text-slate-300 bg-slate-400/10' // Default
   }
 
-  // 포지션 카테고리 순서 (공격수 -> 미드필더 -> 수비수 -> 골키퍼)
-  const getPositionOrder = (position: string) => {
-    const pos = position.toUpperCase()
-    if (pos === 'GK') return 4
-    if (pos.includes('B') || pos.includes('D')) return 3 // DF
-    if (pos.includes('M') || pos.includes('C')) return 2 // MF
-    if (pos.includes('W') || pos.includes('F') || pos.includes('S')) return 1 // FW
-    return 5 // Unknown
-  }
-
-  // 팀 선수들을 포지션 순으로 정렬
-  const sortByPosition = (players: any[]) => {
-    return [...players].sort((a, b) => {
-      const posA = a.position || a.displayPosition || 'MC'
-      const posB = b.position || b.displayPosition || 'MC'
-      return getPositionOrder(posA) - getPositionOrder(posB)
-    })
+  // 공유하기 핸들러
+  const handleCopyForSharing = async () => {
+    const text = generateKakaoShareText(schedule, isManagerMode)
+    try {
+      await navigator.clipboard.writeText(text)
+      alert("경기 정보가 클립보드에 복사되었습니다.\n카카오톡 채팅창에 붙여넣기(Ctrl+V) 하세요.")
+    } catch (err) {
+      console.error('클립보드 복사 실패:', err)
+      // 보안상 이유로 실패할 경우 fallback (모바일 등)
+      prompt("아래 텍스트를 복사하세요:", text)
+    }
   }
 
   return (
@@ -332,6 +326,16 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
           {/* 관리 버튼들 (스코어보드 외부) */}
           {isManagerMode && (
             <div className="flex items-center justify-center gap-2">
+              <Button
+                onClick={handleCopyForSharing}
+                variant="outline"
+                size="sm"
+                className="text-xs"
+                title="카카오톡 공유 텍스트 복사"
+              >
+                <Share2 className="h-3 w-3 mr-1" />
+                공유
+              </Button>
               {schedule.type !== 'training' && onEnterResult && (
                 <Button
                   onClick={() => onEnterResult(schedule)}
@@ -525,6 +529,15 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
                 {/* 관리자 아이콘 버튼들 */}
                 {isManagerMode && (
                   <div className="flex items-center justify-center gap-2">
+                    <Button
+                      onClick={handleCopyForSharing}
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                      title="카카오톡 공유 텍스트 복사"
+                    >
+                      <Share2 className="h-4 w-4" />
+                    </Button>
                     <Button
                       onClick={() => onEditSchedule(schedule)}
                       variant="ghost"

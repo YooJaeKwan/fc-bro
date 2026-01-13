@@ -19,10 +19,10 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Calendar as CalendarIcon, Clock, MapPin, Users, Plus, Edit, Trash2, Timer, Coffee, Target, UserPlus, UsersRound } from "lucide-react"
+import { Calendar as CalendarIcon, Clock, MapPin, Users, Plus, Edit, Trash2, Timer, Coffee, Target, UserPlus, UsersRound, Share2 } from "lucide-react"
 import { format } from "date-fns"
 import { ko } from "date-fns/locale"
-import { cn } from "@/lib/utils"
+import { cn, generateKakaoShareText } from "@/lib/utils"
 import { Skeleton } from "@/components/ui/skeleton"
 import ScheduleCard from "./schedule-card"
 import { MatchResultDialog } from "./match-result-dialog"
@@ -1106,6 +1106,28 @@ export function ScheduleManagement({
                             ? "업데이트 중..."
                             : nextUpcomingSchedule.allowGuests ? "게스트 중단" : "게스트 허용"
                           }
+                        </Button>
+                      )}
+
+                      {/* 공유 버튼 추가 */}
+                      {isManagerMode && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 bg-green-100 text-green-700 border-green-300 hover:bg-green-200"
+                          onClick={async () => {
+                            const text = generateKakaoShareText(nextUpcomingSchedule, isManagerMode)
+                            try {
+                              await navigator.clipboard.writeText(text)
+                              alert("경기 정보가 클립보드에 복사되었습니다.\n카카오톡 채팅창에 붙여넣기(Ctrl+V) 하세요.")
+                            } catch (err) {
+                              console.error('클립보드 복사 실패:', err)
+                              prompt("아래 텍스트를 복사하세요:", text)
+                            }
+                          }}
+                        >
+                          <Share2 className="h-4 w-4 mr-1" />
+                          공유
                         </Button>
                       )}
 
