@@ -1289,8 +1289,8 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                               </Badge>
                             )}
                           </div>
-                          {/* 출석왕/출석우수 뱃지 - 이름 아래 표시 */}
-                          <div className="flex items-center gap-1.5 flex-wrap">
+                          {/* 출석왕/출석우수 뱃지 - 이름 아래 표시 (임시 숨김 처리) */}
+                          {/* <div className="flex items-center gap-1.5 flex-wrap">
                             {isTopAttender(member) && (
                               <Badge className="text-xs bg-gradient-to-r from-yellow-400 to-orange-400 text-white border-0">
                                 👑 출석왕
@@ -1301,7 +1301,7 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                                 ⭐ 출석우수
                               </Badge>
                             )}
-                          </div>
+                          </div> */}
                         </div>
                       </CardTitle>
                     </div>
