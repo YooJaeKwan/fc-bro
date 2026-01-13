@@ -221,7 +221,7 @@ export function AttendanceVoting({
     const confirmMessage = attendee.isGuest
       ? `게스트 "${attendee.name}"의 참석 투표를 삭제하시겠습니까?`
       : `"${attendee.name}"님의 참석 투표를 삭제하시겠습니까?`
-    
+
     if (!confirm(confirmMessage)) return
 
     // 팀편성 결과가 있으면 확인 메시지 표시
@@ -295,8 +295,8 @@ export function AttendanceVoting({
       }
 
       // 포지션 처리: 포지션 무관이면 'ANY', 아니면 선택된 포지션들을 콤마로 구분
-      const guestPosition = isPositionAny 
-        ? 'ANY' 
+      const guestPosition = isPositionAny
+        ? 'ANY'
         : guestPositions.join(',')
 
       const response = await fetch('/api/schedule/guest', {
@@ -406,11 +406,10 @@ export function AttendanceVoting({
             onClick={() => handleVote('ATTENDING')}
             disabled={isSubmitting || myStatus === 'attending'}
             variant={myStatus === 'attending' ? 'default' : 'outline'}
-            className={`flex-1 ${
-              myStatus === 'attending' 
-                ? 'bg-green-600 hover:bg-green-700 text-white' 
+            className={`flex-1 ${myStatus === 'attending'
+                ? 'bg-green-600 hover:bg-green-700 text-white'
                 : 'hover:bg-green-50 hover:text-green-700'
-            }`}
+              }`}
             size="sm"
           >
             <Check className="h-4 w-4 mr-1" />
@@ -420,11 +419,10 @@ export function AttendanceVoting({
             onClick={() => handleVote('NOT_ATTENDING')}
             disabled={isSubmitting || myStatus === 'not_attending'}
             variant={myStatus === 'not_attending' ? 'default' : 'outline'}
-            className={`flex-1 ${
-              myStatus === 'not_attending' 
-                ? 'bg-red-600 hover:bg-red-700 text-white' 
+            className={`flex-1 ${myStatus === 'not_attending'
+                ? 'bg-red-600 hover:bg-red-700 text-white'
                 : 'hover:bg-red-50 hover:text-red-700'
-            }`}
+              }`}
             size="sm"
           >
             <X className="h-4 w-4 mr-1" />
@@ -434,9 +432,9 @@ export function AttendanceVoting({
 
         {/* 게스트 참석 버튼 (게스트 허용된 일정일 때만) */}
         {allowGuests && (
-          <Dialog 
-            open={isGuestDialogOpen} 
-              onOpenChange={(open) => {
+          <Dialog
+            open={isGuestDialogOpen}
+            onOpenChange={(open) => {
               setIsGuestDialogOpen(open)
               // 다이얼로그가 닫힐 때 폼 필드 초기화
               if (!open) {
@@ -535,11 +533,10 @@ export function AttendanceVoting({
                                   />
                                   <label
                                     htmlFor={`position-${pos.value}`}
-                                    className={`text-sm leading-none cursor-pointer ${
-                                      guestPositions.length >= 3 && !guestPositions.includes(pos.value)
+                                    className={`text-sm leading-none cursor-pointer ${guestPositions.length >= 3 && !guestPositions.includes(pos.value)
                                         ? 'opacity-50 cursor-not-allowed'
                                         : ''
-                                    }`}
+                                      }`}
                                   >
                                     {pos.value}
                                   </label>
@@ -609,11 +606,10 @@ export function AttendanceVoting({
           <Dialog open={detailDialogType === 'attending'} onOpenChange={(open) => setDetailDialogType(open ? 'attending' : null)}>
             <DialogTrigger asChild>
               <button
-                className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md border transition-colors ${
-                  stats.attending > 0
+                className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md border transition-colors ${stats.attending > 0
                     ? 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100'
                     : 'bg-gray-50 border-gray-200 text-gray-500'
-                }`}
+                  }`}
                 disabled={isPastSchedule}
               >
                 <span className="text-sm font-medium">참석 {stats.attending}</span>
@@ -680,11 +676,10 @@ export function AttendanceVoting({
           <Dialog open={detailDialogType === 'not_attending'} onOpenChange={(open) => setDetailDialogType(open ? 'not_attending' : null)}>
             <DialogTrigger asChild>
               <button
-                className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md border transition-colors ${
-                  stats.notAttending > 0
+                className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md border transition-colors ${stats.notAttending > 0
                     ? 'bg-red-50 border-red-200 text-red-700 hover:bg-red-100'
                     : 'bg-gray-50 border-gray-200 text-gray-500'
-                }`}
+                  }`}
                 disabled={isPastSchedule}
               >
                 <span className="text-sm font-medium">불참 {stats.notAttending}</span>
@@ -751,11 +746,10 @@ export function AttendanceVoting({
           <Dialog open={detailDialogType === 'pending'} onOpenChange={(open) => setDetailDialogType(open ? 'pending' : null)}>
             <DialogTrigger asChild>
               <button
-                className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md border transition-colors ${
-                  stats.pending > 0
+                className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md border transition-colors ${stats.pending > 0
                     ? 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100'
                     : 'bg-gray-50 border-gray-200 text-gray-500'
-                }`}
+                  }`}
                 disabled={isPastSchedule}
               >
                 <span className="text-sm font-medium">미응답 {stats.pending}</span>

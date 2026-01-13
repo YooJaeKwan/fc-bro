@@ -14,6 +14,7 @@ import {
   BarChart3,
   Calendar,
   Trophy,
+  Image as ImageIcon,
 } from "lucide-react"
 import { TeamManagement } from "./components/team-management"
 import { UserProfile } from "./components/user-profile"
@@ -21,7 +22,7 @@ import { AttendanceStats } from "./components/attendance-stats"
 import { ScheduleManagement } from "./components/schedule-management"
 import { MatchResultsView } from "./components/match-results-view"
 import { DashboardHome } from "./components/dashboard-home"
-// import { useSession, signOut } from "next-auth/react" // NextAuth 제거됨
+import { AlbumView } from "./components/album-view"
 
 // 기본 팀 정보 (고정값)
 const defaultTeamInfo = {
@@ -67,6 +68,7 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
   const tabItems = [
     { value: "dashboard", label: "대시보드", icon: BarChart3 },
     { value: "schedule", label: "경기일정", icon: Calendar },
+    { value: "album", label: "앨범", icon: ImageIcon },
     { value: "team", label: "팀멤버", icon: Users },
     { value: "profile", label: "내 정보", icon: User },
   ]
@@ -107,10 +109,6 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
                   <p className="font-medium">{user?.realName || user?.nickname}</p>
                   <p className="text-xs text-muted-foreground">
                     #{user?.jerseyNumber}
-                    {/* {user?.subPositions && user.subPositions.length > 0 && 
-                      ` (+ ${user.subPositions.join(', ')})`
-                    } • {user?.region} {user?.city}
-                    {user?.preferredFoot && ` • ${user.preferredFoot === 'RIGHT' ? '오른발' : user.preferredFoot === 'LEFT' ? '왼발' : '양발'}`} */}
                   </p>
                 </div>
               </div>
@@ -159,37 +157,12 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
                           {user?.subPositions && user.subPositions.length > 0 &&
                             ` (+${user.subPositions.join(',')})`
                           }
-                          {/* • {user?.region} {user?.city} */}
-                          {/* {user?.preferredFoot && ` • ${user.preferredFoot === 'RIGHT' ? '오른발' : user.preferredFoot === 'LEFT' ? '왼발' : '양발'}`} */}
                         </p>
                       </div>
                     </div>
 
-                    {/* Role 기반 권한 표시 */}
-                    {/* <div className="space-y-4">
-                      <h3 className="font-semibold">권한 정보</h3>
-                      <div className="flex items-center justify-center">
-                        <Badge
-                          variant="outline"
-                          className={user?.role === 'ADMIN' ? "bg-green-50 text-green-700" : "bg-blue-50 text-blue-700"}
-                        >
-                          {user?.role === 'ADMIN' ? (
-                            <><Shield className="h-4 w-4 mr-2" />총무</>
-                          ) : (
-                            <><User className="h-4 w-4 mr-2" />선수</>
-                          )}
-                        </Badge>
-                      </div>
-                      {user?.role !== 'ADMIN' && (
-                        <p className="text-xs text-muted-foreground text-center">
-                          총무 권한이 필요한 기능은 표시되지 않습니다.
-                        </p>
-                      )}
-                    </div> */}
-
                     {/* Navigation Menu */}
                     <div className="space-y-2">
-                      {/* <h3 className="font-semibold">메뉴</h3> */}
                       {tabItems.map((item) => {
                         const Icon = item.icon
                         return (
@@ -247,6 +220,10 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
 
           <TabsContent value="schedule">
             <ScheduleManagement isManagerMode={isManagerMode} currentUser={user} />
+          </TabsContent>
+
+          <TabsContent value="album" className="mt-6">
+            <AlbumView />
           </TabsContent>
 
           {/* 팀 멤버 */}

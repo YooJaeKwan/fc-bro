@@ -175,6 +175,7 @@ model Schedule {
   opponentScore   Int?      // 상대팀 점수
   mvpUserId       String?   // MVP 선정
   matchSummary    String?   // 경기 요약/후기
+  matchPhotoUrl   String?   // 경기 결과 사진 URL (Supabase)
 
   // 팀편성 결과 저장
   teamFormation   Json?     // 팀편성 결과 (노랑팀/파랑팀 정보)

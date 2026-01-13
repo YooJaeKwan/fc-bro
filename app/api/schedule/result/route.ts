@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma"
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { scheduleId, ourScore, opponentScore, matchSummary, mvpUserId } = body
+    const { scheduleId, ourScore, opponentScore, matchSummary, mvpUserId, matchPhotoUrl } = body
 
     if (!scheduleId) {
       return NextResponse.json(
@@ -40,6 +40,7 @@ export async function POST(request: Request) {
         opponentScore: opponentScore !== undefined && opponentScore !== null ? Number(opponentScore) : 0,
         matchSummary: matchSummary || null,
         mvpUserId: mvpUserId || null,
+        matchPhotoUrl: matchPhotoUrl || null,
         status: "COMPLETED", // 결과 입력 시 완료 상태로 변경
       },
     })

@@ -8,6 +8,7 @@ import { CalendarIcon, MapPin, Trophy, TrendingUp, Calendar as CalendarDays, Awa
 import { AttendanceVoting } from "./attendance-voting"
 import { getLevelLabel } from '@/lib/level-system'
 import { BadgeNotification } from './badge-notification'
+import { sortByPosition } from '@/lib/utils'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Skeleton } from "@/components/ui/skeleton"
 
@@ -117,23 +118,14 @@ export function DashboardHome({ currentUser }: DashboardHomeProps) {
         return diffDays
     }
 
-    // Position indicator color
-    const getPositionIndicatorColor = (position: string) => {
-        const positionMapping: Record<string, string> = {
-            "GK": "골키퍼", "DC": "수비수", "CB": "수비수", "DR": "수비수", "RB": "수비수",
-            "DL": "수비수", "LB": "수비수", "LRB": "수비수", "LRCB": "수비수",
-            "DM": "미드필더", "CDM": "미드필더", "MC": "미드필더", "CM": "미드필더",
-            "AMC": "미드필더", "CAM": "미드필더",
-            "ST": "공격수", "CF": "공격수", "SS": "공격수", "LWF": "공격수", "RWF": "공격수"
-        }
-        const positionType = positionMapping[position] || position
-        switch (positionType) {
-            case "골키퍼": return "bg-yellow-500"
-            case "수비수": return "bg-blue-500"
-            case "미드필더": return "bg-green-500"
-            case "공격수": return "bg-red-500"
-            default: return "bg-gray-400"
-        }
+    // 포지션별 색상 반환 함수 (ScheduleCard와 동일한 스타일)
+    const getPositionColor = (position: string) => {
+        const pos = position.toUpperCase()
+        if (pos === 'GK') return 'border-purple-400/50 text-purple-600 bg-purple-50'
+        if (pos.includes('B') || pos.includes('D')) return 'border-green-400/50 text-green-600 bg-green-50' // DF
+        if (pos.includes('M') || pos.includes('C')) return 'border-blue-400/50 text-blue-600 bg-blue-50' // MF
+        if (pos.includes('W') || pos.includes('F') || pos.includes('S')) return 'border-red-400/50 text-red-600 bg-red-50' // FW
+        return 'border-slate-400/50 text-slate-600 bg-slate-50' // Default
     }
 
     const user = currentUser
@@ -234,6 +226,39 @@ export function DashboardHome({ currentUser }: DashboardHomeProps) {
                             {nextSchedule.description && (
                                 <p className="text-sm text-muted-foreground mt-2">{nextSchedule.description}</p>
                             )}
+
+                            {/* 팀 편성 정보 표시 */}
+                            {nextSchedule.teamFormation && (nextSchedule.type === 'internal') && (
+                                <div className="mt-4 pt-3 border-t border-gray-100">
+                                    <div className="grid grid-cols-2 gap-3 text-xs">
+                                        {/* Yellow Team */}
+                                        <div className="space-y-2 bg-yellow-50/50 p-2 rounded-lg border border-yellow-100">
+                                            <div className="font-bold text-yellow-600 text-center border-b border-yellow-200 pb-1 mb-1">Yellow Team</div>
+                                            {sortByPosition(nextSchedule.teamFormation.yellowTeam || []).map((player: any, idx: number) => (
+                                                <div key={idx} className="flex items-center gap-2 justify-between">
+                                                    <span className="text-gray-700 font-medium truncate max-w-[60px]">{player.name}</span>
+                                                    <Badge variant="outline" className={`text-[10px] px-1 py-0 h-5 ${getPositionColor(player.position || player.displayPosition || 'MC')}`}>
+                                                        {player.position || player.displayPosition || 'MC'}
+                                                    </Badge>
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        {/* Blue Team */}
+                                        <div className="space-y-2 bg-blue-50/50 p-2 rounded-lg border border-blue-100">
+                                            <div className="font-bold text-blue-600 text-center border-b border-blue-200 pb-1 mb-1">Blue Team</div>
+                                            {sortByPosition(nextSchedule.teamFormation.blueTeam || []).map((player: any, idx: number) => (
+                                                <div key={idx} className="flex items-center gap-2 justify-between">
+                                                    <span className="text-gray-700 font-medium truncate max-w-[60px]">{player.name}</span>
+                                                    <Badge variant="outline" className={`text-[10px] px-1 py-0 h-5 ${getPositionColor(player.position || player.displayPosition || 'MC')}`}>
+                                                        {player.position || player.displayPosition || 'MC'}
+                                                    </Badge>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         {/* Attendance Voting */}
@@ -244,6 +269,7 @@ export function DashboardHome({ currentUser }: DashboardHomeProps) {
                                     currentUserId={currentUser.id}
                                     isManagerMode={currentUser.role === 'ADMIN'}
                                     isPastSchedule={calculateDaysLeft(nextSchedule.date) < 0}
+                                    allowGuests={true}
                                     onVoteUpdate={() => {
                                         // Refresh data when vote is updated
                                         if (currentUser?.id) {
@@ -413,7 +439,7 @@ export function DashboardHome({ currentUser }: DashboardHomeProps) {
                                             {getLevelLabel(user?.level)}
                                         </Badge>
                                         {user?.preferredPosition && (
-                                            <Badge className="text-xs font-semibold bg-gradient-to-r from-green-500 to-emerald-500 text-white border-0 shadow-sm">
+                                            <Badge variant="outline" className={`text-xs ${getPositionColor(user.preferredPosition)}`}>
                                                 {user.preferredPosition}
                                             </Badge>
                                         )}

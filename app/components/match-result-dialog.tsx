@@ -1,9 +1,9 @@
-"use client"
-
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Minus, Plus } from "lucide-react"
+import { Minus, Plus, Upload, X, Image as ImageIcon } from "lucide-react"
+import { supabase } from "@/lib/supabase"
+import Image from "next/image"
 
 interface MatchResultDialogProps {
     isOpen: boolean
@@ -16,6 +16,9 @@ export function MatchResultDialog({ isOpen, onClose, schedule, onSuccess }: Matc
     const [ourScore, setOurScore] = useState(0)
     const [opponentScore, setOpponentScore] = useState(0)
     const [isSubmitting, setIsSubmitting] = useState(false)
+    const [selectedImage, setSelectedImage] = useState<File | null>(null)
+    const [imagePreview, setImagePreview] = useState<string | null>(null)
+    const fileInputRef = useRef<HTMLInputElement>(null)
 
     // 일정이 변경되거나 다이얼로그가 열릴 때 초기값 설정
     useEffect(() => {
@@ -23,6 +26,11 @@ export function MatchResultDialog({ isOpen, onClose, schedule, onSuccess }: Matc
             // 결과가 이미 입력된 경우 기존 값 표시, 없으면 0
             setOurScore(schedule.ourScore !== null && schedule.ourScore !== undefined ? Number(schedule.ourScore) : 0)
             setOpponentScore(schedule.opponentScore !== null && schedule.opponentScore !== undefined ? Number(schedule.opponentScore) : 0)
+
+            // 기존 이미지가 있다면 미리보기 설정 (여기서는 새로 업로드하는 것만 다룸, 기존 이미지 삭제/수정은 추후 고려)
+            if (schedule.matchPhotoUrl) {
+                setImagePreview(schedule.matchPhotoUrl)
+            }
         } else if (!isOpen) {
             // 다이얼로그가 닫힐 때 초기화
             resetForm()
@@ -33,6 +41,11 @@ export function MatchResultDialog({ isOpen, onClose, schedule, onSuccess }: Matc
     const resetForm = () => {
         setOurScore(0)
         setOpponentScore(0)
+        setSelectedImage(null)
+        setImagePreview(null)
+        if (fileInputRef.current) {
+            fileInputRef.current.value = ''
+        }
     }
 
     // 다이얼로그 닫기 핸들러
@@ -47,9 +60,50 @@ export function MatchResultDialog({ isOpen, onClose, schedule, onSuccess }: Matc
     const incrementOpponentScore = () => setOpponentScore(prev => Math.min(prev + 1, 99))
     const decrementOpponentScore = () => setOpponentScore(prev => Math.max(prev - 1, 0))
 
+    // 이미지 선택 핸들러
+    const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (file) {
+            if (file.size > 5 * 1024 * 1024) { // 5MB 제한
+                alert("이미지 크기는 5MB 이하여야 합니다.")
+                return
+            }
+            setSelectedImage(file)
+            const reader = new FileReader()
+            reader.onloadend = () => {
+                setImagePreview(reader.result as string)
+            }
+            reader.readAsDataURL(file)
+        }
+    }
+
     const handleSubmit = async () => {
         try {
             setIsSubmitting(true)
+
+            let matchPhotoUrl = schedule.matchPhotoUrl // 기본값은 기존 URL
+
+            // 이미지가 선택되었다면 업로드 수행
+            if (selectedImage) {
+                const fileExt = selectedImage.name.split('.').pop()
+                const fileName = `${schedule.id}_${Date.now()}.${fileExt}`
+                const filePath = `${fileName}`
+
+                const { error: uploadError } = await supabase.storage
+                    .from('match-photos')
+                    .upload(filePath, selectedImage)
+
+                if (uploadError) {
+                    throw new Error(`이미지 업로드 실패: ${uploadError.message}`)
+                }
+
+                const { data: { publicUrl } } = supabase.storage
+                    .from('match-photos')
+                    .getPublicUrl(filePath)
+
+                matchPhotoUrl = publicUrl
+            }
+
             const response = await fetch("/api/schedule/result", {
                 method: "POST",
                 headers: {
@@ -59,6 +113,7 @@ export function MatchResultDialog({ isOpen, onClose, schedule, onSuccess }: Matc
                     scheduleId: schedule.id,
                     ourScore: ourScore,
                     opponentScore: opponentScore,
+                    matchPhotoUrl: matchPhotoUrl
                 }),
             })
 
@@ -194,6 +249,64 @@ export function MatchResultDialog({ isOpen, onClose, schedule, onSuccess }: Matc
                             </p>
                         </div>
                     )}
+
+                    {/* 이미지 업로드 섹션 */}
+                    <div className="mt-6 space-y-3">
+                        <div className="text-sm font-medium flex items-center gap-2">
+                            <ImageIcon className="h-4 w-4" />
+                            경기 사진 (선택)
+                        </div>
+
+                        <div className="bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg p-4 flex flex-col items-center justify-center gap-3">
+                            {imagePreview ? (
+                                <div className="relative w-full aspect-video rounded-md overflow-hidden bg-gray-100">
+                                    <Image
+                                        src={imagePreview}
+                                        alt="경기 사진 미리보기"
+                                        fill
+                                        className="object-cover"
+                                    />
+                                    <Button
+                                        type="button"
+                                        variant="destructive"
+                                        size="icon"
+                                        className="absolute top-2 right-2 h-6 w-6"
+                                        onClick={() => {
+                                            setSelectedImage(null)
+                                            setImagePreview(null)
+                                            if (fileInputRef.current) fileInputRef.current.value = ''
+                                        }}
+                                    >
+                                        <X className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            ) : (
+                                <div className="text-center">
+                                    <div className="mt-2 text-xs text-gray-500">
+                                        기념 사진을 업로드하세요
+                                    </div>
+                                </div>
+                            )}
+
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={handleImageSelect}
+                            />
+
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => fileInputRef.current?.click()}
+                            >
+                                <Upload className="h-4 w-4 mr-2" />
+                                {imagePreview ? "사진 변경" : "사진 선택"}
+                            </Button>
+                        </div>
+                    </div>
                 </div>
 
                 <DialogFooter>
