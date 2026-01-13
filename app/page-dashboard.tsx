@@ -15,6 +15,7 @@ import {
   Calendar,
   Trophy,
   Image as ImageIcon,
+  ClipboardList,
 } from "lucide-react"
 import { TeamManagement } from "./components/team-management"
 import { UserProfile } from "./components/user-profile"
@@ -23,6 +24,7 @@ import { ScheduleManagement } from "./components/schedule-management"
 import { MatchResultsView } from "./components/match-results-view"
 import { DashboardHome } from "./components/dashboard-home"
 import { AlbumView } from "./components/album-view"
+import { AttendanceStatsView } from "./components/attendance-stats-view"
 
 // 기본 팀 정보 (고정값)
 const defaultTeamInfo = {
@@ -68,6 +70,7 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
   const tabItems = [
     { value: "dashboard", label: "대시보드", icon: BarChart3 },
     { value: "schedule", label: "경기일정", icon: Calendar },
+    ...(isManagerMode ? [{ value: "attendance", label: "출석부", icon: ClipboardList }] : []),
     { value: "album", label: "앨범", icon: ImageIcon },
     { value: "team", label: "팀멤버", icon: Users },
     { value: "profile", label: "내 정보", icon: User },
@@ -220,6 +223,10 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
 
           <TabsContent value="schedule">
             <ScheduleManagement isManagerMode={isManagerMode} currentUser={user} />
+          </TabsContent>
+
+          <TabsContent value="attendance" className="mt-6">
+            <AttendanceStatsView />
           </TabsContent>
 
           <TabsContent value="album" className="mt-6">
