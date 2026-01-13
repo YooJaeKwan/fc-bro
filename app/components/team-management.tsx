@@ -705,19 +705,21 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                                       </Badge>
                                     )}
                                   </div>
-                                  {/* 출석왕/출석우수 뱃지 - 이름 아래 표시 */}
-                                  <div className="flex items-center gap-1.5 flex-wrap">
-                                    {isTopAttender(member) && (
-                                      <Badge className="text-xs bg-gradient-to-r from-yellow-400 to-orange-400 text-white border-0">
-                                        👑 출석왕
-                                      </Badge>
-                                    )}
-                                    {isExcellentAttender(member) && !isTopAttender(member) && (
-                                      <Badge className="text-xs bg-gradient-to-r from-blue-400 to-blue-500 text-white border-0">
-                                        ⭐ 출석우수
-                                      </Badge>
-                                    )}
-                                  </div>
+                                  {/* 출석왕/출석우수 뱃지 - 이름 아래 표시 (레벨순일 때 숨김) */}
+                                  {sortBy !== 'level' && (
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      {isTopAttender(member) && (
+                                        <Badge className="text-xs bg-gradient-to-r from-yellow-400 to-orange-400 text-white border-0">
+                                          👑 출석왕
+                                        </Badge>
+                                      )}
+                                      {isExcellentAttender(member) && !isTopAttender(member) && (
+                                        <Badge className="text-xs bg-gradient-to-r from-blue-400 to-blue-500 text-white border-0">
+                                          ⭐ 출석우수
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  )}
                                 </div>
                               </CardTitle>
                             </div>
