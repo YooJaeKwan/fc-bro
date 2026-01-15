@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { CalendarIcon, MapPin, Trophy, TrendingUp, Calendar as CalendarDays, Award, Clock } from "lucide-react"
 import { AttendanceVoting } from "./attendance-voting"
+import { TeamFormation } from "./team-formation"
 import { getLevelLabel } from '@/lib/level-system'
 import { BadgeNotification } from './badge-notification'
 import { sortByPosition } from '@/lib/utils'
@@ -227,36 +228,20 @@ export function DashboardHome({ currentUser }: DashboardHomeProps) {
                                 <p className="text-sm text-muted-foreground mt-2">{nextSchedule.description}</p>
                             )}
 
-                            {/* 팀 편성 정보 표시 */}
-                            {nextSchedule.teamFormation && (nextSchedule.type === 'internal') && (
+                            {/* 팀 편성 정보 표시 - 확정된 경우에만 표시 */}
+                            {nextSchedule.teamFormation && nextSchedule.formationConfirmed && (nextSchedule.type === 'internal') && currentUser?.id && (
                                 <div className="mt-4 pt-3 border-t border-gray-100">
-                                    <div className="grid grid-cols-2 gap-3 text-xs">
-                                        {/* Yellow Team */}
-                                        <div className="space-y-2 bg-yellow-50/50 p-2 rounded-lg border border-yellow-100">
-                                            <div className="font-bold text-yellow-600 text-center border-b border-yellow-200 pb-1 mb-1">Yellow Team</div>
-                                            {sortByPosition(nextSchedule.teamFormation.yellowTeam || []).map((player: any, idx: number) => (
-                                                <div key={idx} className="flex items-center gap-2 justify-between">
-                                                    <span className="text-gray-700 font-medium truncate max-w-[60px]">{player.name}</span>
-                                                    <Badge variant="outline" className={`text-[10px] px-1 py-0 h-5 ${getPositionColor(player.position || player.displayPosition || 'MC')}`}>
-                                                        {player.position || player.displayPosition || 'MC'}
-                                                    </Badge>
-                                                </div>
-                                            ))}
-                                        </div>
-
-                                        {/* Blue Team */}
-                                        <div className="space-y-2 bg-blue-50/50 p-2 rounded-lg border border-blue-100">
-                                            <div className="font-bold text-blue-600 text-center border-b border-blue-200 pb-1 mb-1">Blue Team</div>
-                                            {sortByPosition(nextSchedule.teamFormation.blueTeam || []).map((player: any, idx: number) => (
-                                                <div key={idx} className="flex items-center gap-2 justify-between">
-                                                    <span className="text-gray-700 font-medium truncate max-w-[60px]">{player.name}</span>
-                                                    <Badge variant="outline" className={`text-[10px] px-1 py-0 h-5 ${getPositionColor(player.position || player.displayPosition || 'MC')}`}>
-                                                        {player.position || player.displayPosition || 'MC'}
-                                                    </Badge>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
+                                    <TeamFormation
+                                        scheduleId={nextSchedule.id}
+                                        teamFormation={nextSchedule.teamFormation}
+                                        formationDate={nextSchedule.formationDate}
+                                        formationConfirmed={nextSchedule.formationConfirmed}
+                                        isManagerMode={false}
+                                        currentUserId={currentUser.id}
+                                        onFormationUpdate={() => { }}
+                                        onFormationDelete={() => { }}
+                                        onFormationConfirm={() => { }}
+                                    />
                                 </div>
                             )}
                         </div>
@@ -270,6 +255,8 @@ export function DashboardHome({ currentUser }: DashboardHomeProps) {
                                     isManagerMode={currentUser.role === 'ADMIN'}
                                     isPastSchedule={calculateDaysLeft(nextSchedule.date) < 0}
                                     allowGuests={nextSchedule.allowGuests}
+                                    hasTeamFormation={!!nextSchedule.teamFormation}
+                                    formationConfirmed={nextSchedule.formationConfirmed}
                                     onVoteUpdate={() => {
                                         // Refresh data when vote is updated
                                         if (currentUser?.id) {

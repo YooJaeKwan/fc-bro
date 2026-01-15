@@ -20,30 +20,63 @@ async function main() {
 
     // 2. 데이터 정리
     console.log('🧹 기존 테스트 데이터 정리 중...')
+    // 테스트 사용자의 참석 기록 삭제
     await prisma.scheduleAttendance.deleteMany({ where: { user: { kakaoId: { startsWith: 'test_kakao_' } } } })
     await prisma.userBadge.deleteMany({ where: { user: { kakaoId: { startsWith: 'test_kakao_' } } } })
     await prisma.user.deleteMany({ where: { kakaoId: { startsWith: 'test_kakao_' } } })
+    // 테스트 일정 삭제 전에 해당 일정의 모든 참석 기록 삭제
+    const testSchedules = await prisma.schedule.findMany({ where: { title: { contains: '경기' } } })
+    for (const schedule of testSchedules) {
+        await prisma.scheduleAttendance.deleteMany({ where: { scheduleId: schedule.id } })
+    }
     await prisma.schedule.deleteMany({ where: { title: { contains: '경기' } } }) // 테스트 일정 삭제
 
-    // 사용자 30명 생성
+    // 사용자 40명 생성
     const users = []
     console.log('👥 사용자 생성 중...')
 
-    for (let i = 1; i <= 30; i++) {
+    // 세글자 한국 이름 목록
+    const koreanNames = [
+        '김민준', '이서준', '박도윤', '최예준', '정지호', '강시우', '조우진', '윤준서', '장현우', '임승현',
+        '한지훈', '오동현', '신서진', '노태현', '유하준', '권준혁', '홍성민', '문재원', '안지성', '배승우',
+        '백준호', '허민재', '전도현', '송승재', '곽지환', '황현준', '서지안', '양재민', '류동욱', '심우성',
+        '차민혁', '손정훈', '주혁준', '진승호', '민태준', '표기현', '엄도영', '남시현', '마재훈', '원성준'
+    ]
+
+    // 포지션 목록
+    const positions = ['GK', 'CB', 'LB', 'RB', 'CDM', 'CM', 'CAM', 'ST', 'LWF', 'RWF', 'CF']
+
+    // 랜덤 부포지션 선택 (0~2개, 주포지션 제외)
+    const getRandomSubPositions = (mainPos: string): string[] => {
+        const availablePositions = positions.filter(p => p !== mainPos)
+        const count = Math.floor(Math.random() * 3) // 0, 1, 또는 2개
+
+        if (count === 0) return []
+
+        const shuffled = [...availablePositions].sort(() => Math.random() - 0.5)
+        return shuffled.slice(0, count)
+    }
+
+    for (let i = 0; i < 40; i++) {
+        const mainPosition = positions[i % positions.length]
+        const subPositions = getRandomSubPositions(mainPosition)
+        const level = Math.floor(Math.random() * 10) + 1 // 1~10 레벨
+
         const user = await prisma.user.create({
             data: {
-                kakaoId: `test_kakao_${i}`,
+                kakaoId: `test_kakao_${i + 1}`,
                 provider: 'kakao',
-                providerId: `test_kakao_${i}`,
-                nickname: `선수${i}`,
-                realName: `선수${i}`,
-                email: `testuser${i}@example.com`,
-                phoneNumber: `010-0000-${String(i).padStart(4, '0')}`,
-                birthYear: '1990',
-                city: '서울',
-                preferredPosition: ['FW', 'MF', 'DF', 'GK'][Math.floor(Math.random() * 4)],
+                providerId: `test_kakao_${i + 1}`,
+                nickname: koreanNames[i],
+                realName: koreanNames[i],
+                email: `testuser${i + 1}@example.com`,
+                phoneNumber: `010-0000-${String(i + 1).padStart(4, '0')}`,
+                birthYear: String(1985 + Math.floor(Math.random() * 15)), // 1985~1999
+                city: ['서울', '수원', '성남', '용인', '안양', '의왕', '과천'][Math.floor(Math.random() * 7)],
+                preferredPosition: mainPosition,
+                subPositions: subPositions,
                 role: 'MEMBER',
-                level: Math.floor(Math.random() * 5) + 1,
+                level: level,
                 isActive: true
             }
         })

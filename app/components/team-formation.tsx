@@ -232,7 +232,7 @@ export function TeamFormation({
 
                     return (
                       <div key={category} className="space-y-1">
-                        <div className="text-xs font-semibold text-gray-600 border-b pb-1">
+                        <div className="text-xs font-semibold text-gray-600 border-b pb-1 text-left">
                           {category} ({players.length})
                         </div>
                         {players.map((player: any) => (
@@ -313,7 +313,7 @@ export function TeamFormation({
 
                     return (
                       <div key={category} className="space-y-1">
-                        <div className="text-xs font-semibold text-gray-600 border-b pb-1">
+                        <div className="text-xs font-semibold text-gray-600 border-b pb-1 text-left">
                           {category} ({players.length})
                         </div>
                         {players.map((player: any) => (

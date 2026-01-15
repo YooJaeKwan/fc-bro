@@ -610,6 +610,7 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
                     isPastSchedule={isPastSchedule}
                     allowGuests={false}
                     hasTeamFormation={!!schedule.teamFormation}
+                    formationConfirmed={schedule.formationConfirmed}
                     isManagerMode={isManagerMode}
                     onVoteUpdate={() => {
                       onVoteUpdate?.()

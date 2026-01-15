@@ -25,6 +25,7 @@ interface AttendanceVotingProps {
   isPastSchedule: boolean
   allowGuests?: boolean
   hasTeamFormation?: boolean
+  formationConfirmed?: boolean
   isManagerMode?: boolean
   onVoteUpdate: () => void
 }
@@ -53,6 +54,7 @@ export function AttendanceVoting({
   isPastSchedule,
   allowGuests = false,
   hasTeamFormation = false,
+  formationConfirmed = false,
   isManagerMode = false,
   onVoteUpdate
 }: AttendanceVotingProps) {
@@ -401,15 +403,21 @@ export function AttendanceVoting({
 
       {/* 투표 버튼 (지난 일정이 아닐 때만) */}
       <div className="space-y-2">
+        {/* 팀편성 확정 시 안내 메시지 */}
+        {formationConfirmed && (
+          <div className="text-xs text-center text-amber-600 bg-amber-50 border border-amber-200 rounded-md px-2 py-1.5">
+            팀편성이 확정되어 투표가 마감되었습니다
+          </div>
+        )}
         <div className="flex gap-2">
           <Button
             onClick={() => handleVote('ATTENDING')}
-            disabled={isSubmitting || myStatus === 'attending'}
+            disabled={isSubmitting || myStatus === 'attending' || formationConfirmed}
             variant={myStatus === 'attending' ? 'default' : 'outline'}
             className={`flex-1 ${myStatus === 'attending'
-                ? 'bg-green-600 hover:bg-green-700 text-white'
-                : 'hover:bg-green-50 hover:text-green-700'
-              }`}
+              ? 'bg-green-600 hover:bg-green-700 text-white'
+              : 'hover:bg-green-50 hover:text-green-700'
+              } ${formationConfirmed ? 'opacity-50 cursor-not-allowed' : ''}`}
             size="sm"
           >
             <Check className="h-4 w-4 mr-1" />
@@ -417,12 +425,12 @@ export function AttendanceVoting({
           </Button>
           <Button
             onClick={() => handleVote('NOT_ATTENDING')}
-            disabled={isSubmitting || myStatus === 'not_attending'}
+            disabled={isSubmitting || myStatus === 'not_attending' || formationConfirmed}
             variant={myStatus === 'not_attending' ? 'default' : 'outline'}
             className={`flex-1 ${myStatus === 'not_attending'
-                ? 'bg-red-600 hover:bg-red-700 text-white'
-                : 'hover:bg-red-50 hover:text-red-700'
-              }`}
+              ? 'bg-red-600 hover:bg-red-700 text-white'
+              : 'hover:bg-red-50 hover:text-red-700'
+              } ${formationConfirmed ? 'opacity-50 cursor-not-allowed' : ''}`}
             size="sm"
           >
             <X className="h-4 w-4 mr-1" />
@@ -450,8 +458,8 @@ export function AttendanceVoting({
               <Button
                 variant="outline"
                 size="sm"
-                className="w-full"
-                disabled={isPastSchedule}
+                className={`w-full ${formationConfirmed ? 'opacity-50 cursor-not-allowed' : ''}`}
+                disabled={isPastSchedule || formationConfirmed}
               >
                 <UserPlus className="h-4 w-4 mr-1" />
                 게스트 참석
@@ -534,8 +542,8 @@ export function AttendanceVoting({
                                   <label
                                     htmlFor={`position-${pos.value}`}
                                     className={`text-sm leading-none cursor-pointer ${guestPositions.length >= 3 && !guestPositions.includes(pos.value)
-                                        ? 'opacity-50 cursor-not-allowed'
-                                        : ''
+                                      ? 'opacity-50 cursor-not-allowed'
+                                      : ''
                                       }`}
                                   >
                                     {pos.value}
@@ -607,8 +615,8 @@ export function AttendanceVoting({
             <DialogTrigger asChild>
               <button
                 className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md border transition-colors ${stats.attending > 0
-                    ? 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100'
-                    : 'bg-gray-50 border-gray-200 text-gray-500'
+                  ? 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100'
+                  : 'bg-gray-50 border-gray-200 text-gray-500'
                   }`}
                 disabled={isPastSchedule}
               >
@@ -677,8 +685,8 @@ export function AttendanceVoting({
             <DialogTrigger asChild>
               <button
                 className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md border transition-colors ${stats.notAttending > 0
-                    ? 'bg-red-50 border-red-200 text-red-700 hover:bg-red-100'
-                    : 'bg-gray-50 border-gray-200 text-gray-500'
+                  ? 'bg-red-50 border-red-200 text-red-700 hover:bg-red-100'
+                  : 'bg-gray-50 border-gray-200 text-gray-500'
                   }`}
                 disabled={isPastSchedule}
               >
@@ -747,8 +755,8 @@ export function AttendanceVoting({
             <DialogTrigger asChild>
               <button
                 className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md border transition-colors ${stats.pending > 0
-                    ? 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100'
-                    : 'bg-gray-50 border-gray-200 text-gray-500'
+                  ? 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100'
+                  : 'bg-gray-50 border-gray-200 text-gray-500'
                   }`}
                 disabled={isPastSchedule}
               >

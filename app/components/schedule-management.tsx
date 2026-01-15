@@ -1061,6 +1061,7 @@ export function ScheduleManagement({
                           isPastSchedule={isPastSchedule}
                           allowGuests={nextUpcomingSchedule.allowGuests}
                           hasTeamFormation={!!nextUpcomingSchedule.teamFormation}
+                          formationConfirmed={nextUpcomingSchedule.formationConfirmed}
                           isManagerMode={isManagerMode}
                           onVoteUpdate={() => refreshSchedule(nextUpcomingSchedule.id)}
                         />

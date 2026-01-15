@@ -204,7 +204,7 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-3">
           {/* Desktop Tabs */}
           <div className="hidden lg:block">
-            <TabsList className="grid w-full grid-cols-4 lg:w-auto">
+            <TabsList className="flex w-auto gap-1">
               {tabItems.map((item) => {
                 const Icon = item.icon
                 return (
