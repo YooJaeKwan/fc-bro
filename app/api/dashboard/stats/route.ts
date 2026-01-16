@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     const now = new Date()
     now.setHours(0, 0, 0, 0)
 
-    // 1. 다음 일정 (가장 가까운 미래 일정 1개)
+    // 1. 다음 일정 (가장 가까운 미래 일정 1개) - 모든 참석 정보 포함
     const nextScheduleRequest = prisma.schedule.findFirst({
       where: {
         matchDate: {
@@ -26,9 +26,7 @@ export async function GET(request: NextRequest) {
         matchDate: 'asc'
       },
       include: {
-        attendances: {
-          where: { userId } // 내 참석 정보만 가져옴
-        }
+        attendances: true // 모든 참석 정보 가져옴 (투표 통계용)
       }
     })
 
@@ -136,13 +134,29 @@ export async function GET(request: NextRequest) {
     // 2. 다음 일정 가공
     let formattedNextSchedule = null
     if (nextSchedule) {
+      // 참석 통계 계산 (AttendanceVoting 컴포넌트용)
+      const attendances = nextSchedule.attendances || []
+      const attending = attendances.filter((a: any) => a.status === 'ATTENDING').length
+      const notAttending = attendances.filter((a: any) => a.status === 'NOT_ATTENDING').length
+      const pending = attendances.filter((a: any) => a.status === 'PENDING').length
+
+      // 현재 사용자의 참석 상태 찾기
+      const myAttendance = attendances.find((a: any) => a.userId === userId)
+
       formattedNextSchedule = {
         ...nextSchedule,
         // KST 기준 날짜 변환 (UTC+9)
         date: new Date(nextSchedule.matchDate.getTime() + 9 * 60 * 60 * 1000).toISOString().split('T')[0],
         time: nextSchedule.startTime,
-        // 필요한 필드만
-        myAttendance: nextSchedule.attendances[0]?.status || 'PENDING'
+        // 현재 사용자의 참석 상태
+        myAttendance: myAttendance?.status || 'PENDING',
+        // 참석 통계 (AttendanceVoting 초기 데이터)
+        attendanceStats: {
+          attending,
+          notAttending,
+          pending,
+          total: attending + notAttending + pending
+        }
       }
     }
 

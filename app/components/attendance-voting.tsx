@@ -31,6 +31,7 @@ interface AttendanceVotingProps {
   // Performance optimization: pre-fetched data from parent
   initialAttendees?: Attendee[]
   initialStats?: AttendanceStats
+  initialMyStatus?: 'attending' | 'not_attending' | 'pending'
 }
 
 interface AttendanceStats {
@@ -61,10 +62,16 @@ export function AttendanceVoting({
   isManagerMode = false,
   onVoteUpdate,
   initialAttendees,
-  initialStats
+  initialStats,
+  initialMyStatus
 }: AttendanceVotingProps) {
   // Initialize state from props if provided (performance optimization)
   const getInitialMyStatus = (): 'attending' | 'not_attending' | 'pending' => {
+    // First check initialMyStatus prop (from dashboard)
+    if (initialMyStatus) {
+      return initialMyStatus
+    }
+    // Then check initialAttendees (from schedule card)
     if (initialAttendees) {
       const myAttendance = initialAttendees.find(a => a.userId === currentUserId && !a.isGuest)
       return myAttendance?.status || 'pending'
@@ -81,8 +88,8 @@ export function AttendanceVoting({
     total: 0
   })
   const [attendees, setAttendees] = useState<Attendee[]>(initialAttendees || [])
-  // Skip loading if initial data is provided
-  const [isLoading, setIsLoading] = useState(!initialAttendees)
+  // Skip loading if initial data is provided (either attendees or stats)
+  const [isLoading, setIsLoading] = useState(!initialAttendees && !initialStats)
   const [detailDialogType, setDetailDialogType] = useState<'attending' | 'not_attending' | 'pending' | null>(null)
   const [isGuestDialogOpen, setIsGuestDialogOpen] = useState(false)
   const [guestName, setGuestName] = useState('')

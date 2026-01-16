@@ -257,6 +257,8 @@ export function DashboardHome({ currentUser }: DashboardHomeProps) {
                                     allowGuests={nextSchedule.allowGuests}
                                     hasTeamFormation={!!nextSchedule.teamFormation}
                                     formationConfirmed={nextSchedule.formationConfirmed}
+                                    initialStats={nextSchedule.attendanceStats}
+                                    initialMyStatus={nextSchedule.myAttendance?.toLowerCase() as 'attending' | 'not_attending' | 'pending'}
                                     onVoteUpdate={() => {
                                         // Refresh data when vote is updated
                                         if (currentUser?.id) {
