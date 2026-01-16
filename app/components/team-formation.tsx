@@ -216,10 +216,8 @@ export function TeamFormation({
                 Object.entries(yellowGrouped)
                   .filter(([category]) => category !== '미정' && yellowGrouped[category] && yellowGrouped[category].length > 0)
                   .sort(([a], [b]) => {
-                    // 게스트는 마지막에
-                    if (a === '게스트') return 1
-                    if (b === '게스트') return -1
-                    const order = ['공격수', '미드필더', '수비수', '골키퍼']
+                    // 공격수 > 미드필더 > 수비수 > 골키퍼 > 게스트 순서
+                    const order = ['공격수', '미드필더', '수비수', '골키퍼', '게스트']
                     const aIndex = order.indexOf(a)
                     const bIndex = order.indexOf(b)
                     if (aIndex === -1 && bIndex === -1) return 0
@@ -297,10 +295,8 @@ export function TeamFormation({
                 Object.entries(blueGrouped)
                   .filter(([category]) => category !== '미정' && blueGrouped[category] && blueGrouped[category].length > 0)
                   .sort(([a], [b]) => {
-                    // 게스트는 마지막에
-                    if (a === '게스트') return 1
-                    if (b === '게스트') return -1
-                    const order = ['공격수', '미드필더', '수비수', '골키퍼']
+                    // 공격수 > 미드필더 > 수비수 > 골키퍼 > 게스트 순서
+                    const order = ['공격수', '미드필더', '수비수', '골키퍼', '게스트']
                     const aIndex = order.indexOf(a)
                     const bIndex = order.indexOf(b)
                     if (aIndex === -1 && bIndex === -1) return 0

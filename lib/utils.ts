@@ -67,20 +67,29 @@ export const generateKakaoShareText = (schedule: any, isManagerMode: boolean = f
     text += `📢 ${schedule.description}\n`
   }
 
-  // 팀 편성이 있고 (관리자이거나 확정된 경우)
-  if (schedule.teamFormation && (isManagerMode || schedule.formationConfirmed)) {
-    text += `\n[팀 편성]\n`
+  // 휴식시간 안내
+  text += `\n[휴식시간]\n`
+  text += `1Q 뒤 5분 휴식 / 2Q 뒤 10분 휴식 / 3Q 뒤 5분 휴식으로 진행.\n`
+  text += `휴식시간이 짧으니 팀내 휴식인원을 빠르게 결정 후 경기할 수 있도록 부탁 드립니다.`
 
-    const yellowTeam = sortByPosition(schedule.teamFormation.yellowTeam || [])
-    const blueTeam = sortByPosition(schedule.teamFormation.blueTeam || [])
+  // 유니폼 안내
+  text += `\n\n[유니폼 관련]\n`
+  text += `지인분들을 위해 회원분들은 유니폼을 2가지 모두 지참 부탁드립니다.`
 
-    text += `🟡 Yellow Team (${yellowTeam.length}명)\n`
-    text += yellowTeam.map((p: any) => `${p.name}`).join(', ') || '미정'
-    text += `\n\n`
+  // // 팀 편성이 있고 (관리자이거나 확정된 경우) - 유니폼 안내 아래에 표시
+  // if (schedule.teamFormation && (isManagerMode || schedule.formationConfirmed)) {
+  //   text += `\n\n[팀 편성]\n`
 
-    text += `🔵 Blue Team (${blueTeam.length}명)\n`
-    text += blueTeam.map((p: any) => `${p.name}`).join(', ') || '미정'
-  }
+  //   const yellowTeam = sortByPosition(schedule.teamFormation.yellowTeam || [])
+  //   const blueTeam = sortByPosition(schedule.teamFormation.blueTeam || [])
+
+  //   text += `🟡 Yellow Team (${yellowTeam.length}명)\n`
+  //   text += yellowTeam.map((p: any) => `${p.name}`).join(', ') || '미정'
+  //   text += `\n\n`
+
+  //   text += `🔵 Blue Team (${blueTeam.length}명)\n`
+  //   text += blueTeam.map((p: any) => `${p.name}`).join(', ') || '미정'
+  // }
 
   return text
 }

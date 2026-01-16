@@ -438,7 +438,7 @@ export function AttendanceVoting({
           </Button>
         </div>
 
-        {/* 게스트 참석 버튼 (게스트 허용된 일정일 때만) */}
+        {/* 게스트 초대 버튼 (게스트 허용된 일정일 때만) */}
         {allowGuests && (
           <Dialog
             open={isGuestDialogOpen}
@@ -462,12 +462,12 @@ export function AttendanceVoting({
                 disabled={isPastSchedule || formationConfirmed}
               >
                 <UserPlus className="h-4 w-4 mr-1" />
-                게스트 참석
+                게스트 초대
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-md">
               <DialogHeader>
-                <DialogTitle>게스트 참석 등록</DialogTitle>
+                <DialogTitle>게스트 초대 등록</DialogTitle>
                 <DialogDescription>
                   게스트의 이름과 레벨을 입력해주세요.
                 </DialogDescription>

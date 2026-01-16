@@ -149,10 +149,20 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
   // 포지션별 색상 반환 함수
   const getPositionColor = (position: string) => {
     const pos = position.toUpperCase()
+    // 골키퍼
     if (pos === 'GK') return 'border-purple-400/50 text-purple-300 bg-purple-400/10'
-    if (pos.includes('B') || pos.includes('D')) return 'border-green-400/50 text-green-300 bg-green-400/10' // DF
-    if (pos.includes('M') || pos.includes('C')) return 'border-blue-400/50 text-blue-300 bg-blue-400/10' // MF
-    if (pos.includes('W') || pos.includes('F') || pos.includes('S')) return 'border-red-400/50 text-red-300 bg-red-400/10' // FW
+    // 수비수 (CB, LB, RB, LRB, LRCB 등) - 파란색
+    if (pos === 'CB' || pos === 'LB' || pos === 'RB' || pos === 'LRB' || pos === 'LRCB' || pos === 'SW') {
+      return 'border-blue-400/50 text-blue-300 bg-blue-400/10'
+    }
+    // 미드필더 (CM, CDM, CAM 등) - 초록색
+    if (pos === 'CM' || pos === 'CDM' || pos === 'CAM' || pos === 'DM' || pos === 'AM' || pos === 'LM' || pos === 'RM') {
+      return 'border-green-400/50 text-green-300 bg-green-400/10'
+    }
+    // 공격수 (ST, CF, LWF, RWF, SS, LW, RW 등)
+    if (pos === 'ST' || pos === 'CF' || pos === 'LWF' || pos === 'RWF' || pos === 'SS' || pos === 'LW' || pos === 'RW' || pos === 'FW') {
+      return 'border-red-400/50 text-red-300 bg-red-400/10'
+    }
     return 'border-slate-400/50 text-slate-300 bg-slate-400/10' // Default
   }
 
@@ -235,7 +245,7 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
                 <span className="text-slate-500 text-sm font-bold mb-2">VS</span>
                 <div className="h-12 w-px bg-slate-700/50"></div>
 
-                {schedule.teamFormation && (isManagerMode || schedule.formationConfirmed) && schedule.type === 'internal' && (
+                {schedule.teamFormation && (isManagerMode || schedule.formationConfirmed || isPastSchedule) && schedule.type === 'internal' && (
                   <Button
                     variant="ghost"
                     size="sm"
@@ -263,7 +273,7 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
             </div>
 
             {/* 팀 명단 */}
-            {schedule.teamFormation && (isManagerMode || schedule.formationConfirmed) && isRosterExpanded && (
+            {schedule.teamFormation && (isManagerMode || schedule.formationConfirmed || isPastSchedule) && isRosterExpanded && (
               <div className="mb-4 pt-4 border-t border-slate-700/50">
                 <div className="grid grid-cols-2 gap-4 text-xs">
                   <div className="space-y-1">
@@ -432,7 +442,7 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
                           <div className="h-8 w-px bg-slate-700/50"></div>
 
                           {/* 통합 명단 버튼 */}
-                          {schedule.teamFormation && (isManagerMode || schedule.formationConfirmed) && schedule.type === 'internal' && (
+                          {schedule.teamFormation && (isManagerMode || schedule.formationConfirmed || isPastSchedule) && schedule.type === 'internal' && (
                             <Button
                               variant="ghost"
                               size="sm"
@@ -461,7 +471,7 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
                       </div>
 
                       {/* 팀 명단 표시 - 좌우 병렬 */}
-                      {schedule.teamFormation && (isManagerMode || schedule.formationConfirmed) && isRosterExpanded && (
+                      {schedule.teamFormation && (isManagerMode || schedule.formationConfirmed || isPastSchedule) && isRosterExpanded && (
                         <div className="mt-4 pt-3 border-t border-slate-700/50">
                           <div className="grid grid-cols-2 gap-4 text-xs">
                             {/* Yellow Team */}
