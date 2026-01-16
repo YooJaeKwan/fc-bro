@@ -28,6 +28,9 @@ interface AttendanceVotingProps {
   formationConfirmed?: boolean
   isManagerMode?: boolean
   onVoteUpdate: () => void
+  // Performance optimization: pre-fetched data from parent
+  initialAttendees?: Attendee[]
+  initialStats?: AttendanceStats
 }
 
 interface AttendanceStats {
@@ -56,18 +59,30 @@ export function AttendanceVoting({
   hasTeamFormation = false,
   formationConfirmed = false,
   isManagerMode = false,
-  onVoteUpdate
+  onVoteUpdate,
+  initialAttendees,
+  initialStats
 }: AttendanceVotingProps) {
-  const [myStatus, setMyStatus] = useState<'attending' | 'not_attending' | 'pending'>('pending')
+  // Initialize state from props if provided (performance optimization)
+  const getInitialMyStatus = (): 'attending' | 'not_attending' | 'pending' => {
+    if (initialAttendees) {
+      const myAttendance = initialAttendees.find(a => a.userId === currentUserId && !a.isGuest)
+      return myAttendance?.status || 'pending'
+    }
+    return 'pending'
+  }
+
+  const [myStatus, setMyStatus] = useState<'attending' | 'not_attending' | 'pending'>(getInitialMyStatus)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [stats, setStats] = useState<AttendanceStats>({
+  const [stats, setStats] = useState<AttendanceStats>(initialStats || {
     attending: 0,
     notAttending: 0,
     pending: 0,
     total: 0
   })
-  const [attendees, setAttendees] = useState<Attendee[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [attendees, setAttendees] = useState<Attendee[]>(initialAttendees || [])
+  // Skip loading if initial data is provided
+  const [isLoading, setIsLoading] = useState(!initialAttendees)
   const [detailDialogType, setDetailDialogType] = useState<'attending' | 'not_attending' | 'pending' | null>(null)
   const [isGuestDialogOpen, setIsGuestDialogOpen] = useState(false)
   const [guestName, setGuestName] = useState('')
@@ -166,7 +181,8 @@ export function AttendanceVoting({
   }
 
   useEffect(() => {
-    if (scheduleId && currentUserId) {
+    // Skip initial fetch if data was provided via props
+    if (scheduleId && currentUserId && !initialAttendees) {
       fetchAttendance()
     }
   }, [scheduleId, currentUserId])

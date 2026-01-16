@@ -626,6 +626,17 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
                       onVoteUpdate?.()
                       onAttendanceUpdate(schedule.id)
                     }}
+                    initialAttendees={schedule.attendees?.map((att: any) => ({
+                      userId: att.userId,
+                      name: att.name,
+                      status: att.status as 'attending' | 'not_attending' | 'pending',
+                      position: att.position,
+                      subPositions: att.subPositions,
+                      profileImage: att.profileImage || null,
+                      isGuest: att.isGuest || false,
+                      invitedBy: att.invitedBy
+                    }))}
+                    initialStats={stats}
                   />
                 </div>
               )}
