@@ -32,6 +32,7 @@ import { TeamFormation } from "./team-formation"
 interface ScheduleManagementProps {
   isManagerMode: boolean
   currentUser?: any
+  viewMode?: 'upcoming' | 'past'  // 경기예정 또는 경기결과 모드
   isAddingSchedule?: boolean
   setIsAddingSchedule?: (value: boolean) => void
   isEditingSchedule?: boolean
@@ -44,6 +45,7 @@ interface ScheduleManagementProps {
 export function ScheduleManagement({
   isManagerMode,
   currentUser,
+  viewMode = 'upcoming',  // 기본값: 경기예정
   isAddingSchedule: externalIsAddingSchedule,
   setIsAddingSchedule: externalSetIsAddingSchedule,
   isEditingSchedule: externalIsEditingSchedule,
@@ -537,6 +539,39 @@ export function ScheduleManagement({
 
   const nextUpcomingSchedule = getNextUpcomingSchedule()
 
+  // viewMode에 따라 표시할 스케줄 필터링 (경기 시간 기준)
+  const filteredSchedules = schedules.filter(schedule => {
+    const [year, month, day] = schedule.date.split('-')
+    const [hours, minutes] = (schedule.time || '23:59').split(':')
+    const matchDateTime = new Date(Number(year), Number(month) - 1, Number(day), Number(hours), Number(minutes))
+    const now = new Date()
+
+    if (viewMode === 'past') {
+      // 경기 시간이 지난 경기
+      return matchDateTime <= now
+    } else {
+      // 경기 시간이 지나지 않은 경기 (upcoming)
+      // 다음 일정은 상단에 표시되므로 목록에서 제외
+      if (nextUpcomingSchedule && schedule.id === nextUpcomingSchedule.id) {
+        return false
+      }
+      return matchDateTime > now
+    }
+  }).sort((a, b) => {
+    const [yearA, monthA, dayA] = a.date.split('-')
+    const [yearB, monthB, dayB] = b.date.split('-')
+    const dateA = new Date(Number(yearA), Number(monthA) - 1, Number(dayA))
+    const dateB = new Date(Number(yearB), Number(monthB) - 1, Number(dayB))
+
+    if (viewMode === 'past') {
+      // 경기결과: 최신순 (내림차순)
+      return dateB.getTime() - dateA.getTime()
+    } else {
+      // 경기예정: 가까운 순 (오름차순)
+      return dateA.getTime() - dateB.getTime()
+    }
+  })
+
   const calculateDaysLeft = (scheduleDate: string) => {
     // 한국시간 기준으로 D-Day 계산
     const today = new Date()
@@ -958,8 +993,8 @@ export function ScheduleManagement({
         </div>
       )}
 
-      {/* 다음 일정 */}
-      {nextUpcomingSchedule && (
+      {/* 다음 일정 (경기예정 모드에서만 표시) */}
+      {viewMode === 'upcoming' && nextUpcomingSchedule && (
         <div className="space-y-2">
           {/* <h3 className="text-lg font-semibold">다음 일정</h3> */}
           <Card className="border-l-4 border-l-blue-500">
@@ -1223,134 +1258,76 @@ export function ScheduleManagement({
         </div>
       )}
 
-      {/* 일정 목록 - 이후 일정과 지난 일정으로 분류 */}
+      {/* 일정 목록 - viewMode에 따라 표시 */}
       <div className="space-y-6">
-        {/* 이후 일정 */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold">이후 일정</h3>
-          {(() => {
-            const now = new Date()
-            now.setHours(0, 0, 0, 0)
-
-            const upcomingSchedules = schedules
-              .filter(schedule => {
-                if (schedule.id === nextUpcomingSchedule?.id) return false
-                const [year, month, day] = schedule.date.split('-')
-                const scheduleDate = new Date(Number(year), Number(month) - 1, Number(day))
-                scheduleDate.setHours(0, 0, 0, 0)
-                return scheduleDate >= now
-              })
-              .sort((a, b) => {
-                // 날짜순으로 정렬 (가까운 일정이 위쪽)
-                const [yearA, monthA, dayA] = a.date.split('-')
-                const [yearB, monthB, dayB] = b.date.split('-')
-                const dateA = new Date(Number(yearA), Number(monthA) - 1, Number(dayA))
-                const dateB = new Date(Number(yearB), Number(monthB) - 1, Number(dayB))
-                return dateA.getTime() - dateB.getTime() // 가까운 일정이 위에
-              })
-
-            if (upcomingSchedules.length === 0) {
-              return (
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="text-center">
-                      <div className="text-muted-foreground">이후 일정이 없습니다.</div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )
-            }
-
-            return upcomingSchedules.map((schedule) => (
-              <ScheduleCard
-                key={schedule.id}
-                schedule={schedule}
-                currentUser={currentUser}
-                isManagerMode={isManagerMode}
-                isUpdating={isScheduleUpdating(schedule.id)}
-                onAttendanceUpdate={handleAttendanceUpdate}
-                onAttendanceStatsUpdate={handleAttendanceStatsUpdate}
-                onFormationReset={handleFormationReset}
-                onGuestStatusUpdate={updateScheduleGuestStatus}
-                onDeleteSchedule={handleDeleteSchedule}
-                onEditSchedule={handleEditSchedule}
-                onVoteUpdate={handleVoteUpdate}
-                onEnterResult={handleOpenResultDialog}
-              />
-            ))
-          })()}
-        </div>
-
-        {/* 지난 일정 */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold">지난 일정</h3>
-          {(() => {
-            const now = new Date()
-            now.setHours(0, 0, 0, 0)
-
-            const pastSchedules = schedules
-              .filter(schedule => {
-                const [year, month, day] = schedule.date.split('-')
-                const scheduleDate = new Date(Number(year), Number(month) - 1, Number(day))
-                scheduleDate.setHours(0, 0, 0, 0)
-                return scheduleDate < now
-              })
-              .sort((a, b) => {
-                // 날짜순으로 정렬 (최근 일정이 위쪽, 오래된 일정이 아래쪽)
-                const [yearA, monthA, dayA] = a.date.split('-')
-                const [yearB, monthB, dayB] = b.date.split('-')
-                const dateA = new Date(Number(yearA), Number(monthA) - 1, Number(dayA))
-                const dateB = new Date(Number(yearB), Number(monthB) - 1, Number(dayB))
-                return dateB.getTime() - dateA.getTime() // 최근 일정이 위에
-              })
-
-            if (pastSchedules.length === 0) {
-              return (
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="text-center">
-                      <div className="text-muted-foreground">지난 일정이 없습니다.</div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )
-            }
-
-            return pastSchedules.map((schedule) => (
-              <ScheduleCard
-                key={schedule.id}
-                schedule={schedule}
-                currentUser={currentUser}
-                isManagerMode={isManagerMode}
-                isUpdating={isScheduleUpdating(schedule.id)}
-                onAttendanceUpdate={handleAttendanceUpdate}
-                onAttendanceStatsUpdate={handleAttendanceStatsUpdate}
-                onFormationReset={handleFormationReset}
-                onGuestStatusUpdate={updateScheduleGuestStatus}
-                onDeleteSchedule={handleDeleteSchedule}
-                onEditSchedule={handleEditSchedule}
-                onVoteUpdate={handleVoteUpdate}
-                onEnterResult={handleOpenResultDialog}
-              />
-            ))
-          })()}
-        </div>
-
-        {/* 일정이 하나도 없는 경우 */}
-        {schedules.length === 0 && (
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center space-y-4">
-                <div className="text-muted-foreground">등록된 일정이 없습니다.</div>
-                {isManagerMode && (
-                  <Button onClick={() => setIsAddingSchedule(true)}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    첫 일정 등록하기
-                  </Button>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+        {viewMode === 'upcoming' ? (
+          /* 경기예정 모드 */
+          <div className="space-y-4">
+            {filteredSchedules.length === 0 ? (
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="text-center space-y-4">
+                    <div className="text-muted-foreground">예정된 경기가 없습니다.</div>
+                    {isManagerMode && (
+                      <Button onClick={() => setIsAddingSchedule(true)}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        새 일정 등록하기
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              filteredSchedules.map((schedule) => (
+                <ScheduleCard
+                  key={schedule.id}
+                  schedule={schedule}
+                  currentUser={currentUser}
+                  isManagerMode={isManagerMode}
+                  isUpdating={isScheduleUpdating(schedule.id)}
+                  onAttendanceUpdate={handleAttendanceUpdate}
+                  onAttendanceStatsUpdate={handleAttendanceStatsUpdate}
+                  onFormationReset={handleFormationReset}
+                  onGuestStatusUpdate={updateScheduleGuestStatus}
+                  onDeleteSchedule={handleDeleteSchedule}
+                  onEditSchedule={handleEditSchedule}
+                  onVoteUpdate={handleVoteUpdate}
+                  onEnterResult={handleOpenResultDialog}
+                />
+              ))
+            )}
+          </div>
+        ) : (
+          /* 경기결과 모드 */
+          <div className="space-y-4">
+            {filteredSchedules.length === 0 ? (
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="text-center">
+                    <div className="text-muted-foreground">지난 경기가 없습니다.</div>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              filteredSchedules.map((schedule) => (
+                <ScheduleCard
+                  key={schedule.id}
+                  schedule={schedule}
+                  currentUser={currentUser}
+                  isManagerMode={isManagerMode}
+                  isUpdating={isScheduleUpdating(schedule.id)}
+                  onAttendanceUpdate={handleAttendanceUpdate}
+                  onAttendanceStatsUpdate={handleAttendanceStatsUpdate}
+                  onFormationReset={handleFormationReset}
+                  onGuestStatusUpdate={updateScheduleGuestStatus}
+                  onDeleteSchedule={handleDeleteSchedule}
+                  onEditSchedule={handleEditSchedule}
+                  onVoteUpdate={handleVoteUpdate}
+                  onEnterResult={handleOpenResultDialog}
+                />
+              ))
+            )}
+          </div>
         )}
       </div>
       <MatchResultDialog

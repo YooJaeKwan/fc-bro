@@ -69,7 +69,8 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
 
   const tabItems = [
     { value: "dashboard", label: "대시보드", icon: BarChart3 },
-    { value: "schedule", label: "경기일정", icon: Calendar },
+    { value: "schedule", label: "경기예정", icon: Calendar },
+    { value: "results", label: "경기결과", icon: Trophy },
     ...(isManagerMode ? [{ value: "attendance", label: "출석부", icon: ClipboardList }] : []),
     { value: "album", label: "앨범", icon: ImageIcon },
     { value: "team", label: "팀멤버", icon: Users },
@@ -222,7 +223,11 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
           </TabsContent>
 
           <TabsContent value="schedule">
-            <ScheduleManagement isManagerMode={isManagerMode} currentUser={user} />
+            <ScheduleManagement isManagerMode={isManagerMode} currentUser={user} viewMode="upcoming" />
+          </TabsContent>
+
+          <TabsContent value="results">
+            <ScheduleManagement isManagerMode={isManagerMode} currentUser={user} viewMode="past" />
           </TabsContent>
 
           <TabsContent value="attendance" className="mt-6">
