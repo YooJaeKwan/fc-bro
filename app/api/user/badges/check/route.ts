@@ -11,11 +11,16 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
         }
 
-        // 1. 종료된 스케줄 조회 (과거 일정)
+        // 1. 올해 종료된 스케줄 조회 (과거 일정, 올해만)
         const now = new Date()
+        const currentYear = now.getFullYear()
+        const yearStart = new Date(currentYear, 0, 1)
+        yearStart.setHours(0, 0, 0, 0)
+
         const completedSchedules = await prisma.schedule.findMany({
             where: {
                 matchDate: {
+                    gte: yearStart,
                     lte: now
                 }
             },

@@ -45,10 +45,17 @@ async function fixBadges() {
         const userId = userBadge.userId
         const userName = userBadge.user?.nickname || userBadge.user?.realName || userId
 
-        // 해당 유저가 참석한 완료된 스케줄 조회
+        // 해당 유저가 참석한 올해 완료된 스케줄 조회
+        const currentYear = new Date().getFullYear()
+        const yearStart = new Date(currentYear, 0, 1)
+        yearStart.setHours(0, 0, 0, 0)
+
         const schedules = await prisma.schedule.findMany({
             where: {
-                matchDate: { lte: new Date() }
+                matchDate: {
+                    gte: yearStart,
+                    lte: new Date()
+                }
             },
             include: {
                 attendances: {
