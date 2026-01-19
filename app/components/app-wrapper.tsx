@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { AlertCircle } from "lucide-react"
@@ -19,42 +19,11 @@ export function AppWrapper() {
   const [userInfo, setUserInfo] = useState(null)
   const [error, setError] = useState("")
 
-  const { loginWithKakao, isKakaoReady, isLoading: kakaoLoading } = useKakaoLogin({
-    onSuccess: async (kakaoUserInfo) => {
-      console.log('카카오 로그인 성공:', kakaoUserInfo)
-      setKakaoUserInfo(kakaoUserInfo)
-      
-      try {
-        // 기존 사용자인지 확인
-        await checkExistingUser(kakaoUserInfo)
-      } catch (error) {
-        console.error('사용자 확인 중 오류:', error)
-        setError('사용자 정보 확인 중 오류가 발생했습니다.')
-        setIsLoading(false)
-      }
-    },
-    onError: (errorMessage) => {
-      console.error('로그인 오류:', errorMessage)
-      setError(errorMessage)
-      setIsLoading(false)
-    }
-  })
-
-  const handleKakaoLogin = () => {
-    if (!isKakaoReady) {
-      setError("카카오 SDK가 아직 준비되지 않았습니다. 잠시만 기다려주세요.")
-      return
-    }
-    
-    setIsLoading(true)
-    setError("")
-    loginWithKakao()
-  }
-
-  const checkExistingUser = async (kakaoUserInfo: any) => {
+  // 기존 사용자 확인 함수
+  const checkExistingUser = useCallback(async (kakaoUserInfo: any) => {
     try {
       console.log('사용자 존재 여부 확인 중...')
-      
+
       const response = await fetch('/api/user/check', {
         method: 'POST',
         headers: {
@@ -89,7 +58,62 @@ export function AppWrapper() {
       setError('사용자 정보 확인 중 오류가 발생했습니다.')
       setIsLoading(false)
     }
+  }, [])
+
+  // 콜백 페이지에서 저장한 카카오 로그인 정보 처리
+  useEffect(() => {
+    const pendingLogin = sessionStorage.getItem('kakao_login_pending')
+    const savedUserInfo = sessionStorage.getItem('kakao_user_info')
+
+    if (pendingLogin === 'true' && savedUserInfo) {
+      sessionStorage.removeItem('kakao_login_pending')
+      sessionStorage.removeItem('kakao_user_info')
+
+      try {
+        const kakaoUser = JSON.parse(savedUserInfo)
+        console.log('콜백에서 받은 카카오 사용자 정보:', kakaoUser)
+        setKakaoUserInfo(kakaoUser)
+        setIsLoading(true)
+        checkExistingUser(kakaoUser)
+      } catch (e) {
+        console.error('카카오 사용자 정보 파싱 오류:', e)
+      }
+    }
+  }, [checkExistingUser])
+
+  const { loginWithKakao, isKakaoReady, isLoading: kakaoLoading } = useKakaoLogin({
+    onSuccess: async (kakaoUserInfo) => {
+      console.log('카카오 로그인 성공:', kakaoUserInfo)
+      setKakaoUserInfo(kakaoUserInfo)
+
+      try {
+        // 기존 사용자인지 확인
+        await checkExistingUser(kakaoUserInfo)
+      } catch (error) {
+        console.error('사용자 확인 중 오류:', error)
+        setError('사용자 정보 확인 중 오류가 발생했습니다.')
+        setIsLoading(false)
+      }
+    },
+    onError: (errorMessage) => {
+      console.error('로그인 오류:', errorMessage)
+      setError(errorMessage)
+      setIsLoading(false)
+    }
+  })
+
+  const handleKakaoLogin = () => {
+    if (!isKakaoReady) {
+      setError("카카오 SDK가 아직 준비되지 않았습니다. 잠시만 기다려주세요.")
+      return
+    }
+
+    setIsLoading(true)
+    setError("")
+    loginWithKakao()
   }
+
+
 
   const handleSignupComplete = (userData: any) => {
     console.log('회원가입 완료:', userData)
@@ -132,7 +156,7 @@ export function AppWrapper() {
   // 회원가입 화면
   if (appState === 'signup' && kakaoUserInfo) {
     return (
-      <UserSignup 
+      <UserSignup
         kakaoUserInfo={kakaoUserInfo}
         onSignupComplete={handleSignupComplete}
         onBack={handleBackToLogin}
@@ -173,7 +197,7 @@ export function AppWrapper() {
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
-          
+
           <Button
             onClick={handleKakaoLogin}
             className="w-full bg-yellow-400 hover:bg-yellow-500 text-black font-medium"
