@@ -1,9 +1,10 @@
 "use client"
 
+import { Suspense } from "react"
 import { useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 
-export default function KakaoCallbackPage() {
+function KakaoCallbackContent() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
@@ -88,5 +89,24 @@ export default function KakaoCallbackPage() {
                 )}
             </div>
         </div>
+    )
+}
+
+function LoadingFallback() {
+    return (
+        <div className="min-h-screen flex items-center justify-center bg-gray-100">
+            <div className="bg-white p-8 rounded-lg shadow-md text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-500 mx-auto mb-4"></div>
+                <p className="text-gray-600">로딩 중...</p>
+            </div>
+        </div>
+    )
+}
+
+export default function KakaoCallbackPage() {
+    return (
+        <Suspense fallback={<LoadingFallback />}>
+            <KakaoCallbackContent />
+        </Suspense>
     )
 }
