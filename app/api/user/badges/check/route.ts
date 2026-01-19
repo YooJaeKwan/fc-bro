@@ -42,12 +42,37 @@ export async function POST(request: Request) {
 
                 // 승무패 계산 (스코어가 있는 경우만)
                 if (schedule.ourScore !== null && schedule.opponentScore !== null) {
-                    if (schedule.ourScore > schedule.opponentScore) {
-                        wins++
-                    } else if (schedule.ourScore === schedule.opponentScore) {
-                        draws++
+                    // 내부 경기인 경우 팀편성에서 내가 어느 팀인지 확인
+                    if (schedule.type === 'internal' && schedule.teamFormation) {
+                        const formation: any = schedule.teamFormation
+                        const yellowTeam = formation.yellowTeam || []
+                        const blueTeam = formation.blueTeam || []
+                        const isOnYellow = yellowTeam.some((p: any) => p.userId === userId)
+                        const isOnBlue = blueTeam.some((p: any) => p.userId === userId)
+
+                        // 팀에 배정되지 않은 경우 승패 계산 스킵
+                        if (!isOnYellow && !isOnBlue) return
+
+                        // Yellow팀: ourScore가 내 팀 점수
+                        // Blue팀: opponentScore가 내 팀 점수
+                        if (isOnYellow) {
+                            if (schedule.ourScore > schedule.opponentScore) wins++
+                            else if (schedule.ourScore === schedule.opponentScore) draws++
+                            else losses++
+                        } else if (isOnBlue) {
+                            if (schedule.opponentScore > schedule.ourScore) wins++
+                            else if (schedule.opponentScore === schedule.ourScore) draws++
+                            else losses++
+                        }
                     } else {
-                        losses++
+                        // 외부 경기(A매치 등)는 기존 로직 유지
+                        if (schedule.ourScore > schedule.opponentScore) {
+                            wins++
+                        } else if (schedule.ourScore === schedule.opponentScore) {
+                            draws++
+                        } else {
+                            losses++
+                        }
                     }
                 }
             }
