@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import dynamic from 'next/dynamic'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -17,14 +18,28 @@ import {
   Image as ImageIcon,
   ClipboardList,
 } from "lucide-react"
-import { TeamManagement } from "./components/team-management"
 import { UserProfile } from "./components/user-profile"
 import { AttendanceStats } from "./components/attendance-stats"
-import { ScheduleManagement } from "./components/schedule-management"
 import { MatchResultsView } from "./components/match-results-view"
 import { DashboardHome } from "./components/dashboard-home"
-import { AlbumView } from "./components/album-view"
-import { AttendanceStatsView } from "./components/attendance-stats-view"
+
+// 무거운 컴포넌트 동적 로딩 (탭 전환 시에만 로드)
+const TeamManagement = dynamic(
+  () => import("./components/team-management").then(mod => ({ default: mod.TeamManagement })),
+  { loading: () => <div className="animate-pulse p-8 text-center text-muted-foreground">로딩 중...</div> }
+)
+const ScheduleManagement = dynamic(
+  () => import("./components/schedule-management").then(mod => ({ default: mod.ScheduleManagement })),
+  { loading: () => <div className="animate-pulse p-8 text-center text-muted-foreground">로딩 중...</div> }
+)
+const AttendanceStatsView = dynamic(
+  () => import("./components/attendance-stats-view").then(mod => ({ default: mod.AttendanceStatsView })),
+  { loading: () => <div className="animate-pulse p-8 text-center text-muted-foreground">로딩 중...</div> }
+)
+const AlbumView = dynamic(
+  () => import("./components/album-view").then(mod => ({ default: mod.AlbumView })),
+  { loading: () => <div className="animate-pulse p-8 text-center text-muted-foreground">로딩 중...</div> }
+)
 
 // 기본 팀 정보 (고정값)
 const defaultTeamInfo = {

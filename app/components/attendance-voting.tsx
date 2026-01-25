@@ -50,6 +50,7 @@ interface Attendee {
   profileImage?: string | null
   isGuest?: boolean
   invitedBy?: string
+  invitedByUserId?: string | null
 }
 
 export function AttendanceVoting({
@@ -239,9 +240,11 @@ export function AttendanceVoting({
     }
   }
 
-  // 참석 투표 삭제 (총무만 가능)
+  // 참석 투표 삭제 (총무 또는 게스트 초대자 가능)
   const handleDeleteAttendance = async (attendee: Attendee) => {
-    if (!isManagerMode) return
+    // 게스트인 경우 초대자도 삭제 가능
+    const isGuestInviter = attendee.isGuest && attendee.invitedByUserId === currentUserId
+    if (!isManagerMode && !isGuestInviter) return
 
     const confirmMessage = attendee.isGuest
       ? `게스트 "${attendee.name}"의 참석 투표를 삭제하시겠습니까?`
@@ -686,12 +689,13 @@ export function AttendanceVoting({
                           {attendee.isGuest && (
                             <Badge variant="outline" className="text-xs">게스트</Badge>
                           )}
-                          {isManagerMode && (
+                          {(isManagerMode || (attendee.isGuest && attendee.invitedByUserId === currentUserId)) && (
                             <Button
                               variant="ghost"
                               size="sm"
                               className="h-7 w-7 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
                               onClick={() => handleDeleteAttendance(attendee)}
+                              title={attendee.isGuest && attendee.invitedByUserId === currentUserId ? "내가 초대한 게스트 삭제" : "삭제"}
                             >
                               <Trash2 className="h-3.5 w-3.5" />
                             </Button>
@@ -756,12 +760,13 @@ export function AttendanceVoting({
                           {attendee.isGuest && (
                             <Badge variant="outline" className="text-xs">게스트</Badge>
                           )}
-                          {isManagerMode && (
+                          {(isManagerMode || (attendee.isGuest && attendee.invitedByUserId === currentUserId)) && (
                             <Button
                               variant="ghost"
                               size="sm"
                               className="h-7 w-7 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
                               onClick={() => handleDeleteAttendance(attendee)}
+                              title={attendee.isGuest && attendee.invitedByUserId === currentUserId ? "내가 초대한 게스트 삭제" : "삭제"}
                             >
                               <Trash2 className="h-3.5 w-3.5" />
                             </Button>

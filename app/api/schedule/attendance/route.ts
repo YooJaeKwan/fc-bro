@@ -217,6 +217,7 @@ export async function GET(request: NextRequest) {
         userId: att.guestId || att.userId,  // guestId를 우선 사용
         name: att.guestName || '게스트',
         invitedBy: att.invitedBy?.realName || att.invitedBy?.nickname || '알 수 없음',
+        invitedByUserId: att.invitedByUserId || null,  // 초대자 ID 추가
         position: att.guestPosition || 'MC',  // 게스트 포지션
         subPositions: [],
         status: att.status.toLowerCase(),
@@ -274,13 +275,41 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
-    // 총무 권한 확인
-    const adminUser = await prisma.user.findUnique({
+    // 권한 확인 (총무 또는 게스트 초대자)
+    const requestUser = await prisma.user.findUnique({
       where: { id: adminUserId },
       select: { role: true }
     })
 
-    if (!adminUser || adminUser.role !== 'ADMIN') {
+    const isAdmin = requestUser?.role === 'ADMIN'
+
+    // 게스트 삭제 시 초대자인지 확인
+    let isGuestInviter = false
+    if (guestId) {
+      const guestAttendance = await prisma.scheduleAttendance.findFirst({
+        where: {
+          scheduleId,
+          guestId,
+          isGuest: true
+        },
+        select: { invitedByUserId: true }
+      })
+
+      if (guestAttendance?.invitedByUserId === adminUserId) {
+        isGuestInviter = true
+      }
+    }
+
+    // 일반 사용자 삭제는 총무만 가능, 게스트 삭제는 총무 또는 초대자 가능
+    if (!isAdmin && !isGuestInviter) {
+      return NextResponse.json(
+        { error: '권한이 없습니다. 총무이거나 게스트 초대자여야 합니다.' },
+        { status: 403 }
+      )
+    }
+
+    // 일반 사용자 삭제 시 총무 권한 필수
+    if (targetUserId && !isAdmin) {
       return NextResponse.json(
         { error: '총무 권한이 필요합니다.' },
         { status: 403 }

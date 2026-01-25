@@ -287,6 +287,10 @@ export async function GET(request: NextRequest) {
       success: true,
       members: membersWithTempData,
       count: membersWithTempData.length
+    }, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120'
+      }
     })
 
   } catch (error: any) {
