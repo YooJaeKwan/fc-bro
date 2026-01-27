@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { updateScheduleAttendanceStats } from '@/lib/attendance-stats'
+import { updateScheduleAttendanceStatsWithPending } from '@/lib/attendance-stats'
 
 // 참석 투표 등록/수정
 export async function POST(request: NextRequest) {
@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 참석 통계 업데이트 (비정규화된 카운터) - 응답 속도를 위해 비동기로 처리
-    updateScheduleAttendanceStats(scheduleId).catch(error => {
+    updateScheduleAttendanceStatsWithPending(scheduleId).catch((error: Error) => {
       console.error('참석 통계 업데이트 중 오류 (무시됨):', error)
     })
 
@@ -413,7 +413,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // 참석 통계 업데이트 (비정규화된 카운터) - 응답 속도를 위해 비동기로 처리
-    updateScheduleAttendanceStats(scheduleId).catch(error => {
+    updateScheduleAttendanceStatsWithPending(scheduleId).catch((error: Error) => {
       console.error('참석 통계 업데이트 중 오류 (무시됨):', error)
     })
 
