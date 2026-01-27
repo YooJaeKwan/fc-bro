@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     const now = new Date()
     now.setHours(0, 0, 0, 0)
 
-    // 1. 다음 일정 (가장 가까운 미래 일정 1개) - 모든 참석 정보 포함
+    // 1. 다음 일정 (가장 가까운 미래 일정 1개) - 비정규화된 통계 사용
     const nextScheduleRequest = prisma.schedule.findFirst({
       where: {
         matchDate: {
@@ -26,7 +26,11 @@ export async function GET(request: NextRequest) {
         matchDate: 'asc'
       },
       include: {
-        attendances: true // 모든 참석 정보 가져옴 (투표 통계용)
+        // 현재 사용자의 투표 상태만 가져오기 (전체 참석 목록 불필요)
+        attendances: {
+          where: { userId },
+          take: 1
+        }
       }
     })
 
@@ -134,14 +138,11 @@ export async function GET(request: NextRequest) {
     // 2. 다음 일정 가공
     let formattedNextSchedule = null
     if (nextSchedule) {
-      // 참석 통계 계산 (AttendanceVoting 컴포넌트용)
-      const attendances = nextSchedule.attendances || []
-      const attending = attendances.filter((a: any) => a.status === 'ATTENDING').length
-      const notAttending = attendances.filter((a: any) => a.status === 'NOT_ATTENDING').length
-      const pending = attendances.filter((a: any) => a.status === 'PENDING').length
+      // 현재 사용자의 참석 상태 찾기 (attendances 배열에는 현재 사용자 것만 있음)
+      const myAttendance = nextSchedule.attendances?.[0]
 
-      // 현재 사용자의 참석 상태 찾기
-      const myAttendance = attendances.find((a: any) => a.userId === userId)
+      // 비정규화된 통계 필드 사용 (성능 최적화)
+      const schedule = nextSchedule as any
 
       formattedNextSchedule = {
         ...nextSchedule,
@@ -150,12 +151,12 @@ export async function GET(request: NextRequest) {
         time: nextSchedule.startTime,
         // 현재 사용자의 참석 상태
         myAttendance: myAttendance?.status || 'PENDING',
-        // 참석 통계 (AttendanceVoting 초기 데이터)
+        // 참석 통계 (비정규화된 필드 사용)
         attendanceStats: {
-          attending,
-          notAttending,
-          pending,
-          total: attending + notAttending + pending
+          attending: schedule.attendingCount ?? 0,
+          notAttending: schedule.notAttendingCount ?? 0,
+          pending: schedule.pendingCount ?? 0,
+          total: (schedule.attendingCount ?? 0) + (schedule.notAttendingCount ?? 0) + (schedule.pendingCount ?? 0)
         }
       }
     }

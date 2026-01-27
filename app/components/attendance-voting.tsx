@@ -92,6 +92,7 @@ export function AttendanceVoting({
   // Skip loading if initial data is provided (either attendees or stats)
   const [isLoading, setIsLoading] = useState(!initialAttendees && !initialStats)
   const [detailDialogType, setDetailDialogType] = useState<'attending' | 'not_attending' | 'pending' | null>(null)
+  const [isDialogLoading, setIsDialogLoading] = useState(false) // 다이얼로그 열 때 로딩 상태
   const [isGuestDialogOpen, setIsGuestDialogOpen] = useState(false)
   const [guestName, setGuestName] = useState('')
   const [guestLevel, setGuestLevel] = useState<string>('')
@@ -189,11 +190,35 @@ export function AttendanceVoting({
   }
 
   useEffect(() => {
-    // Skip initial fetch if data was provided via props
-    if (scheduleId && currentUserId && !initialAttendees) {
+    // Skip initial fetch if data was provided via props (performance optimization)
+    // initialStats from dashboard, initialAttendees from schedule cards
+    if (scheduleId && currentUserId && !initialAttendees && !initialStats) {
       fetchAttendance()
     }
   }, [scheduleId, currentUserId])
+
+  // 다이얼로그 열릴 때 참석자 목록 로드 (lazy loading)
+  useEffect(() => {
+    if (detailDialogType && attendees.length === 0) {
+      // 다이얼로그 열렸는데 참석자 목록이 없으면 로드
+      const loadAttendees = async () => {
+        setIsDialogLoading(true)
+        try {
+          const response = await fetch(`/api/schedule/attendance?scheduleId=${scheduleId}`)
+          const result = await response.json()
+          if (response.ok && result.success) {
+            setAttendees(result.attendees)
+            setStats(result.stats)
+          }
+        } catch (error) {
+          console.error('참석자 목록 조회 오류:', error)
+        } finally {
+          setIsDialogLoading(false)
+        }
+      }
+      loadAttendees()
+    }
+  }, [detailDialogType, attendees.length, scheduleId])
 
   // 투표 제출
   const handleVote = async (status: 'ATTENDING' | 'NOT_ATTENDING') => {
@@ -657,7 +682,9 @@ export function AttendanceVoting({
                 </DialogDescription>
               </DialogHeader>
               <div className="max-h-[400px] overflow-y-auto space-y-2">
-                {attendees.filter(a => a.status === 'attending').length === 0 ? (
+                {isDialogLoading ? (
+                  <p className="text-center text-gray-500 py-4">로딩 중...</p>
+                ) : attendees.filter(a => a.status === 'attending').length === 0 ? (
                   <p className="text-center text-gray-500 py-4">참석 인원이 없습니다.</p>
                 ) : (
                   attendees
@@ -728,7 +755,9 @@ export function AttendanceVoting({
                 </DialogDescription>
               </DialogHeader>
               <div className="max-h-[400px] overflow-y-auto space-y-2">
-                {attendees.filter(a => a.status === 'not_attending').length === 0 ? (
+                {isDialogLoading ? (
+                  <p className="text-center text-gray-500 py-4">로딩 중...</p>
+                ) : attendees.filter(a => a.status === 'not_attending').length === 0 ? (
                   <p className="text-center text-gray-500 py-4">불참 인원이 없습니다.</p>
                 ) : (
                   attendees
@@ -799,7 +828,9 @@ export function AttendanceVoting({
                 </DialogDescription>
               </DialogHeader>
               <div className="max-h-[400px] overflow-y-auto space-y-2">
-                {attendees.filter(a => a.status === 'pending').length === 0 ? (
+                {isDialogLoading ? (
+                  <p className="text-center text-gray-500 py-4">로딩 중...</p>
+                ) : attendees.filter(a => a.status === 'pending').length === 0 ? (
                   <p className="text-center text-gray-500 py-4">미응답 인원이 없습니다.</p>
                 ) : (
                   attendees

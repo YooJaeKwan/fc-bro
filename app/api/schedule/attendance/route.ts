@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { updateScheduleAttendanceStatsWithPending } from '@/lib/attendance-stats'
 
 // 참석 투표 등록/수정
 export async function POST(request: NextRequest) {
@@ -104,6 +105,13 @@ export async function POST(request: NextRequest) {
       // 팀편성 초기화 실패는 참석 투표 성공에 영향을 주지 않음
     }
 
+    // 참석 통계 업데이트 (비정규화된 카운터)
+    try {
+      await updateScheduleAttendanceStatsWithPending(scheduleId)
+    } catch (error) {
+      console.error('참석 통계 업데이트 중 오류 (무시됨):', error)
+    }
+
     return NextResponse.json({
       success: true,
       message: '참석 투표가 등록되었습니다.',
@@ -135,12 +143,42 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const scheduleId = searchParams.get('scheduleId')
+    const statsOnly = searchParams.get('statsOnly') === 'true'
 
     if (!scheduleId) {
       return NextResponse.json(
         { error: '일정 ID가 필요합니다.' },
         { status: 400 }
       )
+    }
+
+    // statsOnly=true인 경우 비정규화된 통계만 빠르게 반환 (성능 최적화)
+    if (statsOnly) {
+      const schedule = await prisma.schedule.findUnique({
+        where: { id: scheduleId },
+        select: {
+          attendingCount: true,
+          notAttendingCount: true,
+          pendingCount: true
+        }
+      })
+
+      if (!schedule) {
+        return NextResponse.json(
+          { error: '존재하지 않는 일정입니다.' },
+          { status: 404 }
+        )
+      }
+
+      return NextResponse.json({
+        success: true,
+        stats: {
+          attending: schedule.attendingCount,
+          notAttending: schedule.notAttendingCount,
+          pending: schedule.pendingCount,
+          total: schedule.attendingCount + schedule.notAttendingCount + schedule.pendingCount
+        }
+      })
     }
 
     console.log('참석자 목록 조회:', scheduleId)
@@ -373,6 +411,13 @@ export async function DELETE(request: NextRequest) {
       }
     } catch (error) {
       console.error('팀편성 초기화 중 오류 (무시됨):', error)
+    }
+
+    // 참석 통계 업데이트 (비정규화된 카운터)
+    try {
+      await updateScheduleAttendanceStatsWithPending(scheduleId)
+    } catch (error) {
+      console.error('참석 통계 업데이트 중 오류 (무시됨):', error)
     }
 
     return NextResponse.json({

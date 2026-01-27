@@ -185,6 +185,11 @@ model Schedule {
   // 게스트 허용 여부
   allowGuests     Boolean   @default(false)
 
+  // 비정규화된 참석 통계 (성능 최적화)
+  attendingCount    Int @default(0)
+  notAttendingCount Int @default(0)
+  pendingCount      Int @default(0)
+
   createdBy       String
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt

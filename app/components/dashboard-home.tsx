@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -17,6 +17,8 @@ interface DashboardHomeProps {
     currentUser: any
     onUserUpdate?: (updatedUser: any) => void
 }
+
+// React Strict Mode에서 두 번 호출 방지용 ref
 
 interface MatchStats {
     wins: number
@@ -57,6 +59,7 @@ export function DashboardHome({ currentUser }: DashboardHomeProps) {
     const [recentMatches, setRecentMatches] = useState<RecentMatch[]>([])
     const [userBadges, setUserBadges] = useState<UserBadge[]>([])
     const [isLoading, setIsLoading] = useState(true)
+    const badgeCheckDone = useRef(false) // React Strict Mode에서 두 번 호출 방지
 
     // Fetch all data
     useEffect(() => {
@@ -86,12 +89,15 @@ export function DashboardHome({ currentUser }: DashboardHomeProps) {
 
                     // Check for new badges (background check)
                     // This is still needed to trigger new calculations if something changed recently
-                    // but we can do it silently
-                    fetch('/api/user/badges/check', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ userId: currentUser.id })
-                    }).catch(console.error)
+                    // but we can do it silently (and only once using ref)
+                    if (!badgeCheckDone.current) {
+                        badgeCheckDone.current = true
+                        fetch('/api/user/badges/check', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ userId: currentUser.id })
+                        }).catch(console.error)
+                    }
                 }
             } catch (error) {
                 console.error('데이터 조회 오류:', error)
