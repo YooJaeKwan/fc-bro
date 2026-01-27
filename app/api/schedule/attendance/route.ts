@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { updateScheduleAttendanceStatsWithPending } from '@/lib/attendance-stats'
+import { updateScheduleAttendanceStats } from '@/lib/attendance-stats'
 
 // 참석 투표 등록/수정
 export async function POST(request: NextRequest) {
@@ -93,7 +94,7 @@ export async function POST(request: NextRequest) {
         await prisma.schedule.update({
           where: { id: scheduleId },
           data: {
-            teamFormation: null,
+            teamFormation: Prisma.DbNull,
             formationDate: null,
             formationConfirmed: false
           }
@@ -105,12 +106,10 @@ export async function POST(request: NextRequest) {
       // 팀편성 초기화 실패는 참석 투표 성공에 영향을 주지 않음
     }
 
-    // 참석 통계 업데이트 (비정규화된 카운터)
-    try {
-      await updateScheduleAttendanceStatsWithPending(scheduleId)
-    } catch (error) {
+    // 참석 통계 업데이트 (비정규화된 카운터) - 응답 속도를 위해 비동기로 처리
+    updateScheduleAttendanceStats(scheduleId).catch(error => {
       console.error('참석 통계 업데이트 중 오류 (무시됨):', error)
-    }
+    })
 
     return NextResponse.json({
       success: true,
@@ -121,8 +120,8 @@ export async function POST(request: NextRequest) {
         userId: attendance.userId,
         status: attendance.status,
         user: {
-          name: attendance.user.realName || attendance.user.nickname,
-          position: attendance.user.preferredPosition
+          name: attendance.user?.realName || attendance.user?.nickname || '알 수 없음',
+          position: attendance.user?.preferredPosition ?? null
         },
         updatedAt: attendance.updatedAt.toISOString()
       }
@@ -402,7 +401,7 @@ export async function DELETE(request: NextRequest) {
         await prisma.schedule.update({
           where: { id: scheduleId },
           data: {
-            teamFormation: null,
+            teamFormation: Prisma.DbNull,
             formationDate: null,
             formationConfirmed: false
           }
@@ -413,12 +412,10 @@ export async function DELETE(request: NextRequest) {
       console.error('팀편성 초기화 중 오류 (무시됨):', error)
     }
 
-    // 참석 통계 업데이트 (비정규화된 카운터)
-    try {
-      await updateScheduleAttendanceStatsWithPending(scheduleId)
-    } catch (error) {
+    // 참석 통계 업데이트 (비정규화된 카운터) - 응답 속도를 위해 비동기로 처리
+    updateScheduleAttendanceStats(scheduleId).catch(error => {
       console.error('참석 통계 업데이트 중 오류 (무시됨):', error)
-    }
+    })
 
     return NextResponse.json({
       success: true,
