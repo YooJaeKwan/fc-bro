@@ -194,7 +194,7 @@ export function ScheduleComments({
                         <Textarea
                             value={newComment}
                             onChange={(e) => setNewComment(e.target.value)}
-                            placeholder="예: 2쿼터까지 가능합니다"
+                            placeholder="예: 9시반까지 참석 가능합니다"
                             className="min-h-[60px] text-sm resize-none"
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter' && !e.shiftKey) {
