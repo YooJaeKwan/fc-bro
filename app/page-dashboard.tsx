@@ -50,9 +50,10 @@ const defaultTeamInfo = {
 interface DashboardProps {
   userInfo?: any
   onUserUpdate?: (updatedUser: any) => void
+  onLogout?: () => void
 }
 
-export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
+export default function Dashboard({ userInfo, onUserUpdate, onLogout }: DashboardProps) {
   // 실제 사용자 정보 사용
   const [user, setUser] = useState(userInfo || {
     realName: "데모 사용자",
@@ -138,7 +139,7 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
               >
                 {user?.role === 'ADMIN' ? "총무" : "선수"}
               </Badge>
-              <Button variant="ghost" size="sm" onClick={() => window.location.reload()}>
+              <Button variant="ghost" size="sm" onClick={() => onLogout ? onLogout() : window.location.reload()}>
                 <LogOut className="h-4 w-4" />
               </Button>
             </div>
@@ -203,7 +204,7 @@ export default function Dashboard({ userInfo, onUserUpdate }: DashboardProps) {
 
                     {/* Logout Button */}
                     <div className="pt-4 border-t">
-                      <Button variant="outline" className="w-full bg-transparent" onClick={() => window.location.reload()}>
+                      <Button variant="outline" className="w-full bg-transparent" onClick={() => onLogout ? onLogout() : window.location.reload()}>
                         <LogOut className="h-4 w-4 mr-2" />
                         로그아웃
                       </Button>

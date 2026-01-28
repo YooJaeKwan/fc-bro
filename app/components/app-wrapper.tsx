@@ -10,14 +10,82 @@ import { useKakaoLogin } from "./kakao-login"
 import { UserSignup } from "./user-signup"
 
 // 앱의 상태를 정의
-type AppState = 'login' | 'signup' | 'dashboard'
+type AppState = 'loading' | 'login' | 'signup' | 'dashboard'
+
+// localStorage 키
+const SESSION_KEY = 'fc_bro_user'
 
 export function AppWrapper() {
-  const [appState, setAppState] = useState<AppState>('login')
+  const [appState, setAppState] = useState<AppState>('loading')
   const [isLoading, setIsLoading] = useState(false)
   const [kakaoUserInfo, setKakaoUserInfo] = useState(null)
   const [userInfo, setUserInfo] = useState(null)
   const [error, setError] = useState("")
+
+  // 세션 저장 함수
+  const saveSession = useCallback((userData: any) => {
+    try {
+      localStorage.setItem(SESSION_KEY, JSON.stringify(userData))
+      console.log('세션 저장 완료')
+    } catch (e) {
+      console.error('세션 저장 오류:', e)
+    }
+  }, [])
+
+  // 세션 삭제 함수 (로그아웃)
+  const clearSession = useCallback(() => {
+    try {
+      localStorage.removeItem(SESSION_KEY)
+      console.log('세션 삭제 완료')
+    } catch (e) {
+      console.error('세션 삭제 오류:', e)
+    }
+  }, [])
+
+  // 저장된 세션 확인 및 검증
+  useEffect(() => {
+    const checkSavedSession = async () => {
+      try {
+        const savedUser = localStorage.getItem(SESSION_KEY)
+
+        if (savedUser) {
+          const userData = JSON.parse(savedUser)
+          console.log('저장된 세션 발견:', userData.kakaoId)
+
+          // 서버에서 사용자 유효성 검증
+          const response = await fetch('/api/user/check', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ kakaoId: userData.kakaoId })
+          })
+
+          const result = await response.json()
+
+          if (response.ok && result.exists) {
+            // 유효한 세션 - 대시보드로 이동
+            console.log('세션 검증 성공')
+            setUserInfo(result.user)
+            saveSession(result.user) // 최신 정보로 갱신
+            setAppState('dashboard')
+          } else {
+            // 유효하지 않은 세션 - 로그인 화면
+            console.log('세션이 유효하지 않음, 로그인 필요')
+            clearSession()
+            setAppState('login')
+          }
+        } else {
+          // 저장된 세션 없음
+          setAppState('login')
+        }
+      } catch (e) {
+        console.error('세션 확인 오류:', e)
+        clearSession()
+        setAppState('login')
+      }
+    }
+
+    checkSavedSession()
+  }, [saveSession, clearSession])
 
   // 기존 사용자 확인 함수
   const checkExistingUser = useCallback(async (kakaoUserInfo: any) => {
@@ -41,8 +109,9 @@ export function AppWrapper() {
       }
 
       if (result.exists) {
-        // 기존 사용자 - 바로 대시보드로 이동
+        // 기존 사용자 - 세션 저장 후 대시보드로 이동
         console.log('기존 사용자 로그인:', result.user)
+        saveSession(result.user)
         setUserInfo(result.user)
         setAppState('dashboard')
         setIsLoading(false)
@@ -58,7 +127,7 @@ export function AppWrapper() {
       setError('사용자 정보 확인 중 오류가 발생했습니다.')
       setIsLoading(false)
     }
-  }, [])
+  }, [saveSession])
 
   // 콜백 페이지에서 저장한 카카오 로그인 정보 처리
   useEffect(() => {
@@ -117,14 +186,36 @@ export function AppWrapper() {
 
   const handleSignupComplete = (userData: any) => {
     console.log('회원가입 완료:', userData)
+    saveSession(userData)
     setUserInfo(userData)
     setAppState('dashboard')
+  }
+
+  // 로그아웃 핸들러
+  const handleLogout = () => {
+    console.log('로그아웃')
+    clearSession()
+    setUserInfo(null)
+    setKakaoUserInfo(null)
+    setAppState('login')
   }
 
   const handleBackToLogin = () => {
     setAppState('login')
     setKakaoUserInfo(null)
     setError("")
+  }
+
+  // 초기 로딩 중 화면 (세션 확인)
+  if (appState === 'loading') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
+          <p className="text-muted-foreground">로그인 확인 중...</p>
+        </div>
+      </div>
+    )
   }
 
   // 로딩 중 화면
@@ -167,12 +258,13 @@ export function AppWrapper() {
   // 사용자 정보 업데이트 핸들러
   const handleUserUpdate = (updatedUser: any) => {
     console.log('App-wrapper에서 사용자 정보 업데이트:', updatedUser)
+    saveSession(updatedUser)
     setUserInfo(updatedUser)
   }
 
   // 대시보드 화면
   if (appState === 'dashboard' && userInfo) {
-    return <Dashboard userInfo={userInfo} onUserUpdate={handleUserUpdate} />
+    return <Dashboard userInfo={userInfo} onUserUpdate={handleUserUpdate} onLogout={handleLogout} />
   }
 
   // 로그인 화면
