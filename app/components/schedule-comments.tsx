@@ -54,9 +54,14 @@ export function ScheduleComments({
         }
     }
 
-    // 확장 시 댓글 로드
+    // 컴포넌트 마운트 시 댓글 개수 로드 (초기 표시용)
     useEffect(() => {
-        if (isExpanded && comments.length === 0) {
+        fetchComments()
+    }, [scheduleId])
+
+    // 확장 시 댓글 로드 (아직 로드되지 않은 경우에만)
+    useEffect(() => {
+        if (isExpanded && comments.length === 0 && !isLoading) {
             fetchComments()
         }
     }, [isExpanded])
