@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { CalendarIcon, MapPin, Trophy, TrendingUp, Calendar as CalendarDays, Award, Clock } from "lucide-react"
 import { AttendanceVoting } from "./attendance-voting"
+import { ScheduleComments } from "./schedule-comments"
 import { TeamFormation } from "./team-formation"
 import { getLevelLabel } from '@/lib/level-system'
 import { BadgeNotification } from './badge-notification'
@@ -321,6 +322,15 @@ export function DashboardHome({ currentUser }: DashboardHomeProps) {
                                     }}
                                 />
                             </div>
+                        )}
+
+                        {/* 댓글 섹션 */}
+                        {currentUser?.id && nextSchedule && (
+                            <ScheduleComments
+                                scheduleId={nextSchedule.id}
+                                currentUserId={currentUser.id}
+                                isManagerMode={currentUser.role === 'ADMIN'}
+                            />
                         )}
                     </CardContent>
                 </Card>

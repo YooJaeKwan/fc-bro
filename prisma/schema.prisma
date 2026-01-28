@@ -50,6 +50,7 @@ model User {
   playerStats      SchedulePlayerStat[]
   invitedGuests    ScheduleAttendance[] @relation("InvitedGuests")
   badges           UserBadge[]
+  scheduleComments ScheduleComment[] @relation("ScheduleCommentAuthor")
 
   @@unique([provider, providerId])
 }
@@ -197,6 +198,7 @@ model Schedule {
   creator      User      @relation("ScheduleCreator", fields: [createdBy], references: [id])
   attendances  ScheduleAttendance[]
   playerStats  SchedulePlayerStat[]  // 개별 선수 통계
+  comments     ScheduleComment[]
 }
 
 model ScheduleAttendance {
@@ -244,4 +246,18 @@ model SchedulePlayerStat {
   user       User     @relation(fields: [userId], references: [id])
 
   @@unique([scheduleId, userId])
+}
+
+model ScheduleComment {
+  id         String   @id @default(cuid())
+  content    String
+  scheduleId String
+  authorId   String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  schedule   Schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  author     User     @relation("ScheduleCommentAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([scheduleId])
 }

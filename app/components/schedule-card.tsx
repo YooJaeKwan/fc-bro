@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { CalendarIcon, MapPinIcon, UsersIcon, ClockIcon, X, Check, UserPlus, UserMinus, Edit, Trash2, Trophy, ChevronDown, ChevronUp, Share2 } from 'lucide-react'
 import { calculateDaysLeft, generateKakaoShareText, getPositionOrder, sortByPosition } from '@/lib/utils'
 import { AttendanceVoting } from './attendance-voting'
+import { ScheduleComments } from './schedule-comments'
 import {
   Collapsible,
   CollapsibleContent,
@@ -639,6 +640,15 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
                     initialStats={stats}
                   />
                 </div>
+              )}
+
+              {/* 댓글 섹션 */}
+              {currentUser?.id && (
+                <ScheduleComments
+                  scheduleId={schedule.id}
+                  currentUserId={currentUser.id}
+                  isManagerMode={isManagerMode}
+                />
               )}
 
             </div>
