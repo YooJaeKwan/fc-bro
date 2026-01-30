@@ -151,31 +151,50 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // statsOnly=true인 경우 비정규화된 통계만 빠르게 반환 (성능 최적화)
+    // statsOnly=true인 경우 실시간 통계 계산하여 반환
     if (statsOnly) {
-      const schedule = await prisma.schedule.findUnique({
-        where: { id: scheduleId },
-        select: {
-          attendingCount: true,
-          notAttendingCount: true,
-          pendingCount: true
+      // 1. 전체 활성 회원 수 조회
+      const totalActiveUsers = await prisma.user.count({
+        where: { isActive: true }
+      })
+
+      // 2. 해당 일정의 참석 데이터 집계 (상태별, 게스트 여부별)
+      const attendanceStats = await prisma.scheduleAttendance.groupBy({
+        by: ['status', 'isGuest'],
+        where: { scheduleId },
+        _count: { status: true }
+      })
+
+      // 3. 통계 계산
+      let attending = 0
+      let notAttending = 0
+      let votedMembers = 0
+
+      attendanceStats.forEach(stat => {
+        const count = stat._count.status
+        
+        if (stat.status === 'ATTENDING') {
+          attending += count
+        } else if (stat.status === 'NOT_ATTENDING') {
+          notAttending += count
+        }
+
+        // 미정(Pending) 계산을 위해 투표한 정회원 수 집계 (게스트 제외)
+        if (!stat.isGuest && (stat.status === 'ATTENDING' || stat.status === 'NOT_ATTENDING')) {
+          votedMembers += count
         }
       })
 
-      if (!schedule) {
-        return NextResponse.json(
-          { error: '존재하지 않는 일정입니다.' },
-          { status: 404 }
-        )
-      }
+      // 미정 인원 = 전체 활성 회원 - 투표한 정회원
+      const pending = Math.max(0, totalActiveUsers - votedMembers)
 
       return NextResponse.json({
         success: true,
         stats: {
-          attending: schedule.attendingCount,
-          notAttending: schedule.notAttendingCount,
-          pending: schedule.pendingCount,
-          total: schedule.attendingCount + schedule.notAttendingCount + schedule.pendingCount
+          attending,
+          notAttending,
+          pending,
+          total: attending + notAttending + pending
         }
       })
     }

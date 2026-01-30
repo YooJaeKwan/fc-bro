@@ -40,7 +40,9 @@ export async function GET() {
     console.log(`일정 ${schedules.length}개 조회 완료`)
 
     // 모든 팀원 정보를 미리 가져오기 (비동기 작업을 map 밖에서 처리)
+    // 활성 회원만 조회하여 Pending 목록 생성에 사용
     const allUsers = await prisma.user.findMany({
+      where: { isActive: true },
       select: {
         id: true,
         realName: true,
@@ -97,8 +99,8 @@ export async function GET() {
         }
       })
 
-      // 모든 팀원과 투표 데이터 병합 (게스트 포함)
-      const allAttendees = allUsers.map(user => {
+      // 1. 활성 회원 (투표함 또는 미정)
+      const activeUserAttendees = allUsers.map(user => {
         const existingAttendance = attendees.find(a => a.userId === user.id && !a.isGuest)
         if (existingAttendance) {
           return existingAttendance
@@ -114,9 +116,28 @@ export async function GET() {
         }
       })
 
-      // 게스트를 allAttendees에 추가
+      // 2. 비활성 회원 중 투표한 사람 (투표함)
+      const inactiveUserAttendees = attendees.filter(a => 
+        !a.isGuest && !allUsers.some(u => u.id === a.userId)
+      )
+
+      // 3. 게스트 (투표함)
       const guestAttendees = attendees.filter((a: any) => a.isGuest)
-      const finalAttendees = [...allAttendees, ...guestAttendees]
+      
+      const finalAttendees = [...activeUserAttendees, ...inactiveUserAttendees, ...guestAttendees]
+
+      // 실시간 통계 계산
+      const attendanceStats = {
+        attending: 0,
+        notAttending: 0,
+        pending: 0
+      }
+
+      finalAttendees.forEach(a => {
+        if (a.status === 'attending') attendanceStats.attending++
+        else if (a.status === 'not_attending') attendanceStats.notAttending++
+        else if (a.status === 'pending') attendanceStats.pending++
+      })
 
       return {
         id: schedule.id,
@@ -142,6 +163,7 @@ export async function GET() {
         mvpUserId: schedule.mvpUserId,
         matchSummary: schedule.matchSummary,
         attendees: finalAttendees.map(addTempRating),
+        attendanceStats, // 실시간 계산된 통계 추가
         attendances: schedule.attendances, // MVP 조회를 위한 참석 정보
         teamFormation: schedule.teamFormation, // 팀편성 결과 포함
         formationDate: schedule.formationDate?.toISOString() || null,
