@@ -261,3 +261,15 @@ model ScheduleComment {
 
   @@index([scheduleId])
 }
+
+// 공지사항 모델
+model Announcement {
+  id        String   @id @default(cuid())
+  content   String
+  isActive  Boolean  @default(true)
+  createdBy String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive, createdAt])
+}

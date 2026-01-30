@@ -41,7 +41,7 @@ export const sortByPosition = (players: any[]) => {
 // 카카오톡 공유 텍스트 생성
 export const generateKakaoShareText = (schedule: any, isManagerMode: boolean = false) => {
   const typeLabel = schedule.type === "internal" ? "자체경기" :
-    schedule.type === "match" ? "A매치" :
+    schedule.type === "match" ? `A매치${schedule.opponentTeam ? ` vs ${schedule.opponentTeam}` : ''}` :
       schedule.type === "training" ? "연습" : schedule.type
 
   const [year, month, day] = schedule.date.split('-')
