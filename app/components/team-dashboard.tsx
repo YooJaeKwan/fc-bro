@@ -83,29 +83,26 @@ export function TeamDashboard({ currentUser }: TeamDashboardProps) {
                         데이터가 없습니다
                     </div>
                 ) : (
-                    <div className="space-y-2">
+                    <div className="divide-y divide-slate-100">
                         {data.map((player, idx) => (
                             <div
                                 key={player.id}
-                                className={`flex items-center justify-between p-2 rounded-lg ${idx === 0 ? 'bg-amber-50 border border-amber-200' :
-                                        idx === 1 ? 'bg-slate-50 border border-slate-200' :
-                                            idx === 2 ? 'bg-orange-50 border border-orange-200' :
-                                                'bg-gray-50'
-                                    }`}
+                                className="flex items-center justify-between py-3 px-1 group hover:bg-slate-50 transition-colors rounded-lg"
                             >
-                                <div className="flex items-center gap-2">
-                                    <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${idx === 0 ? 'bg-amber-400 text-amber-900' :
-                                            idx === 1 ? 'bg-slate-400 text-white' :
-                                                idx === 2 ? 'bg-orange-400 text-orange-900' :
-                                                    'bg-gray-300 text-gray-700'
+                                <div className="flex items-center gap-3">
+                                    <span className={`flex items-center justify-center text-xs font-bold shrink-0 ${idx === 0 ? 'text-amber-500 text-base' :
+                                        idx === 1 ? 'text-slate-400 text-sm' :
+                                            idx === 2 ? 'text-orange-400 text-sm' :
+                                                'text-slate-300'
                                         }`}>
-                                        {idx + 1}
+                                        {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : idx + 1}
                                     </span>
-                                    <span className="font-medium text-sm">{player.name}</span>
+                                    <span className="font-semibold text-slate-700">{player.name}</span>
                                 </div>
-                                <Badge className={color}>
-                                    {player[valueKey]}{unit}
-                                </Badge>
+                                <div className="flex items-center gap-1">
+                                    <span className="text-sm font-black text-slate-800 tabular-nums">{player[valueKey]}</span>
+                                    <span className="text-[10px] font-medium text-slate-400 uppercase">{unit}</span>
+                                </div>
                             </div>
                         ))}
                     </div>
@@ -116,17 +113,6 @@ export function TeamDashboard({ currentUser }: TeamDashboardProps) {
 
     return (
         <div className="space-y-6 p-4">
-            {/* 헤더 */}
-            <div className="flex items-center gap-2">
-                <Users className="h-6 w-6 text-blue-500" />
-                <h1 className="text-xl font-bold">팀 대시보드</h1>
-                {stats && (
-                    <Badge variant="secondary" className="ml-auto">
-                        총 {stats.totalMatches}경기
-                    </Badge>
-                )}
-            </div>
-
             {/* TOP5 랭킹 카드들 */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <RankingList
@@ -164,19 +150,25 @@ export function TeamDashboard({ currentUser }: TeamDashboardProps) {
                             나의 기록
                         </CardTitle>
                     </CardHeader>
-                    <CardContent>
-                        <div className="grid grid-cols-3 gap-4 text-center">
-                            <div className="p-4 bg-red-50 rounded-lg">
-                                <div className="text-2xl font-bold text-red-600">{stats.myStats.goals}</div>
-                                <div className="text-xs text-muted-foreground mt-1">골</div>
+                    <CardContent className="pt-4">
+                        <div className="grid grid-cols-3 gap-3">
+                            <div className="flex flex-col items-center justify-center p-4 rounded-xl bg-slate-50 border border-slate-100">
+                                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Goals</div>
+                                <div className="text-2xl font-black text-slate-800 tabular-nums">
+                                    {stats.myStats.goals}<span className="text-xs font-medium text-slate-400 ml-0.5">골</span>
+                                </div>
                             </div>
-                            <div className="p-4 bg-blue-50 rounded-lg">
-                                <div className="text-2xl font-bold text-blue-600">{stats.myStats.assists}</div>
-                                <div className="text-xs text-muted-foreground mt-1">도움</div>
+                            <div className="flex flex-col items-center justify-center p-4 rounded-xl bg-slate-50 border border-slate-100">
+                                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Assists</div>
+                                <div className="text-2xl font-black text-slate-800 tabular-nums">
+                                    {stats.myStats.assists}<span className="text-xs font-medium text-slate-400 ml-0.5">도움</span>
+                                </div>
                             </div>
-                            <div className="p-4 bg-yellow-50 rounded-lg">
-                                <div className="text-2xl font-bold text-yellow-600">{stats.myStats.mvpCount}</div>
-                                <div className="text-xs text-muted-foreground mt-1">MVP</div>
+                            <div className="flex flex-col items-center justify-center p-4 rounded-xl bg-slate-50 border border-slate-100">
+                                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">MVP</div>
+                                <div className="text-2xl font-black text-slate-800 tabular-nums">
+                                    {stats.myStats.mvpCount}<span className="text-xs font-medium text-slate-400 ml-0.5">회</span>
+                                </div>
                             </div>
                         </div>
                     </CardContent>

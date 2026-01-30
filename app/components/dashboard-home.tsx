@@ -510,6 +510,38 @@ export function DashboardHome({ currentUser, isManagerMode }: DashboardHomeProps
                             </div>
                         )}
 
+                        {/* Personal Records Section - Integrated into My Info - Only for Managers */}
+                        {isManagerMode && (
+                            <div className="pb-4 border-b">
+                                <div className="flex items-center justify-between mb-3">
+                                    <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+                                        <Target className="h-4 w-4 text-amber-500" />
+                                        <span>나의 경기 기록</span>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-3 gap-2">
+                                    <div className="flex flex-col items-center justify-center p-3 rounded-lg bg-slate-50 border border-slate-100">
+                                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Goals</div>
+                                        <div className="text-xl font-black text-slate-800 tabular-nums">
+                                            {personalStats.goals}<span className="text-[10px] font-medium text-slate-400 ml-0.5 uppercase">골</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-col items-center justify-center p-3 rounded-lg bg-slate-50 border border-slate-100">
+                                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Assists</div>
+                                        <div className="text-xl font-black text-slate-800 tabular-nums">
+                                            {personalStats.assists}<span className="text-[10px] font-medium text-slate-400 ml-0.5 uppercase">도움</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-col items-center justify-center p-3 rounded-lg bg-slate-50 border border-slate-100">
+                                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">MVP</div>
+                                        <div className="text-xl font-black text-slate-800 tabular-nums">
+                                            {personalStats.mvpCount}<span className="text-[10px] font-medium text-slate-400 ml-0.5 uppercase">회</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         {/* Recent Matches */}
                         {recentMatches.length > 0 && (
                             <div className="pb-4 border-b">
@@ -519,27 +551,24 @@ export function DashboardHome({ currentUser, isManagerMode }: DashboardHomeProps
                                 </div>
                                 <div className="space-y-2">
                                     {recentMatches.map((match, idx) => (
-                                        <div key={idx} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                                        <div key={idx} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg group hover:bg-white hover:shadow-sm border border-transparent hover:border-slate-100 transition-all">
                                             <div className="flex-1">
-                                                <div className="text-sm font-medium">
+                                                <div className="text-sm font-semibold text-slate-700">
                                                     {(() => {
                                                         const [year, month, day] = match.date.split('-')
                                                         const date = new Date(Number(year), Number(month) - 1, Number(day))
                                                         return date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })
                                                     })()}
                                                 </div>
-                                                <div className="text-xs text-muted-foreground">{match.location}</div>
+                                                <div className="text-[11px] text-slate-400 line-clamp-1">{match.location}</div>
                                             </div>
                                             {match.result && (
-                                                <Badge
-                                                    variant="outline"
-                                                    className={`text-xs ${match.result === 'win' ? 'bg-green-50 text-green-600 border-green-200' :
-                                                        match.result === 'draw' ? 'bg-gray-50 text-gray-600 border-gray-200' :
-                                                            'bg-red-50 text-red-600 border-red-200'
-                                                        }`}
-                                                >
-                                                    {match.result === 'win' ? '승' : match.result === 'draw' ? '무' : '패'}
-                                                </Badge>
+                                                <div className={`px-2 py-1 rounded text-[11px] font-bold uppercase transition-colors ${match.result === 'win' ? 'bg-emerald-50 text-emerald-600' :
+                                                    match.result === 'draw' ? 'bg-slate-100 text-slate-500' :
+                                                        'bg-rose-50 text-rose-600'
+                                                    }`}>
+                                                    {match.result === 'win' ? 'WIN' : match.result === 'draw' ? 'DRAW' : 'LOSS'}
+                                                </div>
                                             )}
                                         </div>
                                     ))}
@@ -598,42 +627,6 @@ export function DashboardHome({ currentUser, isManagerMode }: DashboardHomeProps
                 </Card>
             )}
 
-            {/* Personal Records Card - Only for Managers */}
-            {isManagerMode && !isLoading && (
-                <Card className="bg-gradient-to-br from-indigo-500 to-purple-600 border-none text-white overflow-hidden shadow-lg">
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium flex items-center gap-2">
-                            <Trophy className="h-4 w-4 text-yellow-300" />
-                            나의 누적 기록
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="grid grid-cols-3 gap-4">
-                            <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4 text-center">
-                                <div className="text-sm font-medium mb-1 opacity-90">골</div>
-                                <div className="text-3xl font-bold flex items-center justify-center gap-1">
-                                    {personalStats.goals}
-                                    <Target className="h-4 w-4 opacity-50" />
-                                </div>
-                            </div>
-                            <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4 text-center">
-                                <div className="text-sm font-medium mb-1 opacity-90">도움</div>
-                                <div className="text-3xl font-bold flex items-center justify-center gap-1">
-                                    {personalStats.assists}
-                                    <Award className="h-4 w-4 opacity-50" />
-                                </div>
-                            </div>
-                            <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4 text-center">
-                                <div className="text-sm font-medium mb-1 opacity-90">MVP</div>
-                                <div className="text-3xl font-bold flex items-center justify-center gap-1">
-                                    {personalStats.mvpCount}
-                                    <Trophy className="h-4 w-4 opacity-50" />
-                                </div>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-            )}
 
             {/* Badge Detail Dialog */}
             <Dialog open={!!selectedBadge} onOpenChange={(open) => !open && setSelectedBadge(null)}>
