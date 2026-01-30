@@ -515,23 +515,29 @@ export function ScheduleManagement({
   }
 
 
-  // 다음 일정 찾기 (가장 가까운 미래 일정)
+  // 다음 일정 찾기 (가장 가까운 미래 일정 - 시작 시간 기준)
   const getNextUpcomingSchedule = () => {
     const now = new Date()
     const upcomingSchedules = schedules
       .filter(schedule => {
-        // 한국시간으로 저장된 날짜를 그대로 사용
+        // 날짜와 시간을 함께 사용하여 경기 시작시간 계산
         const [year, month, day] = schedule.date.split('-')
-        const scheduleDate = new Date(Number(year), Number(month) - 1, Number(day))
-        return scheduleDate >= now && schedule.status === 'scheduled'
+        const [hours, minutes] = (schedule.time || '23:59').split(':')
+        const scheduleDateTime = new Date(Number(year), Number(month) - 1, Number(day), Number(hours), Number(minutes))
+        // 시작 시간이 지나지 않은 경기만 표시
+        return scheduleDateTime > now && schedule.status === 'scheduled'
       })
       .sort((a, b) => {
-        // 한국시간으로 저장된 날짜를 그대로 비교
+        // 날짜와 시간을 함께 비교
         const [yearA, monthA, dayA] = a.date.split('-')
+        const [hoursA, minutesA] = (a.time || '23:59').split(':')
+        const dateTimeA = new Date(Number(yearA), Number(monthA) - 1, Number(dayA), Number(hoursA), Number(minutesA))
+
         const [yearB, monthB, dayB] = b.date.split('-')
-        const dateA = new Date(Number(yearA), Number(monthA) - 1, Number(dayA))
-        const dateB = new Date(Number(yearB), Number(monthB) - 1, Number(dayB))
-        return dateA.getTime() - dateB.getTime()
+        const [hoursB, minutesB] = (b.time || '23:59').split(':')
+        const dateTimeB = new Date(Number(yearB), Number(monthB) - 1, Number(dayB), Number(hoursB), Number(minutesB))
+
+        return dateTimeA.getTime() - dateTimeB.getTime()
       })
 
     return upcomingSchedules[0] || null

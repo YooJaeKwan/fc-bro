@@ -23,6 +23,7 @@ import { AttendanceStats } from "./components/attendance-stats"
 import { MatchResultsView } from "./components/match-results-view"
 import { DashboardHome } from "./components/dashboard-home"
 import { Announcements } from "./components/announcements"
+import { TeamDashboard } from "./components/team-dashboard"
 
 // 무거운 컴포넌트 동적 로딩 (탭 전환 시에만 로드)
 const TeamManagement = dynamic(
@@ -87,8 +88,11 @@ export default function Dashboard({ userInfo, onUserUpdate, onLogout }: Dashboar
   const tabItems = [
     { value: "dashboard", label: "대시보드", icon: BarChart3 },
     { value: "schedule", label: "경기예정", icon: Calendar },
-    { value: "results", label: "경기결과", icon: Trophy },
-    ...(isManagerMode ? [{ value: "attendance", label: "출석부", icon: ClipboardList }] : []),
+    { value: "results", label: "경기결과", icon: ClipboardList },
+    ...(isManagerMode ? [
+      { value: "team-stats", label: "팀 통계", icon: Trophy },
+      { value: "attendance", label: "출석부", icon: Users }
+    ] : []),
     { value: "album", label: "앨범", icon: ImageIcon },
     { value: "team", label: "팀멤버", icon: Users },
     { value: "profile", label: "내 정보", icon: User },
@@ -240,7 +244,11 @@ export default function Dashboard({ userInfo, onUserUpdate, onLogout }: Dashboar
           </div>
           {/* 대시보드 */}
           <TabsContent value="dashboard" className="mt-6">
-            <DashboardHome currentUser={user} onUserUpdate={handleUserUpdate} />
+            <DashboardHome currentUser={user} onUserUpdate={handleUserUpdate} isManagerMode={isManagerMode} />
+          </TabsContent>
+
+          <TabsContent value="team-stats" className="mt-6">
+            <TeamDashboard currentUser={user} />
           </TabsContent>
 
           <TabsContent value="schedule">

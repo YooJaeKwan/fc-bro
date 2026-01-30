@@ -116,13 +116,11 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
   const isPastSchedule = daysLeft < 0
   const userStatus = getUserAttendanceStatus(schedule)
 
-  // 경기 시작 후 2시간이 지났는지 확인 (결과 입력 가능 시점)
+  // 경기 시작 시간이 지났는지 확인 (결과 입력 가능 시점)
   const isMatchTimePassed = (() => {
     const [year, month, day] = schedule.date.split('-')
     const [hours, minutes] = schedule.time.split(':')
     const scheduleDateTime = new Date(Number(year), Number(month) - 1, Number(day), Number(hours), Number(minutes))
-    // 경기 시작 후 2시간 후
-    scheduleDateTime.setHours(scheduleDateTime.getHours() + 2)
     return scheduleDateTime < new Date()
   })()
 
@@ -396,25 +394,60 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
               </div>
             )}
 
-            {/* MVP (잠시 숨김) */}
-            {/* {schedule.mvpUserId && (
-              <div className="pt-3 border-t border-slate-700/50 flex items-center justify-center gap-2">
+            {/* 골 기록 표시 - Only for Managers */}
+            {isManagerMode && schedule.goalRecords && Array.isArray(schedule.goalRecords) && schedule.goalRecords.length > 0 && (
+              <div className="mt-4 pt-3 border-t border-slate-700/50">
+                <div className="text-xs text-slate-400 mb-2 text-center">⚽ 골 기록</div>
+                <div className="space-y-1">
+                  {[...schedule.goalRecords]
+                    .sort((a: any, b: any) => (a.quarter || 1) - (b.quarter || 1))
+                    .map((goal: any, idx: number) => (
+                      <div key={idx} className="flex items-center justify-center gap-2 text-xs">
+                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${goal.team === 'yellow' ? 'bg-yellow-400/20 text-yellow-300' : 'bg-blue-400/20 text-blue-300'
+                          }`}>
+                          {goal.quarter || 1}Q
+                        </span>
+                        <span className={goal.scorerId === 'own_goal' ? 'text-red-400 font-bold italic' : (goal.team === 'yellow' ? 'text-yellow-300' : 'text-blue-300')}>
+                          {goal.scorerId === 'own_goal' && '⚠️ '}{goal.scorerName}
+                        </span>
+                        {goal.assistName && (
+                          <span className="text-slate-500">
+                            (A. {goal.assistName})
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
+
+            {/* MVP 표시 - Only for Managers */}
+            {isManagerMode && schedule.mvpUserId && (
+              <div className="mt-3 pt-3 border-t border-slate-700/50 flex items-center justify-center gap-2">
                 <Trophy className="h-4 w-4 text-yellow-500" />
-                <span className="text-xs text-slate-300 font-medium">MOM: </span>
-                <span className="text-sm text-yellow-500 font-bold">
-                  {schedule.attendances?.find((a: any) =>
-                    (a.user?.id === schedule.mvpUserId) || (a.userId === schedule.mvpUserId)
-                  )?.user?.realName ||
-                    schedule.attendances?.find((a: any) =>
+                <span className="text-xs text-slate-300 font-medium">MVP: </span>
+                <span className="text-sm text-yellow-400 font-bold">
+                  {(() => {
+                    // 팀편성에서 MVP 찾기
+                    if (schedule.teamFormation) {
+                      const allPlayers = [...(schedule.teamFormation.yellowTeam || []), ...(schedule.teamFormation.blueTeam || [])]
+                      const mvp = allPlayers.find((p: any) => p.userId === schedule.mvpUserId)
+                      if (mvp) return mvp.name
+                    }
+                    // 참석자에서 MVP 찾기
+                    const attendee = schedule.attendances?.find((a: any) =>
                       (a.user?.id === schedule.mvpUserId) || (a.userId === schedule.mvpUserId)
-                    )?.user?.nickname ||
-                    schedule.attendances?.find((a: any) =>
-                      a.guestId === schedule.mvpUserId
-                    )?.guestName ||
-                    '알 수 없음'}
+                    )
+                    if (attendee?.user?.realName) return attendee.user.realName
+                    if (attendee?.user?.nickname) return attendee.user.nickname
+                    // 게스트에서 MVP 찾기
+                    const guest = schedule.attendances?.find((a: any) => a.guestId === schedule.mvpUserId)
+                    if (guest?.guestName) return guest.guestName
+                    return '알 수 없음'
+                  })()}
                 </span>
               </div>
-            )} */}
+            )}
 
             {/* 총평 */}
             {schedule.matchSummary && (
@@ -687,8 +720,8 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
                 )
               )}
 
-              {/* 경기 결과 입력 버튼 (관리자용) - 연습 경기는 제외, 지난 경기만 가능 */}
-              {isManagerMode && onEnterResult && schedule.type !== 'training' && isPastSchedule && (
+              {/* 경기 결과 입력 버튼 (관리자용) - 연습 경기는 제외, 경기 시작 시간 이후 가능 */}
+              {isManagerMode && onEnterResult && schedule.type !== 'training' && isMatchTimePassed && (
                 <div className="pt-2">
                   <Button
                     onClick={() => onEnterResult(schedule)}

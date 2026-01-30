@@ -13,18 +13,20 @@ export async function GET(request: NextRequest) {
     }
 
     const now = new Date()
-    now.setHours(0, 0, 0, 0)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
 
     // 1. 활성 회원 수 조회 (미응답 계산용)
     const activeUserCountRequest = prisma.user.count({
       where: { isActive: true }
     })
 
-    // 2. 다음 일정 (가장 가까운 미래 일정 1개) - 실시간 통계 계산을 위해 전체 참석자 조회
-    const nextScheduleRequest = prisma.schedule.findFirst({
+    // 2. 다음 일정 (가장 가까운 미래 일정 1개) - 시작 시간 기준으로 필터링
+    // 오늘 이후 경기를 모두 가져와서 시작 시간이 지나지 않은 경기 중 가장 가까운 것 선택
+    const upcomingSchedulesRequest = prisma.schedule.findMany({
       where: {
         matchDate: {
-          gte: now
+          gte: today
         }
       },
       orderBy: {
@@ -46,7 +48,7 @@ export async function GET(request: NextRequest) {
     const recentMatchesRequest = prisma.schedule.findMany({
       where: {
         matchDate: {
-          lt: now
+          lt: today
         },
         // 결과가 있는 경기만? 아니면 참석한 경기만? -> 기존 로직은 "참석한" 경기
         attendances: {
@@ -83,6 +85,8 @@ export async function GET(request: NextRequest) {
         matchDate: true,
         ourScore: true,
         opponentScore: true,
+        goalRecords: true,
+        mvpUserId: true,
         teamFormation: true,
         attendances: {
           where: {
@@ -101,13 +105,21 @@ export async function GET(request: NextRequest) {
     })
 
     // 병렬 실행
-    const [activeUserCount, nextSchedule, recentMatches, yearSchedules, userBadges] = await Promise.all([
+    const [activeUserCount, upcomingSchedules, recentMatches, yearSchedules, userBadges] = await Promise.all([
       activeUserCountRequest,
-      nextScheduleRequest,
+      upcomingSchedulesRequest,
       recentMatchesRequest,
       yearSchedulesRequest,
       badgesRequest
     ])
+
+    // 시작 시간 기준으로 아직 시작하지 않은 경기 필터링
+    const nextSchedule = upcomingSchedules.find((schedule: any) => {
+      const matchDate = new Date(schedule.matchDate)
+      const [hours, minutes] = (schedule.startTime || '23:59').split(':')
+      matchDate.setHours(Number(hours), Number(minutes), 0, 0)
+      return matchDate > now
+    }) || null
 
     // --- 데이터 가공 ---
 
@@ -115,9 +127,25 @@ export async function GET(request: NextRequest) {
     let attendedCount = 0
     let wins = 0, draws = 0, losses = 0
 
+    // 4. 개인 상세 통계 (골, 도움, MVP)
+    let goals = 0, assists = 0, mvpCount = 0
+
     yearSchedules.forEach((schedule: any) => {
       const isAttended = schedule.attendances.length > 0
       if (isAttended) attendedCount++
+
+      // 골/도움 계산
+      if (schedule.goalRecords && Array.isArray(schedule.goalRecords)) {
+        schedule.goalRecords.forEach((goal: any) => {
+          if (goal.scorerId === userId) goals++
+          if (goal.assistId === userId) assists++
+        })
+      }
+
+      // MVP 계산
+      if (schedule.mvpUserId === userId) {
+        mvpCount++
+      }
 
       // 전적 계산 (내전인 경우만 or A매치 포함? -> 기존 로직은 internal만 승패 계산)
       if (isAttended && schedule.type === 'internal' && schedule.teamFormation &&
@@ -149,15 +177,15 @@ export async function GET(request: NextRequest) {
     if (nextSchedule) {
       // 실시간 통계 계산
       const attendances = nextSchedule.attendances || []
-      
+
       const attendingCount = attendances.filter((a: any) => a.status === 'ATTENDING').length
       const notAttendingCount = attendances.filter((a: any) => a.status === 'NOT_ATTENDING').length
-      
+
       // 미응답 계산: 전체 활성 유저 - (투표한 유저 수)
       // 게스트는 미응답 카운트에 포함되지 않음
       const votedUserCount = attendances.filter((a: any) => !a.isGuest && (a.status === 'ATTENDING' || a.status === 'NOT_ATTENDING')).length
       const pendingCount = Math.max(0, activeUserCount - votedUserCount)
-      
+
       // 현재 사용자의 참석 상태 찾기
       const myAttendance = attendances.find((a: any) => a.userId === userId)
 
@@ -224,6 +252,9 @@ export async function GET(request: NextRequest) {
           matches: {
             wins, draws, losses,
             total: wins + draws + losses
+          },
+          personal: {
+            goals, assists, mvpCount
           }
         },
         recentMatches: formattedRecentMatches,

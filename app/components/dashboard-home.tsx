@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { CalendarIcon, MapPin, Trophy, TrendingUp, Calendar as CalendarDays, Award, Clock } from "lucide-react"
+import { CalendarIcon, MapPin, Trophy, TrendingUp, Calendar as CalendarDays, Award, Clock, Target } from "lucide-react"
 import { AttendanceVoting } from "./attendance-voting"
 import { ScheduleComments } from "./schedule-comments"
 import { TeamFormation } from "./team-formation"
@@ -17,6 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 interface DashboardHomeProps {
     currentUser: any
     onUserUpdate?: (updatedUser: any) => void
+    isManagerMode?: boolean
 }
 
 // React Strict Mode에서 두 번 호출 방지용 ref
@@ -52,13 +53,14 @@ interface UserBadge {
     }
 }
 
-export function DashboardHome({ currentUser }: DashboardHomeProps) {
+export function DashboardHome({ currentUser, isManagerMode }: DashboardHomeProps) {
     const [nextSchedule, setNextSchedule] = useState<any>(null)
     const [selectedBadge, setSelectedBadge] = useState<any>(null)
     const [matchStats, setMatchStats] = useState<MatchStats>({ wins: 0, draws: 0, losses: 0, total: 0 })
     const [attendanceStats, setAttendanceStats] = useState<AttendanceStats>({ attended: 0, total: 0, rate: 0 })
     const [recentMatches, setRecentMatches] = useState<RecentMatch[]>([])
     const [userBadges, setUserBadges] = useState<UserBadge[]>([])
+    const [personalStats, setPersonalStats] = useState({ goals: 0, assists: 0, mvpCount: 0 })
     const [isLoading, setIsLoading] = useState(true)
     const badgeCheckDone = useRef(false) // React Strict Mode에서 두 번 호출 방지
 
@@ -87,6 +89,11 @@ export function DashboardHome({ currentUser }: DashboardHomeProps) {
 
                     // 4. Badges
                     setUserBadges(badges)
+
+                    // 5. Personal Stats
+                    if (stats.personal) {
+                        setPersonalStats(stats.personal)
+                    }
 
                     // Check for new badges (background check)
                     // This is still needed to trigger new calculations if something changed recently
@@ -589,6 +596,43 @@ export function DashboardHome({ currentUser }: DashboardHomeProps) {
                                 </div>
                             </div>
                         )}
+                    </CardContent>
+                </Card>
+            )}
+
+            {/* Personal Records Card - Only for Managers */}
+            {isManagerMode && !isLoading && (
+                <Card className="bg-gradient-to-br from-indigo-500 to-purple-600 border-none text-white overflow-hidden shadow-lg">
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-medium flex items-center gap-2">
+                            <Trophy className="h-4 w-4 text-yellow-300" />
+                            나의 누적 기록
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="grid grid-cols-3 gap-4">
+                            <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4 text-center">
+                                <div className="text-sm font-medium mb-1 opacity-90">골</div>
+                                <div className="text-3xl font-bold flex items-center justify-center gap-1">
+                                    {personalStats.goals}
+                                    <Target className="h-4 w-4 opacity-50" />
+                                </div>
+                            </div>
+                            <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4 text-center">
+                                <div className="text-sm font-medium mb-1 opacity-90">도움</div>
+                                <div className="text-3xl font-bold flex items-center justify-center gap-1">
+                                    {personalStats.assists}
+                                    <Award className="h-4 w-4 opacity-50" />
+                                </div>
+                            </div>
+                            <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4 text-center">
+                                <div className="text-sm font-medium mb-1 opacity-90">MVP</div>
+                                <div className="text-3xl font-bold flex items-center justify-center gap-1">
+                                    {personalStats.mvpCount}
+                                    <Trophy className="h-4 w-4 opacity-50" />
+                                </div>
+                            </div>
+                        </div>
                     </CardContent>
                 </Card>
             )}

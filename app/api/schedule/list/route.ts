@@ -117,13 +117,13 @@ export async function GET() {
       })
 
       // 2. 비활성 회원 중 투표한 사람 (투표함)
-      const inactiveUserAttendees = attendees.filter(a => 
+      const inactiveUserAttendees = attendees.filter(a =>
         !a.isGuest && !allUsers.some(u => u.id === a.userId)
       )
 
       // 3. 게스트 (투표함)
       const guestAttendees = attendees.filter((a: any) => a.isGuest)
-      
+
       const finalAttendees = [...activeUserAttendees, ...inactiveUserAttendees, ...guestAttendees]
 
       // 실시간 통계 계산
@@ -168,6 +168,7 @@ export async function GET() {
         teamFormation: schedule.teamFormation, // 팀편성 결과 포함
         formationDate: schedule.formationDate?.toISOString() || null,
         formationConfirmed: schedule.formationConfirmed || false, // 팀편성 확정 상태
+        goalRecords: schedule.goalRecords, // 골 기록
         allowGuests: schedule.allowGuests || false, // 게스트 허용 상태
         createdBy: {
           id: schedule.creator.id,
