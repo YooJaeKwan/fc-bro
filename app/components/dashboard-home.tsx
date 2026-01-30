@@ -216,7 +216,7 @@ export function DashboardHome({ currentUser }: DashboardHomeProps) {
                                                 'bg-blue-100 text-blue-800'}
                                     `}>
                                         {nextSchedule.type === 'internal' ? '자체경기' :
-                                            nextSchedule.type === 'match' ? 'A매치' : '훈련'}
+                                            nextSchedule.type === 'match' ? `A매치${nextSchedule.opponentTeam ? ` vs ${nextSchedule.opponentTeam}` : ''}` : '훈련'}
                                     </Badge>
                                 </div>
                                 <div className="flex items-center gap-1 text-sm font-medium text-red-500">

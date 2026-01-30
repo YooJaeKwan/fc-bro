@@ -22,6 +22,7 @@ import { UserProfile } from "./components/user-profile"
 import { AttendanceStats } from "./components/attendance-stats"
 import { MatchResultsView } from "./components/match-results-view"
 import { DashboardHome } from "./components/dashboard-home"
+import { Announcements } from "./components/announcements"
 
 // 무거운 컴포넌트 동적 로딩 (탭 전환 시에만 로드)
 const TeamManagement = dynamic(
@@ -139,6 +140,8 @@ export default function Dashboard({ userInfo, onUserUpdate, onLogout }: Dashboar
               >
                 {user?.role === 'ADMIN' ? "총무" : "선수"}
               </Badge>
+              {/* 공지사항 알림 */}
+              <Announcements isManagerMode={isManagerMode} currentUser={user} />
               <Button variant="ghost" size="sm" onClick={() => onLogout ? onLogout() : window.location.reload()}>
                 <LogOut className="h-4 w-4" />
               </Button>
@@ -152,6 +155,8 @@ export default function Dashboard({ userInfo, onUserUpdate, onLogout }: Dashboar
               >
                 {user?.role === 'ADMIN' ? "총무" : "선수"}
               </Badge>
+              {/* 모바일 공지사항 알림 */}
+              <Announcements isManagerMode={isManagerMode} currentUser={user} />
               <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
                 <SheetTrigger asChild>
                   <Button variant="ghost" size="sm">

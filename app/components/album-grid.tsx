@@ -60,7 +60,7 @@ export function AlbumGrid({ schedules }: AlbumGridProps) {
                         <div className="flex justify-between items-start mb-2">
                             <div>
                                 <h3 className="font-bold text-gray-900 flex items-center gap-2">
-                                    {schedule.type === 'internal' ? '자체경기' : schedule.type === 'match' ? 'A매치' : '훈련'}
+                                    {schedule.type === 'internal' ? '자체경기' : schedule.type === 'match' ? `A매치${schedule.opponentTeam ? ` vs ${schedule.opponentTeam}` : ''}` : '훈련'}
                                     <Badge variant="outline" className="text-[10px] h-5 font-normal">
                                         {schedule.startTime}
                                     </Badge>

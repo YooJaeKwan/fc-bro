@@ -182,14 +182,13 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
     }
   }
 
-  
+
   if (compact) {
     return (
-      <Card className={`mb-3 overflow-hidden transition-all hover:shadow-md border-l-4 ${
-        daysLeft === 0 ? 'border-l-red-500' : 
-        daysLeft === 1 ? 'border-l-orange-500' : 
-        'border-l-blue-500'
-      }`}>
+      <Card className={`mb-3 overflow-hidden transition-all hover:shadow-md border-l-4 ${daysLeft === 0 ? 'border-l-red-500' :
+          daysLeft === 1 ? 'border-l-orange-500' :
+            'border-l-blue-500'
+        }`}>
         <CardContent className="p-4">
           <div className="flex justify-between items-start mb-3">
             <div>
@@ -213,19 +212,18 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
               </div>
             </div>
             <div className="flex flex-col items-end gap-1">
-               <Badge className={getTypeColor(schedule.type)} variant="secondary">
-                 {schedule.type === "internal" ? "자체" :
-                  schedule.type === "match" ? "매치" : "연습"}
-               </Badge>
-               {!isPastSchedule && (
-                  <span className={`text-xs font-bold ${
-                    daysLeft === 0 ? 'text-red-600' : 
-                    daysLeft === 1 ? 'text-orange-600' : 
-                    'text-blue-600'
+              <Badge className={getTypeColor(schedule.type)} variant="secondary">
+                {schedule.type === "internal" ? "자체" :
+                  schedule.type === "match" ? `A매치${schedule.opponentTeam ? ` vs ${schedule.opponentTeam}` : ''}` : "연습"}
+              </Badge>
+              {!isPastSchedule && (
+                <span className={`text-xs font-bold ${daysLeft === 0 ? 'text-red-600' :
+                    daysLeft === 1 ? 'text-orange-600' :
+                      'text-blue-600'
                   }`}>
-                    {daysLeft === 0 ? "D-Day" : `D-${daysLeft}`}
-                  </span>
-               )}
+                  {daysLeft === 0 ? "D-Day" : `D-${daysLeft}`}
+                </span>
+              )}
             </div>
           </div>
 
@@ -264,7 +262,7 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
     )
   }
 
-return (
+  return (
     <>
       {isUpdating ? (
         <Card className="transition-shadow bg-gray-50 border-gray-200">
@@ -295,7 +293,7 @@ return (
                 <div className="flex gap-2">
                   <Badge className={getTypeColor(schedule.type)} variant="secondary">
                     {schedule.type === "internal" ? "자체경기" :
-                      schedule.type === "match" ? "A매치" :
+                      schedule.type === "match" ? `A매치${schedule.opponentTeam ? ` vs ${schedule.opponentTeam}` : ''}` :
                         schedule.type === "training" ? "연습" : schedule.type}
                   </Badge>
                   <Badge variant="outline" className="text-xs border-slate-600 text-slate-400">
@@ -460,7 +458,7 @@ return (
           ? 'bg-gray-50 border-gray-200'
           : 'hover:shadow-lg border-blue-100'
           }`}>
-          
+
           {/* Header Section: Date, Time, Location */}
           <div className={`px-6 py-5 border-b ${isPastSchedule ? 'bg-gray-100/50 border-gray-200' : 'bg-blue-50/30 border-blue-100'}`}>
             <div className="flex justify-between items-start">
@@ -482,7 +480,7 @@ return (
                     {schedule.time}
                   </span>
                 </div>
-                
+
                 {/* Location */}
                 <div className={`flex items-center gap-2 font-medium ${isPastSchedule ? 'text-gray-500' : 'text-gray-700'}`}>
                   <MapPinIcon className={`h-4 w-4 ${isPastSchedule ? 'text-gray-400' : 'text-blue-500'}`} />
@@ -495,7 +493,7 @@ return (
                 <div className="flex gap-1">
                   <Badge className={getTypeColor(schedule.type)} variant="secondary">
                     {schedule.type === "internal" ? "자체경기" :
-                      schedule.type === "match" ? "A매치" :
+                      schedule.type === "match" ? `A매치${schedule.opponentTeam ? ` vs ${schedule.opponentTeam}` : ''}` :
                         schedule.type === "training" ? "연습" : schedule.type}
                   </Badge>
                   {isPastSchedule && (
@@ -504,14 +502,13 @@ return (
                     </Badge>
                   )}
                 </div>
-                
+
                 {/* D-Day Badge */}
                 {!isPastSchedule && !hasResult && (
-                  <Badge variant="outline" className={`${
-                    daysLeft === 0 ? 'bg-red-50 text-red-600 border-red-200' : 
-                    daysLeft === 1 ? 'bg-orange-50 text-orange-600 border-orange-200' : 
-                    'bg-blue-50 text-blue-600 border-blue-200'
-                  }`}>
+                  <Badge variant="outline" className={`${daysLeft === 0 ? 'bg-red-50 text-red-600 border-red-200' :
+                      daysLeft === 1 ? 'bg-orange-50 text-orange-600 border-orange-200' :
+                        'bg-blue-50 text-blue-600 border-blue-200'
+                    }`}>
                     {(() => {
                       if (daysLeft === 0) return "오늘 경기!"
                       if (daysLeft === 1) return "내일 경기!"
@@ -525,7 +522,7 @@ return (
 
           <CardContent className={`p-6 ${isPastSchedule ? 'opacity-90' : ''}`}>
             <div className="space-y-6">
-              
+
               {/* Scoreboard (if exists) */}
               {hasResult && (
                 <div className="w-full bg-slate-900 rounded-xl p-4 text-white shadow-lg overflow-hidden relative">
