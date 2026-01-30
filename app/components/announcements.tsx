@@ -29,7 +29,6 @@ interface AnnouncementsProps {
     currentUser?: any
 }
 
-const STORAGE_KEY = 'fc_bro_read_announcements'
 
 export function Announcements({ isManagerMode = false, currentUser }: AnnouncementsProps) {
     const [announcements, setAnnouncements] = useState<any[]>([])
