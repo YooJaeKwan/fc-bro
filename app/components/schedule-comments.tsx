@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -37,6 +37,7 @@ export function ScheduleComments({
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [isExpanded, setIsExpanded] = useState(false)
     const [deletingId, setDeletingId] = useState<string | null>(null)
+    const scrollRef = useRef<HTMLDivElement>(null)
 
     // 댓글 목록 조회
     const fetchComments = async () => {
@@ -65,6 +66,12 @@ export function ScheduleComments({
             fetchComments()
         }
     }, [isExpanded])
+
+    useEffect(() => {
+        if (scrollRef.current) {
+            scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+        }
+    }, [isExpanded, comments])
 
     // 댓글 작성
     const handleSubmit = async () => {
@@ -143,7 +150,7 @@ export function ScheduleComments({
                             아직 댓글이 없습니다. 첫 번째 댓글을 남겨보세요!
                         </p>
                     ) : (
-                        <div className="space-y-3 max-h-64 overflow-y-auto">
+                        <div ref={scrollRef} className="space-y-3 max-h-64 overflow-y-auto">
                             {comments.map((comment) => (
                                 <div key={comment.id} className="flex gap-2 group">
                                     <Avatar className="h-7 w-7 flex-shrink-0">
