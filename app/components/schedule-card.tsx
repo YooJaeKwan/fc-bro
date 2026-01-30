@@ -372,27 +372,43 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
         </div>
       ) : (
         /* 예정된 경기 또는 결과 없는 지난 경기: Card로 감싸기 */
-        <Card className={`transition-shadow ${isPastSchedule
+        <Card className={`transition-shadow overflow-hidden ${isPastSchedule
           ? 'bg-gray-50 border-gray-200'
-          : 'hover:shadow-lg'
+          : 'hover:shadow-lg border-blue-100'
           }`}>
-          <CardContent className={`p-6 ${isPastSchedule ? 'opacity-90' : ''}`}>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                {/* 일정 기본 정보 */}
-                <h3 className={`text-base font-semibold ${isPastSchedule ? 'text-gray-600' : ''}`}>
-                  {(() => {
-                    // 한국시간으로 저장된 날짜를 그대로 표시
-                    const [year, month, day] = schedule.date.split('-')
-                    const date = new Date(Number(year), Number(month) - 1, Number(day))
-                    return date.toLocaleDateString('ko-KR', {
-                      month: 'long',
-                      day: 'numeric',
-                      weekday: 'short'
-                    })
-                  })()} <span className={isPastSchedule ? 'text-gray-500' : 'text-blue-600'}>{schedule.time}</span>
-                </h3>
-                <div className="flex justify-center gap-2 flex-wrap">
+          
+          {/* Header Section: Date, Time, Location */}
+          <div className={`px-6 py-5 border-b ${isPastSchedule ? 'bg-gray-100/50 border-gray-200' : 'bg-blue-50/30 border-blue-100'}`}>
+            <div className="flex justify-between items-start">
+              <div className="space-y-1.5">
+                {/* Date & Time */}
+                <div className="flex items-baseline gap-3">
+                  <h3 className={`text-2xl font-bold tracking-tight ${isPastSchedule ? 'text-gray-600' : 'text-gray-900'}`}>
+                    {(() => {
+                      const [year, month, day] = schedule.date.split('-')
+                      const date = new Date(Number(year), Number(month) - 1, Number(day))
+                      return date.toLocaleDateString('ko-KR', {
+                        month: 'long',
+                        day: 'numeric',
+                        weekday: 'short'
+                      })
+                    })()}
+                  </h3>
+                  <span className={`text-xl font-bold ${isPastSchedule ? 'text-gray-500' : 'text-blue-600'}`}>
+                    {schedule.time}
+                  </span>
+                </div>
+                
+                {/* Location */}
+                <div className={`flex items-center gap-2 font-medium ${isPastSchedule ? 'text-gray-500' : 'text-gray-700'}`}>
+                  <MapPinIcon className={`h-4 w-4 ${isPastSchedule ? 'text-gray-400' : 'text-blue-500'}`} />
+                  <span>{schedule.location || '장소 미정'}</span>
+                </div>
+              </div>
+
+              {/* Badges */}
+              <div className="flex flex-col items-end gap-2">
+                <div className="flex gap-1">
                   <Badge className={getTypeColor(schedule.type)} variant="secondary">
                     {schedule.type === "internal" ? "자체경기" :
                       schedule.type === "match" ? "A매치" :
@@ -404,178 +420,151 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
                     </Badge>
                   )}
                 </div>
+                
+                {/* D-Day Badge */}
+                {!isPastSchedule && !hasResult && (
+                  <Badge variant="outline" className={`${
+                    daysLeft === 0 ? 'bg-red-50 text-red-600 border-red-200' : 
+                    daysLeft === 1 ? 'bg-orange-50 text-orange-600 border-orange-200' : 
+                    'bg-blue-50 text-blue-600 border-blue-200'
+                  }`}>
+                    {(() => {
+                      if (daysLeft === 0) return "오늘 경기!"
+                      if (daysLeft === 1) return "내일 경기!"
+                      return `D-${daysLeft}`
+                    })()}
+                  </Badge>
+                )}
               </div>
+            </div>
+          </div>
 
-              {/* 스코어보드 또는 D-Day */}
-              <div className="space-y-2 mt-2">
-                <div className="flex items-center justify-center">
-                  {hasResult ? (
-                    <div className="w-full max-w-md bg-slate-900 rounded-xl p-4 text-white shadow-lg overflow-hidden relative">
-                      {/* 장식용 배경 효과 */}
-                      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
+          <CardContent className={`p-6 ${isPastSchedule ? 'opacity-90' : ''}`}>
+            <div className="space-y-6">
+              
+              {/* Scoreboard (if exists) */}
+              {hasResult && (
+                <div className="w-full bg-slate-900 rounded-xl p-4 text-white shadow-lg overflow-hidden relative">
+                  {/* 장식용 배경 효과 */}
+                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
 
-                      {/* 장소 정보 (스코어보드 상단) */}
-                      {schedule.location && (
-                        <div className="flex items-center justify-center gap-1 mb-3 text-slate-400 text-xs">
-                          <MapPinIcon className="h-3 w-3" />
-                          <span>{schedule.location}</span>
-                        </div>
+                  <div className="flex items-center justify-between relative z-10">
+                    {/* 홈/Yellow 팀 */}
+                    <div className="flex-1 flex flex-col items-center">
+                      <span className={`text-4xl font-bold font-mono tracking-wider ${schedule.type === 'internal' ? 'text-yellow-400' : 'text-sky-400'
+                        }`}>
+                        {schedule.ourScore}
+                      </span>
+                      <span className={`text-xs font-bold mt-1 px-2 py-0.5 rounded-full ${schedule.type === 'internal'
+                        ? 'bg-yellow-400/20 text-yellow-200'
+                        : 'bg-sky-400/20 text-sky-200'
+                        }`}>
+                        {schedule.type === 'internal' ? 'YELLOW' : 'HOME'}
+                      </span>
+                    </div>
+
+                    {/* VS / 종료 */}
+                    <div className="flex flex-col items-center px-4">
+                      <span className="text-slate-500 text-xs font-bold mb-1">VS</span>
+                      <div className="h-8 w-px bg-slate-700/50"></div>
+
+                      {/* 통합 명단 버튼 */}
+                      {schedule.teamFormation && (isManagerMode || schedule.formationConfirmed || isPastSchedule) && schedule.type === 'internal' && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setIsRosterExpanded(!isRosterExpanded)}
+                          className="mt-2 text-xs text-slate-400 hover:text-slate-200 hover:bg-slate-700/50"
+                        >
+                          {isRosterExpanded ? <ChevronUp className="h-3 w-3 mr-1" /> : <ChevronDown className="h-3 w-3 mr-1" />}
+                          명단
+                        </Button>
                       )}
+                    </div>
 
-                      <div className="flex items-center justify-between relative z-10">
-                        {/* 홈/Yellow 팀 */}
-                        <div className="flex-1 flex flex-col items-center">
-                          <span className={`text-4xl font-bold font-mono tracking-wider ${schedule.type === 'internal' ? 'text-yellow-400' : 'text-sky-400'
-                            }`}>
-                            {schedule.ourScore}
-                          </span>
-                          <span className={`text-xs font-bold mt-1 px-2 py-0.5 rounded-full ${schedule.type === 'internal'
-                            ? 'bg-yellow-400/20 text-yellow-200'
-                            : 'bg-sky-400/20 text-sky-200'
-                            }`}>
-                            {schedule.type === 'internal' ? 'YELLOW' : 'HOME'}
-                          </span>
+                    {/* 원정/Blue 팀 */}
+                    <div className="flex-1 flex flex-col items-center">
+                      <span className={`text-4xl font-bold font-mono tracking-wider ${schedule.type === 'internal' ? 'text-blue-400' : 'text-rose-400'
+                        }`}>
+                        {schedule.opponentScore}
+                      </span>
+                      <span className={`text-xs font-bold mt-1 px-2 py-0.5 rounded-full ${schedule.type === 'internal'
+                        ? 'bg-blue-400/20 text-blue-200'
+                        : 'bg-rose-400/20 text-rose-200'
+                        }`}>
+                        {schedule.type === 'internal' ? 'BLUE' : 'AWAY'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* 팀 명단 표시 - 좌우 병렬 */}
+                  {schedule.teamFormation && (isManagerMode || schedule.formationConfirmed || isPastSchedule) && isRosterExpanded && (
+                    <div className="mt-4 pt-3 border-t border-slate-700/50">
+                      <div className="grid grid-cols-2 gap-4 text-xs">
+                        {/* Yellow Team */}
+                        <div className="space-y-1">
+                          <div className="font-semibold text-yellow-400 mb-2 text-center">Yellow Team</div>
+                          {sortByPosition(schedule.teamFormation.yellowTeam || []).map((player: any, idx: number) => (
+                            <div key={idx} className="text-slate-300 flex items-center gap-2 py-1">
+                              <Badge variant="outline" className={`text-[10px] ${getPositionColor(player.position || player.displayPosition || 'MC')}`}>
+                                {player.position || player.displayPosition || 'MC'}
+                              </Badge>
+                              <span>{player.name}</span>
+                            </div>
+                          ))}
                         </div>
 
-                        {/* VS / 종료 */}
-                        <div className="flex flex-col items-center px-4">
-                          <span className="text-slate-500 text-xs font-bold mb-1">VS</span>
-                          <div className="h-8 w-px bg-slate-700/50"></div>
-
-                          {/* 통합 명단 버튼 */}
-                          {schedule.teamFormation && (isManagerMode || schedule.formationConfirmed || isPastSchedule) && schedule.type === 'internal' && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setIsRosterExpanded(!isRosterExpanded)}
-                              className="mt-2 text-xs text-slate-400 hover:text-slate-200 hover:bg-slate-700/50"
-                            >
-                              {isRosterExpanded ? <ChevronUp className="h-3 w-3 mr-1" /> : <ChevronDown className="h-3 w-3 mr-1" />}
-                              명단
-                            </Button>
-                          )}
-                        </div>
-
-                        {/* 원정/Blue 팀 */}
-                        <div className="flex-1 flex flex-col items-center">
-                          <span className={`text-4xl font-bold font-mono tracking-wider ${schedule.type === 'internal' ? 'text-blue-400' : 'text-rose-400'
-                            }`}>
-                            {schedule.opponentScore}
-                          </span>
-                          <span className={`text-xs font-bold mt-1 px-2 py-0.5 rounded-full ${schedule.type === 'internal'
-                            ? 'bg-blue-400/20 text-blue-200'
-                            : 'bg-rose-400/20 text-rose-200'
-                            }`}>
-                            {schedule.type === 'internal' ? 'BLUE' : 'AWAY'}
-                          </span>
+                        {/* Blue Team */}
+                        <div className="space-y-1">
+                          <div className="font-semibold text-blue-400 mb-2 text-center">Blue Team</div>
+                          {sortByPosition(schedule.teamFormation.blueTeam || []).map((player: any, idx: number) => (
+                            <div key={idx} className="text-slate-300 flex items-center gap-2 py-1">
+                              <Badge variant="outline" className={`text-[10px] ${getPositionColor(player.position || player.displayPosition || 'MC')}`}>
+                                {player.position || player.displayPosition || 'MC'}
+                              </Badge>
+                              <span>{player.name}</span>
+                            </div>
+                          ))}
                         </div>
                       </div>
-
-                      {/* 팀 명단 표시 - 좌우 병렬 */}
-                      {schedule.teamFormation && (isManagerMode || schedule.formationConfirmed || isPastSchedule) && isRosterExpanded && (
-                        <div className="mt-4 pt-3 border-t border-slate-700/50">
-                          <div className="grid grid-cols-2 gap-4 text-xs">
-                            {/* Yellow Team */}
-                            <div className="space-y-1">
-                              <div className="font-semibold text-yellow-400 mb-2 text-center">Yellow Team</div>
-                              {sortByPosition(schedule.teamFormation.yellowTeam || []).map((player: any, idx: number) => (
-                                <div key={idx} className="text-slate-300 flex items-center gap-2 py-1">
-                                  <Badge variant="outline" className={`text-[10px] ${getPositionColor(player.position || player.displayPosition || 'MC')}`}>
-                                    {player.position || player.displayPosition || 'MC'}
-                                  </Badge>
-                                  <span>{player.name}</span>
-                                </div>
-                              ))}
-                            </div>
-
-                            {/* Blue Team */}
-                            <div className="space-y-1">
-                              <div className="font-semibold text-blue-400 mb-2 text-center">Blue Team</div>
-                              {sortByPosition(schedule.teamFormation.blueTeam || []).map((player: any, idx: number) => (
-                                <div key={idx} className="text-slate-300 flex items-center gap-2 py-1">
-                                  <Badge variant="outline" className={`text-[10px] ${getPositionColor(player.position || player.displayPosition || 'MC')}`}>
-                                    {player.position || player.displayPosition || 'MC'}
-                                  </Badge>
-                                  <span>{player.name}</span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* MVP 표시 (잠시 숨김) */}
-                      {/* {schedule.mvpUserId && (
-                        <div className="mt-4 pt-3 border-t border-slate-700/50 flex items-center justify-center gap-2">
-                          <Trophy className="h-3.5 w-3.5 text-yellow-500" />
-                          <span className="text-xs text-slate-300 font-medium">MOM: </span>
-                          <span className="text-xs text-yellow-500 font-bold">
-                            {schedule.attendances?.find((a: any) =>
-                              (a.user?.id === schedule.mvpUserId) || (a.userId === schedule.mvpUserId)
-                            )?.user?.realName ||
-                              schedule.attendances?.find((a: any) =>
-                                (a.user?.id === schedule.mvpUserId) || (a.userId === schedule.mvpUserId)
-                              )?.user?.nickname ||
-                              schedule.attendances?.find((a: any) =>
-                                a.guestId === schedule.mvpUserId
-                              )?.guestName ||
-                              '알 수 없음'}
-                          </span>
-                        </div>
-                      )} */}
-                    </div>
-                  ) : (
-                    <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full font-semibold bg-blue-50 text-blue-700`}>
-                      <CalendarIcon className="h-4 w-4" />
-                      {(() => {
-                        if (daysLeft === 0) return "오늘 경기!"
-                        if (daysLeft === 1) return "내일 경기!"
-                        if (daysLeft > 0) return `D-${daysLeft}`
-                        return "경기 종료"
-                      })()}
                     </div>
                   )}
                 </div>
+              )}
 
-                {/* 관리자 아이콘 버튼들 */}
-                {isManagerMode && (
-                  <div className="flex items-center justify-center gap-2">
-                    <Button
-                      onClick={handleCopyForSharing}
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0 text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-                      title="카카오톡 공유 텍스트 복사"
-                    >
-                      <Share2 className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      onClick={() => onEditSchedule(schedule)}
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0 text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-                      title="일정 수정"
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      onClick={() => onDeleteSchedule(schedule.id)}
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                      title="일정 삭제"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                )}
-              </div>
-
-              {/* 장소 정보는 스코어보드 내부로 이동됨 - 예정 경기는 여기 표시 */}
-              {!isPastSchedule && schedule.location && (
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <MapPinIcon className="h-4 w-4" />
-                  <span>{schedule.location}</span>
+              {/* Manager Buttons */}
+              {isManagerMode && (
+                <div className="flex items-center justify-end gap-2">
+                  <Button
+                    onClick={handleCopyForSharing}
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 text-xs"
+                    title="카카오톡 공유 텍스트 복사"
+                  >
+                    <Share2 className="h-3.5 w-3.5 mr-1" />
+                    공유
+                  </Button>
+                  <Button
+                    onClick={() => onEditSchedule(schedule)}
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 text-xs"
+                    title="일정 수정"
+                  >
+                    <Edit className="h-3.5 w-3.5 mr-1" />
+                    수정
+                  </Button>
+                  <Button
+                    onClick={() => onDeleteSchedule(schedule.id)}
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-2 text-red-600 hover:text-red-700 hover:bg-red-50 text-xs"
+                    title="일정 삭제"
+                  >
+                    <Trash2 className="h-3.5 w-3.5 mr-1" />
+                    삭제
+                  </Button>
                 </div>
               )}
 
