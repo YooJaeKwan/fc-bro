@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/collapsible"
 
 interface ScheduleCardProps {
+  compact?: boolean
   schedule: any
   currentUser: any
   isManagerMode: boolean
@@ -44,7 +45,8 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
   onEditSchedule,
   onVoteUpdate,
   onEnterResult,
-  hasTeamFormation = false
+  hasTeamFormation = false,
+  compact = false
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isRosterExpanded, setIsRosterExpanded] = useState(false)
@@ -180,7 +182,89 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
     }
   }
 
-  return (
+  
+  if (compact) {
+    return (
+      <Card className={`mb-3 overflow-hidden transition-all hover:shadow-md border-l-4 ${
+        daysLeft === 0 ? 'border-l-red-500' : 
+        daysLeft === 1 ? 'border-l-orange-500' : 
+        'border-l-blue-500'
+      }`}>
+        <CardContent className="p-4">
+          <div className="flex justify-between items-start mb-3">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="font-bold text-lg">
+                  {(() => {
+                    const [year, month, day] = schedule.date.split('-')
+                    const date = new Date(Number(year), Number(month) - 1, Number(day))
+                    return date.toLocaleDateString('ko-KR', {
+                      month: 'long',
+                      day: 'numeric',
+                      weekday: 'short'
+                    })
+                  })()}
+                </span>
+                <span className="text-blue-600 font-bold">{schedule.time}</span>
+              </div>
+              <div className="flex items-center gap-1 text-sm text-gray-500">
+                <MapPinIcon className="h-3 w-3" />
+                {schedule.location}
+              </div>
+            </div>
+            <div className="flex flex-col items-end gap-1">
+               <Badge className={getTypeColor(schedule.type)} variant="secondary">
+                 {schedule.type === "internal" ? "자체" :
+                  schedule.type === "match" ? "매치" : "연습"}
+               </Badge>
+               {!isPastSchedule && (
+                  <span className={`text-xs font-bold ${
+                    daysLeft === 0 ? 'text-red-600' : 
+                    daysLeft === 1 ? 'text-orange-600' : 
+                    'text-blue-600'
+                  }`}>
+                    {daysLeft === 0 ? "D-Day" : `D-${daysLeft}`}
+                  </span>
+               )}
+            </div>
+          </div>
+
+          {/* Voting Section */}
+          {!isPastSchedule && currentUser?.id && (
+            <div className="mt-3 pt-3 border-t border-gray-100">
+              <AttendanceVoting
+                scheduleId={schedule.id}
+                currentUserId={currentUser.id}
+                isPastSchedule={isPastSchedule}
+                allowGuests={false}
+                hasTeamFormation={!!schedule.teamFormation}
+                formationConfirmed={schedule.formationConfirmed}
+                isManagerMode={isManagerMode}
+                onVoteUpdate={() => {
+                  onVoteUpdate?.()
+                  onAttendanceUpdate(schedule.id)
+                }}
+                initialAttendees={schedule.attendees?.map((att: any) => ({
+                  userId: att.userId,
+                  name: att.name,
+                  status: att.status,
+                  position: att.position,
+                  subPositions: att.subPositions,
+                  profileImage: att.profileImage || null,
+                  isGuest: att.isGuest || false,
+                  invitedBy: att.invitedBy
+                }))}
+                initialStats={stats}
+                compact={true}
+              />
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    )
+  }
+
+return (
     <>
       {isUpdating ? (
         <Card className="transition-shadow bg-gray-50 border-gray-200">
