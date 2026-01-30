@@ -116,13 +116,11 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
   const isPastSchedule = daysLeft < 0
   const userStatus = getUserAttendanceStatus(schedule)
 
-  // 경기 시작 후 2시간이 지났는지 확인 (결과 입력 가능 시점)
-  const isMatchTimePassed = (() => {
+  // 경기 시작 시간이 지났는지 확인 (결과 입력 가능 시점)
+  const isMatchStarted = (() => {
     const [year, month, day] = schedule.date.split('-')
     const [hours, minutes] = schedule.time.split(':')
     const scheduleDateTime = new Date(Number(year), Number(month) - 1, Number(day), Number(hours), Number(minutes))
-    // 경기 시작 후 2시간 후
-    scheduleDateTime.setHours(scheduleDateTime.getHours() + 2)
     return scheduleDateTime < new Date()
   })()
 
@@ -186,8 +184,8 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
   if (compact) {
     return (
       <Card className={`mb-3 overflow-hidden transition-all hover:shadow-md border-l-4 ${daysLeft === 0 ? 'border-l-red-500' :
-          daysLeft === 1 ? 'border-l-orange-500' :
-            'border-l-blue-500'
+        daysLeft === 1 ? 'border-l-orange-500' :
+          'border-l-blue-500'
         }`}>
         <CardContent className="p-4">
           <div className="flex justify-between items-start mb-3">
@@ -218,8 +216,8 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
               </Badge>
               {!isPastSchedule && (
                 <span className={`text-xs font-bold ${daysLeft === 0 ? 'text-red-600' :
-                    daysLeft === 1 ? 'text-orange-600' :
-                      'text-blue-600'
+                  daysLeft === 1 ? 'text-orange-600' :
+                    'text-blue-600'
                   }`}>
                   {daysLeft === 0 ? "D-Day" : `D-${daysLeft}`}
                 </span>
@@ -268,7 +266,7 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
         <Card className="transition-shadow bg-gray-50 border-gray-200">
           <ScheduleSkeleton />
         </Card>
-      ) : isMatchTimePassed && hasResult ? (
+      ) : isMatchStarted && hasResult ? (
         /* 경기 시간이 지나고 결과 입력됨: 흰색 Card 없이 바로 검정 스코어보드 */
         <div className="space-y-4">
           {/* 통합 스코어보드 */}
@@ -506,8 +504,8 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
                 {/* D-Day Badge */}
                 {!isPastSchedule && !hasResult && (
                   <Badge variant="outline" className={`${daysLeft === 0 ? 'bg-red-50 text-red-600 border-red-200' :
-                      daysLeft === 1 ? 'bg-orange-50 text-orange-600 border-orange-200' :
-                        'bg-blue-50 text-blue-600 border-blue-200'
+                    daysLeft === 1 ? 'bg-orange-50 text-orange-600 border-orange-200' :
+                      'bg-blue-50 text-blue-600 border-blue-200'
                     }`}>
                     {(() => {
                       if (daysLeft === 0) return "오늘 경기!"
@@ -667,8 +665,8 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
                 )
               )}
 
-              {/* 경기 결과 입력 버튼 (관리자용) - 연습 경기는 제외, 지난 경기만 가능 */}
-              {isManagerMode && onEnterResult && schedule.type !== 'training' && isPastSchedule && (
+              {/* 경기 결과 입력 버튼 (관리자용) - 연습 경기는 제외, 경기 시작 시간 이후 가능 */}
+              {isManagerMode && onEnterResult && schedule.type !== 'training' && isMatchStarted && (
                 <div className="pt-2">
                   <Button
                     onClick={() => onEnterResult(schedule)}
