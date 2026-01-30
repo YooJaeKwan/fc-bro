@@ -15,7 +15,12 @@ export async function GET(request: NextRequest) {
     const now = new Date()
     now.setHours(0, 0, 0, 0)
 
-    // 1. 다음 일정 (가장 가까운 미래 일정 1개) - 비정규화된 통계 사용
+    // 1. 활성 회원 수 조회 (미응답 계산용)
+    const activeUserCountRequest = prisma.user.count({
+      where: { isActive: true }
+    })
+
+    // 2. 다음 일정 (가장 가까운 미래 일정 1개) - 실시간 통계 계산을 위해 전체 참석자 조회
     const nextScheduleRequest = prisma.schedule.findFirst({
       where: {
         matchDate: {
@@ -26,15 +31,18 @@ export async function GET(request: NextRequest) {
         matchDate: 'asc'
       },
       include: {
-        // 현재 사용자의 투표 상태만 가져오기 (전체 참석 목록 불필요)
+        // 모든 참석자 정보 조회 (게스트 포함)
         attendances: {
-          where: { userId },
-          take: 1
+          select: {
+            userId: true,
+            status: true,
+            isGuest: true
+          }
         }
       }
     })
 
-    // 2. 최근 경기 (과거 일정 3개)
+    // 3. 최근 경기 (과거 일정 3개)
     const recentMatchesRequest = prisma.schedule.findMany({
       where: {
         matchDate: {
@@ -93,7 +101,8 @@ export async function GET(request: NextRequest) {
     })
 
     // 병렬 실행
-    const [nextSchedule, recentMatches, yearSchedules, userBadges] = await Promise.all([
+    const [activeUserCount, nextSchedule, recentMatches, yearSchedules, userBadges] = await Promise.all([
+      activeUserCountRequest,
       nextScheduleRequest,
       recentMatchesRequest,
       yearSchedulesRequest,
@@ -138,11 +147,19 @@ export async function GET(request: NextRequest) {
     // 2. 다음 일정 가공
     let formattedNextSchedule = null
     if (nextSchedule) {
-      // 현재 사용자의 참석 상태 찾기 (attendances 배열에는 현재 사용자 것만 있음)
-      const myAttendance = nextSchedule.attendances?.[0]
-
-      // 비정규화된 통계 필드 사용 (성능 최적화)
-      const schedule = nextSchedule as any
+      // 실시간 통계 계산
+      const attendances = nextSchedule.attendances || []
+      
+      const attendingCount = attendances.filter((a: any) => a.status === 'ATTENDING').length
+      const notAttendingCount = attendances.filter((a: any) => a.status === 'NOT_ATTENDING').length
+      
+      // 미응답 계산: 전체 활성 유저 - (투표한 유저 수)
+      // 게스트는 미응답 카운트에 포함되지 않음
+      const votedUserCount = attendances.filter((a: any) => !a.isGuest && (a.status === 'ATTENDING' || a.status === 'NOT_ATTENDING')).length
+      const pendingCount = Math.max(0, activeUserCount - votedUserCount)
+      
+      // 현재 사용자의 참석 상태 찾기
+      const myAttendance = attendances.find((a: any) => a.userId === userId)
 
       formattedNextSchedule = {
         ...nextSchedule,
@@ -151,12 +168,12 @@ export async function GET(request: NextRequest) {
         time: nextSchedule.startTime,
         // 현재 사용자의 참석 상태
         myAttendance: myAttendance?.status || 'PENDING',
-        // 참석 통계 (비정규화된 필드 사용)
+        // 실시간 계산된 통계 사용
         attendanceStats: {
-          attending: schedule.attendingCount ?? 0,
-          notAttending: schedule.notAttendingCount ?? 0,
-          pending: schedule.pendingCount ?? 0,
-          total: (schedule.attendingCount ?? 0) + (schedule.notAttendingCount ?? 0) + (schedule.pendingCount ?? 0)
+          attending: attendingCount,
+          notAttending: notAttendingCount,
+          pending: pendingCount,
+          total: attendingCount + notAttendingCount + pendingCount
         }
       }
     }
