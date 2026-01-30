@@ -65,7 +65,7 @@ export function AttendanceVoting({
   onVoteUpdate,
   initialAttendees,
   initialStats,
-  initialMyStatus
+  initialMyStatus,
   compact = false
 }: AttendanceVotingProps) {
   // Initialize state from props if provided (performance optimization)
