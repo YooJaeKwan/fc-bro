@@ -44,6 +44,13 @@ export async function POST(request: NextRequest) {
                 subPositions: true,
                 level: true
               }
+            },
+            invitedBy: {
+              select: {
+                id: true,
+                realName: true,
+                nickname: true
+              }
             }
           }
         }
@@ -77,6 +84,10 @@ export async function POST(request: NextRequest) {
             return '보통'
           }
           const guestLevelString = getGuestLevelString(att.guestLevel)
+          // 초대자 이름 가져오기
+          const invitedByName = att.invitedBy
+            ? (att.invitedBy.realName || att.invitedBy.nickname || '미상')
+            : null
           return {
             userId: att.guestId || att.id,
             name: att.guestName || '게스트',
@@ -86,6 +97,7 @@ export async function POST(request: NextRequest) {
             guestLevel: guestLevelString,
             isGuest: true,
             invitedByUserId: att.invitedByUserId || undefined, // 초대한 사용자 ID 추가
+            invitedByName: invitedByName, // 초대자 이름 추가
             sameTeamAsInviter: att.sameTeamAsInviter !== undefined ? att.sameTeamAsInviter : true, // 초대자와 같은 팀 희망 여부
             positionCategory: getPositionCategory(guestPosition), // 게스트도 주포지션 카테고리 저장
             levelCategory: guestLevelString

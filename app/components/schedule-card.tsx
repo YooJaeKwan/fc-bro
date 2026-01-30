@@ -186,8 +186,8 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
   if (compact) {
     return (
       <Card className={`mb-3 overflow-hidden transition-all hover:shadow-md border-l-4 ${daysLeft === 0 ? 'border-l-red-500' :
-          daysLeft === 1 ? 'border-l-orange-500' :
-            'border-l-blue-500'
+        daysLeft === 1 ? 'border-l-orange-500' :
+          'border-l-blue-500'
         }`}>
         <CardContent className="p-4">
           <div className="flex justify-between items-start mb-3">
@@ -218,8 +218,8 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
               </Badge>
               {!isPastSchedule && (
                 <span className={`text-xs font-bold ${daysLeft === 0 ? 'text-red-600' :
-                    daysLeft === 1 ? 'text-orange-600' :
-                      'text-blue-600'
+                  daysLeft === 1 ? 'text-orange-600' :
+                    'text-blue-600'
                   }`}>
                   {daysLeft === 0 ? "D-Day" : `D-${daysLeft}`}
                 </span>
@@ -366,7 +366,12 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
                         <Badge variant="outline" className={`text-[10px] ${getPositionColor(player.position || player.displayPosition || 'MC')}`}>
                           {player.position || player.displayPosition || 'MC'}
                         </Badge>
-                        <span>{player.name}</span>
+                        <span>
+                          {player.name}
+                          {player.isGuest && player.invitedByName && (
+                            <span className="text-slate-500 text-[10px] ml-1">({player.invitedByName} 지인)</span>
+                          )}
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -378,7 +383,12 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
                         <Badge variant="outline" className={`text-[10px] ${getPositionColor(player.position || player.displayPosition || 'MC')}`}>
                           {player.position || player.displayPosition || 'MC'}
                         </Badge>
-                        <span>{player.name}</span>
+                        <span>
+                          {player.name}
+                          {player.isGuest && player.invitedByName && (
+                            <span className="text-slate-500 text-[10px] ml-1">({player.invitedByName} 지인)</span>
+                          )}
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -506,8 +516,8 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
                 {/* D-Day Badge */}
                 {!isPastSchedule && !hasResult && (
                   <Badge variant="outline" className={`${daysLeft === 0 ? 'bg-red-50 text-red-600 border-red-200' :
-                      daysLeft === 1 ? 'bg-orange-50 text-orange-600 border-orange-200' :
-                        'bg-blue-50 text-blue-600 border-blue-200'
+                    daysLeft === 1 ? 'bg-orange-50 text-orange-600 border-orange-200' :
+                      'bg-blue-50 text-blue-600 border-blue-200'
                     }`}>
                     {(() => {
                       if (daysLeft === 0) return "오늘 경기!"
@@ -590,7 +600,12 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
                               <Badge variant="outline" className={`text-[10px] ${getPositionColor(player.position || player.displayPosition || 'MC')}`}>
                                 {player.position || player.displayPosition || 'MC'}
                               </Badge>
-                              <span>{player.name}</span>
+                              <span>
+                                {player.name}
+                                {player.isGuest && player.invitedByName && (
+                                  <span className="text-slate-500 text-[10px] ml-1">({player.invitedByName} 지인)</span>
+                                )}
+                              </span>
                             </div>
                           ))}
                         </div>
@@ -603,7 +618,12 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
                               <Badge variant="outline" className={`text-[10px] ${getPositionColor(player.position || player.displayPosition || 'MC')}`}>
                                 {player.position || player.displayPosition || 'MC'}
                               </Badge>
-                              <span>{player.name}</span>
+                              <span>
+                                {player.name}
+                                {player.isGuest && player.invitedByName && (
+                                  <span className="text-slate-500 text-[10px] ml-1">({player.invitedByName} 지인)</span>
+                                )}
+                              </span>
                             </div>
                           ))}
                         </div>

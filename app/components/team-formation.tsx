@@ -239,6 +239,9 @@ export function TeamFormation({
                               <div className="flex items-center gap-2 flex-wrap">
                                 <p className="text-sm font-medium truncate">
                                   {player.name}
+                                  {player.isGuest && player.invitedByName && (
+                                    <span className="text-gray-400 text-xs ml-1">({player.invitedByName} 지인)</span>
+                                  )}
                                 </p>
                                 {(player.displayPosition || player.position) && (
                                   <>
@@ -318,6 +321,9 @@ export function TeamFormation({
                               <div className="flex items-center gap-2 flex-wrap">
                                 <p className="text-sm font-medium truncate">
                                   {player.name}
+                                  {player.isGuest && player.invitedByName && (
+                                    <span className="text-gray-400 text-xs ml-1">({player.invitedByName} 지인)</span>
+                                  )}
                                 </p>
                                 {(player.displayPosition || player.position) && (
                                   <>
