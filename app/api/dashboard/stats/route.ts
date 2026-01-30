@@ -13,8 +13,12 @@ export async function GET(request: NextRequest) {
     }
 
     const now = new Date()
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
+    const kstOffset = 9 * 60 * 60 * 1000
+
+    // KST 기준 오늘 00:00를 UTC로 변환하여 DB 쿼리에 사용
+    const today = new Date(now.getTime() + kstOffset)
+    today.setUTCHours(0, 0, 0, 0)
+    today.setTime(today.getTime() - kstOffset)
 
     // 1. 활성 회원 수 조회 (미응답 계산용)
     const activeUserCountRequest = prisma.user.count({
@@ -114,11 +118,15 @@ export async function GET(request: NextRequest) {
     ])
 
     // 시작 시간 기준으로 아직 시작하지 않은 경기 필터링
+    const kstNow = new Date(now.getTime() + kstOffset)
     const nextSchedule = upcomingSchedules.find((schedule: any) => {
-      const matchDate = new Date(schedule.matchDate)
+      // matchDate가 Date 객체이므로 안전하게 getTime() 사용
+      // KST 기준으로 날짜를 맞춘 뒤 시간을 덮어씁니다.
+      const kstMatchTime = new Date(schedule.matchDate.getTime() + kstOffset)
       const [hours, minutes] = (schedule.startTime || '23:59').split(':')
-      matchDate.setHours(Number(hours), Number(minutes), 0, 0)
-      return matchDate > now
+      kstMatchTime.setUTCHours(Number(hours), Number(minutes), 0, 0)
+
+      return kstMatchTime > kstNow
     }) || null
 
     // --- 데이터 가공 ---

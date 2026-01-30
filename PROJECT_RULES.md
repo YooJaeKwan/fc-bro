@@ -1,18 +1,17 @@
-# Project Rules & Guidelines
+# 프로젝트 데이터 보존 및 운영 규칙
 
-## 1. CRITICAL: Database Data Preservation
-**Status: MANDATORY / NON-NEGOTIABLE**
+이 프로젝트에서 에이전트(AGENT)가 작업을 수행할 때 반드시 준수해야 하는 규칙입니다.
 
-- **Rule:** Existing data in the database MUST be preserved.
-- **Prohibited Actions:**
-  - `prisma db push --force-reset` (unless explicitly authorized for a fresh dev setup)
-  - Dropping tables manually without backup.
-  - Running seed scripts that `deleteMany()` without user consent.
-- **Required Behavior:**
-  - Before applying schema changes, always check if the change is destructive (`prisma migrate dev` usually warns about this).
-  - If a destructive change is necessary, **STOP** and ask for user permission, proposing a migration strategy (e.g., create new column -> copy data -> drop old column).
-  - When writing seed scripts, use `upsert` or check for existence before creating records, rather than clearing tables first.
+## 1. 데이터 보존 최우선 원칙 (CRITICAL)
+- **운영 DB(prd DB)의 데이터는 어떠한 경우에도 무조건 보존되어야 합니다.**
+- `prisma migrate reset` 또는 `db push` 시 `--force-reset`과 같이 데이터를 삭제하거나 테이블을 드롭(DROP)하는 명령은 절대로 사용하지 않습니다.
+- 스키마 변경 시 기존 데이터와의 호환성을 반드시 확인하며, 파괴적인 변경(Destructive changes)이 감지될 경우 작업을 중단하고 사용자에게 확인을 요청합니다.
 
-## 2. General Development
-- Follow existing code patterns.
-- Ensure type safety (no `as any` unless absolutely necessary).
+## 2. 스키마 업데이트 가이드라인
+- 새로운 필드 추가 시 가급적 `Optional`(`?`) 또는 기본값(`Default`)을 설정하여 기존 레코드에 영향을 주지 않도록 합니다.
+- 데이터 타입 변경 등 마이그레이션이 필요한 경우, 기존 데이터의 마이그레이션 스크립트를 먼저 검토합니다.
+- `npx prisma db push`를 사용하여 스키마를 동기화하되, 데이터 손실 경고가 발생하는지 철저히 모니터링합니다.
+
+## 3. 환경 설정 보안
+- `.env` 파일에 포함된 데이터베이스 접속 정보(URL, Password 등)가 외부에 노출되지 않도록 주의합니다.
+- 운영 환경 설정을 변경하기 전에는 반드시 현재 연결된 데이터베이스 대상을 재확인합니다.

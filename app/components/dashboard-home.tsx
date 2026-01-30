@@ -76,9 +76,7 @@ export function DashboardHome({ currentUser, isManagerMode }: DashboardHomeProps
                     const { nextSchedule, stats, recentMatches, badges } = result.data
 
                     // 1. Next Schedule
-                    if (nextSchedule) {
-                        setNextSchedule(nextSchedule)
-                    }
+                    setNextSchedule(nextSchedule || null)
 
                     // 2. Stats
                     setAttendanceStats(stats.attendance)
