@@ -1281,6 +1281,7 @@ export function ScheduleManagement({
               filteredSchedules.map((schedule) => (
                 <ScheduleCard
                   key={schedule.id}
+                  compact={true}
                   schedule={schedule}
                   currentUser={currentUser}
                   isManagerMode={isManagerMode}

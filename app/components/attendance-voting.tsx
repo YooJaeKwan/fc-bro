@@ -20,6 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox'
 
 interface AttendanceVotingProps {
+  compact?: boolean
   scheduleId: string
   currentUserId: string
   isPastSchedule: boolean
@@ -65,6 +66,7 @@ export function AttendanceVoting({
   initialAttendees,
   initialStats,
   initialMyStatus
+  compact = false
 }: AttendanceVotingProps) {
   // Initialize state from props if provided (performance optimization)
   const getInitialMyStatus = (): 'attending' | 'not_attending' | 'pending' => {
@@ -441,7 +443,50 @@ export function AttendanceVoting({
     return null
   }
 
-  return (
+  
+  if (compact) {
+    return (
+      <div className="space-y-2">
+        <div className="flex gap-2">
+          <Button
+            onClick={(e) => { e.stopPropagation(); handleVote('ATTENDING'); }}
+            disabled={isSubmitting || myStatus === 'attending' || formationConfirmed}
+            variant={myStatus === 'attending' ? 'default' : 'outline'}
+            className={`flex-1 h-8 text-xs ${myStatus === 'attending'
+              ? 'bg-green-600 hover:bg-green-700 text-white'
+              : 'hover:bg-green-50 hover:text-green-700'
+              } ${formationConfirmed ? 'opacity-50 cursor-not-allowed' : ''}`}
+            size="sm"
+          >
+            <Check className="h-3 w-3 mr-1" />
+            참석
+          </Button>
+          <Button
+            onClick={(e) => { e.stopPropagation(); handleVote('NOT_ATTENDING'); }}
+            disabled={isSubmitting || myStatus === 'not_attending' || formationConfirmed}
+            variant={myStatus === 'not_attending' ? 'default' : 'outline'}
+            className={`flex-1 h-8 text-xs ${myStatus === 'not_attending'
+              ? 'bg-red-600 hover:bg-red-700 text-white'
+              : 'hover:bg-red-50 hover:text-red-700'
+              } ${formationConfirmed ? 'opacity-50 cursor-not-allowed' : ''}`}
+            size="sm"
+          >
+            <X className="h-3 w-3 mr-1" />
+            불참
+          </Button>
+        </div>
+        
+        {/* Compact Stats */}
+        <div className="flex justify-between text-xs text-gray-500 px-1">
+           <span>참석 {stats.attending}</span>
+           <span>불참 {stats.notAttending}</span>
+           <span>미정 {stats.pending}</span>
+        </div>
+      </div>
+    )
+  }
+
+return (
     <div className="space-y-3">
       {/* 내 투표 상태 표시 */}
       <div className="flex items-center justify-between">
