@@ -6,9 +6,19 @@ export const dynamic = 'force-dynamic'
 // 공지사항 목록 조회
 export async function GET() {
     try {
+        // 2주(14일) 전 날짜 계산
+        const twoWeeksAgo = new Date()
+        twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14)
+
         const announcements = await prisma.announcement.findMany({
-            where: { isActive: true },
+            where: {
+                isActive: true,
+                createdAt: {
+                    gte: twoWeeksAgo
+                }
+            },
             orderBy: { createdAt: 'desc' },
+            take: 5, // 최대 5개까지만 노출
         })
 
         return NextResponse.json({
