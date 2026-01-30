@@ -32,24 +32,27 @@ interface AnnouncementsProps {
 const STORAGE_KEY = 'fc_bro_read_announcements'
 
 export function Announcements({ isManagerMode = false, currentUser }: AnnouncementsProps) {
-    const [announcements, setAnnouncements] = useState<Announcement[]>([])
-    const [readIds, setReadIds] = useState<string[]>([])
+    const [announcements, setAnnouncements] = useState<any[]>([])
+    const [unreadCount, setUnreadCount] = useState(0)
     const [isOpen, setIsOpen] = useState(false)
     const [isLoading, setIsLoading] = useState(true)
 
     // 관리자 모드 상태
     const [isManageDialogOpen, setIsManageDialogOpen] = useState(false)
-    const [editingAnnouncement, setEditingAnnouncement] = useState<Announcement | null>(null)
+    const [editingAnnouncement, setEditingAnnouncement] = useState<any | null>(null)
     const [content, setContent] = useState('')
     const [isSubmitting, setIsSubmitting] = useState(false)
 
     // 공지사항 목록 조회
     const fetchAnnouncements = async () => {
         try {
-            const response = await fetch('/api/announcements')
+            const userId = currentUser?.id
+            const url = userId ? `/api/announcements?userId=${userId}` : '/api/announcements'
+            const response = await fetch(url)
             const data = await response.json()
             if (data.success) {
                 setAnnouncements(data.announcements)
+                setUnreadCount(data.unreadCount || 0)
             }
         } catch (error) {
             console.error('공지사항 조회 오류:', error)
@@ -60,35 +63,39 @@ export function Announcements({ isManagerMode = false, currentUser }: Announceme
 
     useEffect(() => {
         fetchAnnouncements()
-    }, [])
+    }, [currentUser?.id])
 
-    // localStorage에서 읽은 공지 ID 로드
-    useEffect(() => {
+    // 공지 읽음 처리
+    const markAsRead = async (announcementId: string) => {
+        if (!currentUser?.id) return
         try {
-            const saved = localStorage.getItem(STORAGE_KEY)
-            if (saved) {
-                setReadIds(JSON.parse(saved))
-            }
-        } catch (e) {
-            console.error('공지 읽음 상태 로드 오류:', e)
+            await fetch('/api/announcements/read', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId: currentUser.id,
+                    announcementId
+                })
+            })
+        } catch (error) {
+            console.error('읽음 처리 오류:', error)
         }
-    }, [])
-
-    // 읽지 않은 공지 개수
-    const unreadCount = announcements.filter(a => !readIds.includes(a.id)).length
+    }
 
     // 팝오버 열릴 때 모든 공지를 읽음 처리
-    const handleOpenChange = (open: boolean) => {
+    const handleOpenChange = async (open: boolean) => {
         setIsOpen(open)
 
-        if (open && unreadCount > 0) {
-            const allIds = announcements.map(a => a.id)
-            setReadIds(allIds)
-            try {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(allIds))
-            } catch (e) {
-                console.error('공지 읽음 상태 저장 오류:', e)
-            }
+        if (open && unreadCount > 0 && currentUser?.id) {
+            // 현재 표시된 공지 중 읽지 않은 것들만 필터링
+            const unreadAnnouncements = announcements.filter(a => !a.isRead)
+
+            // 순차적으로 혹은 병렬로 읽음 처리
+            await Promise.all(unreadAnnouncements.map(a => markAsRead(a.id)))
+
+            // UI 즉시 업데이트
+            setAnnouncements(prev => prev.map(a => ({ ...a, isRead: true })))
+            setUnreadCount(0)
         }
     }
 
@@ -211,12 +218,12 @@ export function Announcements({ isManagerMode = false, currentUser }: Announceme
                             announcements.map((announcement) => (
                                 <div
                                     key={announcement.id}
-                                    className={`p-4 border-b last:border-b-0 ${!readIds.includes(announcement.id) ? 'bg-blue-50' : ''
+                                    className={`p-4 border-b last:border-b-0 ${!announcement.isRead ? 'bg-blue-50' : ''
                                         }`}
                                 >
                                     <div className="flex items-start justify-between gap-2 mb-1">
                                         <p className="text-sm text-gray-700 flex-1">{announcement.content}</p>
-                                        {!readIds.includes(announcement.id) && (
+                                        {!announcement.isRead && (
                                             <Badge variant="secondary" className="text-[10px] bg-red-100 text-red-600 shrink-0">
                                                 NEW
                                             </Badge>

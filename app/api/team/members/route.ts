@@ -100,16 +100,16 @@ export async function GET(request: NextRequest) {
       return Number((values.reduce((sum: number, val: number) => sum + val, 0) / values.length).toFixed(1))
     }
 
-    // 현재 연도의 시작일과 종료일
-    const currentYear = new Date().getFullYear()
+    // 현재 시간과 연도 범위
+    const now = new Date()
+    const currentYear = now.getFullYear()
     const yearStart = new Date(currentYear, 0, 1)
     const yearEnd = new Date(currentYear, 11, 31)
-    yearEnd.setHours(23, 59, 59, 999) // 23시 59분 59초 999밀리초로 설정
+    yearEnd.setHours(23, 59, 59, 999)
 
-    console.log('=== 참석률 계산을 위한 연도 범위 ===')
-    console.log('현재 연도:', currentYear)
-    console.log('yearStart:', yearStart.toISOString())
-    console.log('yearEnd:', yearEnd.toISOString())
+    console.log('=== 참석률 계산 범위 (과거 경기 기준) ===')
+    console.log('현재 시간:', now.toISOString())
+    console.log('연도 시작:', yearStart.toISOString())
 
     // 올해 전체 일정 수 조회
     let totalSchedulesThisYear = 0
@@ -118,7 +118,7 @@ export async function GET(request: NextRequest) {
         where: {
           matchDate: {
             gte: yearStart,
-            lte: yearEnd
+            lte: now // 미래 경기는 제외
           }
         }
       })
@@ -161,7 +161,7 @@ export async function GET(request: NextRequest) {
             schedule: {
               matchDate: {
                 gte: yearStart,
-                lte: yearEnd
+                lte: now // 미래 경기는 제외
               }
             }
           },

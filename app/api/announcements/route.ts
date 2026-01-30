@@ -4,8 +4,11 @@ import { prisma } from '@/lib/prisma'
 export const dynamic = 'force-dynamic'
 
 // 공지사항 목록 조회
-export async function GET() {
+export async function GET(request: NextRequest) {
     try {
+        const { searchParams } = new URL(request.url)
+        const userId = searchParams.get('userId')
+
         // 2주(14일) 전 날짜 계산
         const twoWeeksAgo = new Date()
         twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14)
@@ -19,11 +22,26 @@ export async function GET() {
             },
             orderBy: { createdAt: 'desc' },
             take: 5, // 최대 5개까지만 노출
+            include: userId ? {
+                readBy: {
+                    where: { userId }
+                }
+            } : undefined
+        })
+
+        // 가공: 사용자가 읽었는지 여부 추가
+        const formattedAnnouncements = announcements.map((a: any) => {
+            const { readBy, ...rest } = a
+            return {
+                ...rest,
+                isRead: userId ? readBy.length > 0 : false
+            }
         })
 
         return NextResponse.json({
             success: true,
-            announcements,
+            announcements: formattedAnnouncements,
+            unreadCount: userId ? formattedAnnouncements.filter(a => !a.isRead).length : 0
         })
     } catch (error) {
         console.error('공지사항 조회 오류:', error)
