@@ -184,8 +184,8 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
   if (compact) {
     return (
       <Card className={`mb-3 overflow-hidden transition-all hover:shadow-md border-l-4 ${daysLeft === 0 ? 'border-l-red-500' :
-        daysLeft === 1 ? 'border-l-orange-500' :
-          'border-l-blue-500'
+          daysLeft === 1 ? 'border-l-orange-500' :
+            'border-l-blue-500'
         }`}>
         <CardContent className="p-4">
           <div className="flex justify-between items-start mb-3">
@@ -216,8 +216,8 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
               </Badge>
               {!isPastSchedule && (
                 <span className={`text-xs font-bold ${daysLeft === 0 ? 'text-red-600' :
-                  daysLeft === 1 ? 'text-orange-600' :
-                    'text-blue-600'
+                    daysLeft === 1 ? 'text-orange-600' :
+                      'text-blue-600'
                   }`}>
                   {daysLeft === 0 ? "D-Day" : `D-${daysLeft}`}
                 </span>
