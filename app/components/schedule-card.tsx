@@ -397,14 +397,13 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
             {/* 골 기록 표시 - Only for Managers */}
             {isManagerMode && schedule.goalRecords && Array.isArray(schedule.goalRecords) && schedule.goalRecords.length > 0 && (
               <div className="mt-4 pt-3 border-t border-slate-700/50">
-                <div className="text-xs text-slate-400 mb-2 text-center">⚽ 골 기록</div>
                 <div className="space-y-1">
                   {[...schedule.goalRecords]
                     .sort((a: any, b: any) => (a.quarter || 1) - (b.quarter || 1))
                     .map((goal: any, idx: number) => (
-                      <div key={idx} className="flex items-center justify-center gap-2 text-xs">
-                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${goal.team === 'yellow' ? 'bg-yellow-400/20 text-yellow-300' : 'bg-blue-400/20 text-blue-300'
-                          }`}>
+                      <div key={idx} className="flex items-center justify-center gap-1 text-xs">
+                        <span className="text-sm mr-1">⚽</span>
+                        <span className="font-bold text-slate-400 mr-1">
                           {goal.quarter || 1}Q
                         </span>
                         <span className={goal.scorerId === 'own_goal' ? 'text-red-400 font-bold italic' : (goal.team === 'yellow' ? 'text-yellow-300' : 'text-blue-300')}>
@@ -412,7 +411,7 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
                         </span>
                         {goal.assistName && (
                           <span className="text-slate-500">
-                            (A. {goal.assistName})
+                            ({goal.assistName})
                           </span>
                         )}
                       </div>
