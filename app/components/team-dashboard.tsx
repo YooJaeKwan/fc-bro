@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Trophy, Target, Crown, Footprints } from "lucide-react"
+import { Trophy, Crown, HelpingHand } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 
@@ -82,18 +82,22 @@ const RankingList = ({
     return (
         <Card className="overflow-hidden border-slate-200 shadow-sm hover:shadow-md transition-shadow duration-300">
             <CardHeader className="pb-0 pt-5 px-5">
-                <div className="flex items-center justify-between mb-1">
-                    <div className={cn("p-2 rounded-lg bg-slate-50", styles.bg)}>
-                        {icon}
+                <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                        <div className={cn("p-2 rounded-lg bg-slate-50 shrink-0", styles.bg)}>
+                            {icon}
+                        </div>
+                        <div>
+                            <CardTitle className="text-lg font-bold text-slate-800 whitespace-nowrap">
+                                {title}
+                            </CardTitle>
+                            <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">
+                                {subtitle}
+                            </p>
+                        </div>
                     </div>
                     <div className={cn("h-1 w-12 rounded-full opacity-20", `bg-gradient-to-r ${styles.gradient}`)} />
                 </div>
-                <CardTitle className="text-lg font-bold text-slate-800 mt-3">
-                    {title}
-                </CardTitle>
-                <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">
-                    {subtitle}
-                </p>
             </CardHeader>
             <CardContent className="p-0 mt-4">
                 <div className="grid grid-cols-12 gap-2 px-5 py-2 bg-slate-50/50 border-y border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
@@ -221,7 +225,7 @@ export function TeamDashboard({ currentUser }: TeamDashboardProps) {
                 <RankingList
                     title="Top Scorers"
                     subtitle="최다 득점 순위"
-                    icon={<Target className="h-5 w-5 text-rose-500" />}
+                    icon={<span className="text-xl leading-none">⚽</span>}
                     data={stats?.topScorers || []}
                     valueKey="goals"
                     unit="골"
@@ -231,7 +235,7 @@ export function TeamDashboard({ currentUser }: TeamDashboardProps) {
                 <RankingList
                     title="Top Assists"
                     subtitle="최다 도움 순위"
-                    icon={<Footprints className="h-5 w-5 text-blue-500" />}
+                    icon={<HelpingHand className="h-5 w-5 text-blue-500" />}
                     data={stats?.topAssists || []}
                     valueKey="assists"
                     unit="도움"
