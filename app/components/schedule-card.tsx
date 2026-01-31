@@ -424,28 +424,36 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
             {/* MVP 표시 - Only for Managers */}
             {isManagerMode && schedule.mvpUserId && (
               <div className="mt-3 pt-3 border-t border-slate-700/50 flex items-center justify-center gap-2">
-                <Trophy className="h-4 w-4 text-yellow-500" />
-                <span className="text-xs text-slate-300 font-medium">MVP: </span>
-                <span className="text-sm text-yellow-400 font-bold">
-                  {(() => {
-                    // 팀편성에서 MVP 찾기
-                    if (schedule.teamFormation) {
-                      const allPlayers = [...(schedule.teamFormation.yellowTeam || []), ...(schedule.teamFormation.blueTeam || [])]
-                      const mvp = allPlayers.find((p: any) => p.userId === schedule.mvpUserId)
-                      if (mvp) return mvp.name
-                    }
-                    // 참석자에서 MVP 찾기
-                    const attendee = schedule.attendances?.find((a: any) =>
-                      (a.user?.id === schedule.mvpUserId) || (a.userId === schedule.mvpUserId)
-                    )
-                    if (attendee?.user?.realName) return attendee.user.realName
-                    if (attendee?.user?.nickname) return attendee.user.nickname
-                    // 게스트에서 MVP 찾기
-                    const guest = schedule.attendances?.find((a: any) => a.guestId === schedule.mvpUserId)
-                    if (guest?.guestName) return guest.guestName
-                    return '알 수 없음'
-                  })()}
-                </span>
+                {(() => {
+                  const isBlueTeam = schedule.teamFormation?.blueTeam?.some((p: any) => p.userId === schedule.mvpUserId)
+                  
+                  return (
+                    <>
+                      <Trophy className={`h-4 w-4 ${isBlueTeam ? 'text-blue-500' : 'text-yellow-500'}`} />
+                      <span className="text-xs text-slate-300 font-medium">MVP: </span>
+                      <span className={`text-sm font-bold ${isBlueTeam ? 'text-blue-400' : 'text-yellow-400'}`}>
+                        {(() => {
+                          // 팀편성에서 MVP 찾기
+                          if (schedule.teamFormation) {
+                            const allPlayers = [...(schedule.teamFormation.yellowTeam || []), ...(schedule.teamFormation.blueTeam || [])]
+                            const mvp = allPlayers.find((p: any) => p.userId === schedule.mvpUserId)
+                            if (mvp) return mvp.name
+                          }
+                          // 참석자에서 MVP 찾기
+                          const attendee = schedule.attendances?.find((a: any) =>
+                            (a.user?.id === schedule.mvpUserId) || (a.userId === schedule.mvpUserId)
+                          )
+                          if (attendee?.user?.realName) return attendee.user.realName
+                          if (attendee?.user?.nickname) return attendee.user.nickname
+                          // 게스트에서 MVP 찾기
+                          const guest = schedule.attendances?.find((a: any) => a.guestId === schedule.mvpUserId)
+                          if (guest?.guestName) return guest.guestName
+                          return '알 수 없음'
+                        })()}
+                      </span>
+                    </>
+                  )
+                })()}
               </div>
             )}
 
