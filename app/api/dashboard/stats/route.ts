@@ -19,6 +19,10 @@ export async function GET(request: NextRequest) {
     const today = new Date(now.getTime() + kstOffset)
     today.setUTCHours(0, 0, 0, 0)
     today.setTime(today.getTime() - kstOffset)
+    
+    // KST 기준 내일 00:00
+    const tomorrow = new Date(today)
+    tomorrow.setDate(tomorrow.getDate() + 1)
 
     // 1. 활성 회원 수 조회 (미응답 계산용)
     const activeUserCountRequest = prisma.user.count({
@@ -48,11 +52,11 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    // 3. 최근 경기 (과거 일정 3개)
+    // 3. 최근 경기 (과거 일정 3개 + 오늘 시작한 경기 포함)
     const recentMatchesRequest = prisma.schedule.findMany({
       where: {
         matchDate: {
-          lt: today
+          lt: tomorrow
         },
         // 결과가 있는 경기만? 아니면 참석한 경기만? -> 기존 로직은 "참석한" 경기
         attendances: {
@@ -65,7 +69,7 @@ export async function GET(request: NextRequest) {
       orderBy: {
         matchDate: 'desc'
       },
-      take: 3,
+      take: 10,
       include: {
         attendances: {
           where: { userId }
@@ -215,7 +219,16 @@ export async function GET(request: NextRequest) {
     }
 
     // 3. 최근 경기 가공
-    const formattedRecentMatches = recentMatches.map((match: any) => {
+    const formattedRecentMatches = recentMatches
+      .filter((match: any) => {
+        const kstMatchTime = new Date(match.matchDate.getTime() + kstOffset)
+        const [hours, minutes] = (match.startTime || '00:00').split(':')
+        kstMatchTime.setUTCHours(Number(hours), Number(minutes), 0, 0)
+        
+        return kstMatchTime <= kstNow
+      })
+      .slice(0, 3)
+      .map((match: any) => {
       let result = undefined
       // 승패 계산 로직 (위와 동일) - 함수로 분리하면 좋음
       if (match.type === 'internal' && match.teamFormation &&
