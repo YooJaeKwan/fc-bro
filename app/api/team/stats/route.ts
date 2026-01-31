@@ -29,6 +29,12 @@ export async function GET(request: NextRequest) {
             }
         })
 
+        const users = await prisma.user.findMany({
+            select: { id: true },
+            where: { isActive: true }
+        })
+        const validUserIds = new Set(users.map(u => u.id))
+
         // 선수별 통계 집계
         const playerStats: { [key: string]: PlayerStat } = {}
 
@@ -38,36 +44,44 @@ export async function GET(request: NextRequest) {
                 for (const goal of schedule.goalRecords as any[]) {
                     // 득점자
                     if (goal.scorerId && goal.scorerName && goal.scorerId !== 'own_goal') {
-                        if (!playerStats[goal.scorerId]) {
-                            playerStats[goal.scorerId] = {
-                                id: goal.scorerId,
-                                name: goal.scorerName,
-                                goals: 0,
-                                assists: 0,
-                                mvpCount: 0
+                        if (validUserIds.has(goal.scorerId)) {
+                            if (!playerStats[goal.scorerId]) {
+                                playerStats[goal.scorerId] = {
+                                    id: goal.scorerId,
+                                    name: goal.scorerName,
+                                    goals: 0,
+                                    assists: 0,
+                                    mvpCount: 0
+                                }
                             }
+                            playerStats[goal.scorerId].goals += 1
                         }
-                        playerStats[goal.scorerId].goals += 1
                     }
 
                     // 어시스트
                     if (goal.assistId && goal.assistName) {
-                        if (!playerStats[goal.assistId]) {
-                            playerStats[goal.assistId] = {
-                                id: goal.assistId,
-                                name: goal.assistName,
-                                goals: 0,
-                                assists: 0,
-                                mvpCount: 0
+                        if (validUserIds.has(goal.assistId)) {
+                            if (!playerStats[goal.assistId]) {
+                                playerStats[goal.assistId] = {
+                                    id: goal.assistId,
+                                    name: goal.assistName,
+                                    goals: 0,
+                                    assists: 0,
+                                    mvpCount: 0
+                                }
                             }
+                            playerStats[goal.assistId].assists += 1
                         }
-                        playerStats[goal.assistId].assists += 1
                     }
                 }
             }
 
             // MVP 처리
             if (schedule.mvpUserId && schedule.teamFormation) {
+                if (!validUserIds.has(schedule.mvpUserId)) {
+                    continue
+                }
+
                 const formation = schedule.teamFormation as any
                 const allPlayers = [
                     ...(formation.yellowTeam || []),
