@@ -206,7 +206,7 @@ export function TeamDashboard({ currentUser }: TeamDashboardProps) {
     }, [currentUser?.id])
 
     return (
-        <div className="space-y-8 p-4 max-w-7xl mx-auto">
+        <div className="space-y-5 p-4 max-w-7xl mx-auto">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-2 border-b border-slate-100">
                 <div>
                     <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Team Leaderboard</h2>
