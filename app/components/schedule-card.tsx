@@ -411,7 +411,7 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
                         </span>
                         {goal.assistName && (
                           <span className="text-slate-500">
-                            ({goal.assistName})
+                            (도움: {goal.assistName})
                           </span>
                         )}
                       </div>
