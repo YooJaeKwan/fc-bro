@@ -24,6 +24,7 @@ export async function GET() {
                 id: true,
                 realName: true,
                 nickname: true,
+                image: true,
                 preferredPosition: true,
                 subPositions: true,
                 level: true
@@ -47,6 +48,7 @@ export async function GET() {
         id: true,
         realName: true,
         nickname: true,
+        image: true,
         preferredPosition: true,
         subPositions: true,
         level: true
@@ -85,6 +87,7 @@ export async function GET() {
             subPositions: [],
             userId: attendance.guestId || attendance.userId,
             level: attendance.guestLevel || 7,  // 게스트 레벨 추가
+            profileImage: null, // 게스트는 프로필 이미지 없음
             isGuest: true
           }
         }
@@ -95,6 +98,7 @@ export async function GET() {
           position: attendance.user?.preferredPosition || 'MC',
           subPositions: attendance.user?.subPositions || [],
           userId: attendance.user?.id || attendance.userId,
+          profileImage: attendance.user?.image || null,
           isGuest: false
         }
       })
@@ -112,6 +116,7 @@ export async function GET() {
           position: user.preferredPosition || 'MC',
           subPositions: user.subPositions || [],
           userId: user.id,
+          profileImage: user.image || null,
           isGuest: false
         }
       })

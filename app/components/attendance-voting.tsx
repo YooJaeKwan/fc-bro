@@ -199,10 +199,21 @@ export function AttendanceVoting({
     }
   }, [scheduleId, currentUserId])
 
+  useEffect(() => {
+    if (initialAttendees) {
+      setAttendees(initialAttendees)
+    }
+  }, [initialAttendees])
+
+  useEffect(() => {
+    if (initialStats) {
+      setStats(initialStats)
+    }
+  }, [initialStats])
+
   // 다이얼로그 열릴 때 참석자 목록 로드 (lazy loading)
   useEffect(() => {
-    if (detailDialogType && attendees.length === 0) {
-      // 다이얼로그 열렸는데 참석자 목록이 없으면 로드
+    if (detailDialogType) {
       const loadAttendees = async () => {
         setIsDialogLoading(true)
         try {
@@ -220,7 +231,7 @@ export function AttendanceVoting({
       }
       loadAttendees()
     }
-  }, [detailDialogType, attendees.length, scheduleId])
+  }, [detailDialogType, scheduleId])
 
   // 투표 제출
   const handleVote = async (status: 'ATTENDING' | 'NOT_ATTENDING') => {
@@ -443,6 +454,183 @@ export function AttendanceVoting({
     return null
   }
 
+  const renderDetailDialogs = () => (
+    <>
+      <Dialog open={detailDialogType === 'attending'} onOpenChange={(open) => setDetailDialogType(open ? 'attending' : null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>참석 인원</DialogTitle>
+            <DialogDescription>
+              참석으로 투표한 멤버 목록입니다.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[400px] overflow-y-auto space-y-2">
+            {isDialogLoading ? (
+              <p className="text-center text-gray-500 py-4">로딩 중...</p>
+            ) : attendees.filter(a => a.status === 'attending').length === 0 ? (
+              <p className="text-center text-gray-500 py-4">참석 인원이 없습니다.</p>
+            ) : (
+              attendees
+                .filter(a => a.status === 'attending')
+                .sort((a, b) => a.name.localeCompare(b.name, 'ko'))
+                .map((attendee) => (
+                  <div key={attendee.userId} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={attendee.profileImage || undefined} />
+                      <AvatarFallback>{attendee.name[0]}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">
+                        {attendee.name}
+                        {attendee.isGuest && attendee.invitedBy && (
+                          <span className="text-gray-500 font-normal"> ({attendee.invitedBy} 지인)</span>
+                        )}
+                      </p>
+                      {attendee.position && (
+                        <p className="text-xs text-gray-500">
+                          {attendee.position}
+                          {attendee.subPositions && attendee.subPositions.length > 0 && (
+                            <span className="text-gray-400"> (+{attendee.subPositions.join(', ')})</span>
+                          )}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {attendee.isGuest && (
+                        <Badge variant="outline" className="text-xs">게스트</Badge>
+                      )}
+                      {(isManagerMode || (attendee.isGuest && attendee.invitedByUserId === currentUserId)) && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                          onClick={() => handleDeleteAttendance(attendee)}
+                          title={attendee.isGuest && attendee.invitedByUserId === currentUserId ? "내가 초대한 게스트 삭제" : "삭제"}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={detailDialogType === 'not_attending'} onOpenChange={(open) => setDetailDialogType(open ? 'not_attending' : null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>불참 인원</DialogTitle>
+            <DialogDescription>
+              불참으로 투표한 멤버 목록입니다.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[400px] overflow-y-auto space-y-2">
+            {isDialogLoading ? (
+              <p className="text-center text-gray-500 py-4">로딩 중...</p>
+            ) : attendees.filter(a => a.status === 'not_attending').length === 0 ? (
+              <p className="text-center text-gray-500 py-4">불참 인원이 없습니다.</p>
+            ) : (
+              attendees
+                .filter(a => a.status === 'not_attending')
+                .sort((a, b) => a.name.localeCompare(b.name, 'ko'))
+                .map((attendee) => (
+                  <div key={attendee.userId} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={attendee.profileImage || undefined} />
+                      <AvatarFallback>{attendee.name[0]}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">
+                        {attendee.name}
+                        {attendee.isGuest && attendee.invitedBy && (
+                          <span className="text-gray-500 font-normal"> ({attendee.invitedBy} 지인)</span>
+                        )}
+                      </p>
+                      {attendee.position && (
+                        <p className="text-xs text-gray-500">
+                          {attendee.position}
+                          {attendee.subPositions && attendee.subPositions.length > 0 && (
+                            <span className="text-gray-400"> (+{attendee.subPositions.join(', ')})</span>
+                          )}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {attendee.isGuest && (
+                        <Badge variant="outline" className="text-xs">게스트</Badge>
+                      )}
+                      {(isManagerMode || (attendee.isGuest && attendee.invitedByUserId === currentUserId)) && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                          onClick={() => handleDeleteAttendance(attendee)}
+                          title={attendee.isGuest && attendee.invitedByUserId === currentUserId ? "내가 초대한 게스트 삭제" : "삭제"}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={detailDialogType === 'pending'} onOpenChange={(open) => setDetailDialogType(open ? 'pending' : null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>미응답 인원</DialogTitle>
+            <DialogDescription>
+              아직 투표하지 않은 멤버 목록입니다.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[400px] overflow-y-auto space-y-2">
+            {isDialogLoading ? (
+              <p className="text-center text-gray-500 py-4">로딩 중...</p>
+            ) : attendees.filter(a => a.status === 'pending').length === 0 ? (
+              <p className="text-center text-gray-500 py-4">미응답 인원이 없습니다.</p>
+            ) : (
+              attendees
+                .filter(a => a.status === 'pending')
+                .sort((a, b) => a.name.localeCompare(b.name, 'ko'))
+                .map((attendee) => (
+                  <div key={attendee.userId} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={attendee.profileImage || undefined} />
+                      <AvatarFallback>{attendee.name[0]}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">
+                        {attendee.name}
+                        {attendee.isGuest && attendee.invitedBy && (
+                          <span className="text-gray-500 font-normal"> ({attendee.invitedBy} 지인)</span>
+                        )}
+                      </p>
+                      {attendee.position && (
+                        <p className="text-xs text-gray-500">
+                          {attendee.position}
+                          {attendee.subPositions && attendee.subPositions.length > 0 && (
+                            <span className="text-gray-400"> (+{attendee.subPositions.join(', ')})</span>
+                          )}
+                        </p>
+                      )}
+                    </div>
+                    {attendee.isGuest && (
+                      <Badge variant="outline" className="text-xs">게스트</Badge>
+                    )}
+                  </div>
+                ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  )
+
   
   if (compact) {
     return (
@@ -478,10 +666,36 @@ export function AttendanceVoting({
         
         {/* Compact Stats */}
         <div className="flex justify-between text-xs text-gray-500 px-1">
-           <span>참석 {stats.attending}</span>
-           <span>불참 {stats.notAttending}</span>
-           <span>미정 {stats.pending}</span>
+           <button 
+             onClick={(e) => {
+               e.stopPropagation()
+               setDetailDialogType('attending')
+             }}
+             className="hover:text-green-600 hover:underline cursor-pointer"
+           >
+             참석 {stats.attending}
+           </button>
+           <button 
+             onClick={(e) => {
+               e.stopPropagation()
+               setDetailDialogType('not_attending')
+             }}
+             className="hover:text-red-600 hover:underline cursor-pointer"
+           >
+             불참 {stats.notAttending}
+           </button>
+           <button 
+             onClick={(e) => {
+               e.stopPropagation()
+               setDetailDialogType('pending')
+             }}
+             className="hover:text-gray-800 hover:underline cursor-pointer"
+           >
+             미정 {stats.pending}
+           </button>
         </div>
+
+        {renderDetailDialogs()}
       </div>
     )
   }
@@ -706,212 +920,41 @@ return (
 
       {/* 투표 통계 (클릭 가능) */}
       <div className="flex gap-2">
-          <Dialog open={detailDialogType === 'attending'} onOpenChange={(open) => setDetailDialogType(open ? 'attending' : null)}>
-            <DialogTrigger asChild>
-              <button
-                className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md border transition-colors ${stats.attending > 0
-                  ? 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100'
-                  : 'bg-gray-50 border-gray-200 text-gray-500'
-                  }`}
-                disabled={isPastSchedule}
-              >
-                <span className="text-sm font-medium">참석 {stats.attending}</span>
-              </button>
-            </DialogTrigger>
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <DialogTitle>참석 인원</DialogTitle>
-                <DialogDescription>
-                  참석으로 투표한 멤버 목록입니다.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="max-h-[400px] overflow-y-auto space-y-2">
-                {isDialogLoading ? (
-                  <p className="text-center text-gray-500 py-4">로딩 중...</p>
-                ) : attendees.filter(a => a.status === 'attending').length === 0 ? (
-                  <p className="text-center text-gray-500 py-4">참석 인원이 없습니다.</p>
-                ) : (
-                  attendees
-                    .filter(a => a.status === 'attending')
-                    .sort((a, b) => a.name.localeCompare(b.name, 'ko'))
-                    .map((attendee) => (
-                      <div key={attendee.userId} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50">
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage src={attendee.profileImage || undefined} />
-                          <AvatarFallback>{attendee.name[0]}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">
-                            {attendee.name}
-                            {attendee.isGuest && attendee.invitedBy && (
-                              <span className="text-gray-500 font-normal"> ({attendee.invitedBy} 지인)</span>
-                            )}
-                          </p>
-                          {attendee.position && (
-                            <p className="text-xs text-gray-500">
-                              {attendee.position}
-                              {attendee.subPositions && attendee.subPositions.length > 0 && (
-                                <span className="text-gray-400"> (+{attendee.subPositions.join(', ')})</span>
-                              )}
-                            </p>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {attendee.isGuest && (
-                            <Badge variant="outline" className="text-xs">게스트</Badge>
-                          )}
-                          {(isManagerMode || (attendee.isGuest && attendee.invitedByUserId === currentUserId)) && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 w-7 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                              onClick={() => handleDeleteAttendance(attendee)}
-                              title={attendee.isGuest && attendee.invitedByUserId === currentUserId ? "내가 초대한 게스트 삭제" : "삭제"}
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    ))
-                )}
-              </div>
-            </DialogContent>
-          </Dialog>
+          <button
+            onClick={() => setDetailDialogType('attending')}
+            className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md border transition-colors ${stats.attending > 0
+              ? 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100'
+              : 'bg-gray-50 border-gray-200 text-gray-500'
+              }`}
+            disabled={isPastSchedule}
+          >
+            <span className="text-sm font-medium">참석 {stats.attending}</span>
+          </button>
 
-          <Dialog open={detailDialogType === 'not_attending'} onOpenChange={(open) => setDetailDialogType(open ? 'not_attending' : null)}>
-            <DialogTrigger asChild>
-              <button
-                className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md border transition-colors ${stats.notAttending > 0
-                  ? 'bg-red-50 border-red-200 text-red-700 hover:bg-red-100'
-                  : 'bg-gray-50 border-gray-200 text-gray-500'
-                  }`}
-                disabled={isPastSchedule}
-              >
-                <span className="text-sm font-medium">불참 {stats.notAttending}</span>
-              </button>
-            </DialogTrigger>
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <DialogTitle>불참 인원</DialogTitle>
-                <DialogDescription>
-                  불참으로 투표한 멤버 목록입니다.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="max-h-[400px] overflow-y-auto space-y-2">
-                {isDialogLoading ? (
-                  <p className="text-center text-gray-500 py-4">로딩 중...</p>
-                ) : attendees.filter(a => a.status === 'not_attending').length === 0 ? (
-                  <p className="text-center text-gray-500 py-4">불참 인원이 없습니다.</p>
-                ) : (
-                  attendees
-                    .filter(a => a.status === 'not_attending')
-                    .sort((a, b) => a.name.localeCompare(b.name, 'ko'))
-                    .map((attendee) => (
-                      <div key={attendee.userId} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50">
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage src={attendee.profileImage || undefined} />
-                          <AvatarFallback>{attendee.name[0]}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">
-                            {attendee.name}
-                            {attendee.isGuest && attendee.invitedBy && (
-                              <span className="text-gray-500 font-normal"> ({attendee.invitedBy} 지인)</span>
-                            )}
-                          </p>
-                          {attendee.position && (
-                            <p className="text-xs text-gray-500">
-                              {attendee.position}
-                              {attendee.subPositions && attendee.subPositions.length > 0 && (
-                                <span className="text-gray-400"> (+{attendee.subPositions.join(', ')})</span>
-                              )}
-                            </p>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {attendee.isGuest && (
-                            <Badge variant="outline" className="text-xs">게스트</Badge>
-                          )}
-                          {(isManagerMode || (attendee.isGuest && attendee.invitedByUserId === currentUserId)) && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 w-7 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                              onClick={() => handleDeleteAttendance(attendee)}
-                              title={attendee.isGuest && attendee.invitedByUserId === currentUserId ? "내가 초대한 게스트 삭제" : "삭제"}
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    ))
-                )}
-              </div>
-            </DialogContent>
-          </Dialog>
+          <button
+            onClick={() => setDetailDialogType('not_attending')}
+            className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md border transition-colors ${stats.notAttending > 0
+              ? 'bg-red-50 border-red-200 text-red-700 hover:bg-red-100'
+              : 'bg-gray-50 border-gray-200 text-gray-500'
+              }`}
+            disabled={isPastSchedule}
+          >
+            <span className="text-sm font-medium">불참 {stats.notAttending}</span>
+          </button>
 
-          <Dialog open={detailDialogType === 'pending'} onOpenChange={(open) => setDetailDialogType(open ? 'pending' : null)}>
-            <DialogTrigger asChild>
-              <button
-                className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md border transition-colors ${stats.pending > 0
-                  ? 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100'
-                  : 'bg-gray-50 border-gray-200 text-gray-500'
-                  }`}
-                disabled={isPastSchedule}
-              >
-                <span className="text-sm font-medium">미응답 {stats.pending}</span>
-              </button>
-            </DialogTrigger>
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <DialogTitle>미응답 인원</DialogTitle>
-                <DialogDescription>
-                  아직 투표하지 않은 멤버 목록입니다.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="max-h-[400px] overflow-y-auto space-y-2">
-                {isDialogLoading ? (
-                  <p className="text-center text-gray-500 py-4">로딩 중...</p>
-                ) : attendees.filter(a => a.status === 'pending').length === 0 ? (
-                  <p className="text-center text-gray-500 py-4">미응답 인원이 없습니다.</p>
-                ) : (
-                  attendees
-                    .filter(a => a.status === 'pending')
-                    .sort((a, b) => a.name.localeCompare(b.name, 'ko'))
-                    .map((attendee) => (
-                      <div key={attendee.userId} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50">
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage src={attendee.profileImage || undefined} />
-                          <AvatarFallback>{attendee.name[0]}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">
-                            {attendee.name}
-                            {attendee.isGuest && attendee.invitedBy && (
-                              <span className="text-gray-500 font-normal"> ({attendee.invitedBy} 지인)</span>
-                            )}
-                          </p>
-                          {attendee.position && (
-                            <p className="text-xs text-gray-500">
-                              {attendee.position}
-                              {attendee.subPositions && attendee.subPositions.length > 0 && (
-                                <span className="text-gray-400"> (+{attendee.subPositions.join(', ')})</span>
-                              )}
-                            </p>
-                          )}
-                        </div>
-                        {attendee.isGuest && (
-                          <Badge variant="outline" className="text-xs">게스트</Badge>
-                        )}
-                      </div>
-                    ))
-                )}
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div>
+          <button
+            onClick={() => setDetailDialogType('pending')}
+            className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md border transition-colors ${stats.pending > 0
+              ? 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100'
+              : 'bg-gray-50 border-gray-200 text-gray-500'
+              }`}
+            disabled={isPastSchedule}
+          >
+            <span className="text-sm font-medium">미응답 {stats.pending}</span>
+          </button>
+      </div>
+
+      {renderDetailDialogs()}
     </div>
   )
 }

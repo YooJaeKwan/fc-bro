@@ -87,9 +87,7 @@ export default function Dashboard({ userInfo, onUserUpdate, onLogout }: Dashboar
 
   const tabItems = [
     { value: "dashboard", label: "대시보드", icon: BarChart3 },
-    ...(isManagerMode ? [
-      { value: "team-stats", label: "팀 대시보드", icon: Trophy },
-    ] : []),
+    { value: "team-stats", label: "팀 대시보드", icon: Trophy },
     { value: "schedule", label: "경기예정", icon: Calendar },
     { value: "results", label: "경기결과", icon: ClipboardList },
     ...(isManagerMode ? [

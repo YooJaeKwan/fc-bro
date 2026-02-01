@@ -511,7 +511,7 @@ export function DashboardHome({ currentUser, isManagerMode }: DashboardHomeProps
                         )}
 
                         {/* Personal Records Section - Integrated into My Info - Only for Managers */}
-                        {isManagerMode && (
+                        {(
                             <div className="pb-4 border-b">
                                 <div className="flex items-center justify-between mb-3">
                                     <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
