@@ -120,26 +120,26 @@ const RankingList = ({
                     ) : (
                         <div className="space-y-1">
                             {data.map((player, idx) => {
-                                const isTop3 = idx < 3
-                                const rank = idx + 1
+                                const currentValue = player[valueKey];
+                                const rank = data.findIndex(p => p[valueKey] === currentValue) + 1;
 
                                 return (
                                     <div
                                         key={player.id}
                                         className={cn(
                                             "grid grid-cols-12 gap-2 items-center py-2.5 px-2 rounded-lg transition-all",
-                                            idx === 0 ? styles.rank1 : "hover:bg-slate-50",
-                                            idx !== 0 && "text-slate-600"
+                                            rank === 1 ? styles.rank1 : "hover:bg-slate-50",
+                                            rank !== 1 && "text-slate-600"
                                         )}
                                     >
                                         <div className="col-span-2 flex justify-center">
-                                            {idx === 0 ? (
+                                            {rank === 1 ? (
                                                 <Crown className={cn("h-5 w-5", styles.icon)} fill="currentColor" fillOpacity={0.2} />
-                                            ) : idx === 1 ? (
+                                            ) : rank === 2 ? (
                                                 <div className="relative flex items-center justify-center h-6 w-6 rounded-full bg-slate-100 text-slate-500 font-bold text-xs border border-slate-200">
                                                     2
                                                 </div>
-                                            ) : idx === 2 ? (
+                                            ) : rank === 3 ? (
                                                 <div className="relative flex items-center justify-center h-6 w-6 rounded-full bg-orange-50 text-orange-700 font-bold text-xs border border-orange-100">
                                                     3
                                                 </div>
@@ -151,11 +151,11 @@ const RankingList = ({
                                         <div className="col-span-7 flex items-center gap-2 overflow-hidden">
                                             <span className={cn(
                                                 "text-sm truncate",
-                                                idx === 0 ? "font-bold" : "font-medium"
+                                                rank === 1 ? "font-bold" : "font-medium"
                                             )}>
                                                 {player.name}
                                             </span>
-                                            {idx === 0 && (
+                                            {rank === 1 && (
                                                 <Badge variant="secondary" className="h-4 px-1 text-[9px] bg-white/50 text-slate-600 border-0">
                                                     TOP
                                                 </Badge>
@@ -165,7 +165,7 @@ const RankingList = ({
                                         <div className="col-span-3 text-right">
                                             <span className={cn(
                                                 "text-base font-black tabular-nums tracking-tight",
-                                                idx === 0 ? styles.accent : "text-slate-700"
+                                                rank === 1 ? styles.accent : "text-slate-700"
                                             )}>
                                                 {player[valueKey]}
                                             </span>

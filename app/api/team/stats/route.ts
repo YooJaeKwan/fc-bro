@@ -107,21 +107,25 @@ export async function GET(request: NextRequest) {
         // 배열로 변환
         const statsArray = Object.values(playerStats)
 
-        // TOP5 랭킹
-        const topScorers = [...statsArray]
-            .filter(p => p.goals > 0)
-            .sort((a, b) => b.goals - a.goals)
-            .slice(0, 5)
+        // TOP5 랭킹 (공동 순위 포함)
+        const getTopWithTies = (stats: PlayerStat[], key: keyof PlayerStat, limit: number) => {
+            const sorted = [...stats]
+                .filter(p => (p[key] as number) > 0)
+                .sort((a, b) => (b[key] as number) - (a[key] as number));
 
-        const topAssists = [...statsArray]
-            .filter(p => p.assists > 0)
-            .sort((a, b) => b.assists - a.assists)
-            .slice(0, 5)
+            if (sorted.length <= limit) return sorted;
 
-        const topMvps = [...statsArray]
-            .filter(p => p.mvpCount > 0)
-            .sort((a, b) => b.mvpCount - a.mvpCount)
-            .slice(0, 5)
+            const limitValue = sorted[limit - 1][key];
+            let count = limit;
+            while (count < sorted.length && sorted[count][key] === limitValue) {
+                count++;
+            }
+            return sorted.slice(0, count);
+        }
+
+        const topScorers = getTopWithTies(statsArray, 'goals', 5);
+        const topAssists = getTopWithTies(statsArray, 'assists', 5);
+        const topMvps = getTopWithTies(statsArray, 'mvpCount', 5);
 
         // 개인 통계 (userId가 있는 경우)
         let myStats = null
