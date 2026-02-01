@@ -704,9 +704,8 @@ return (
         )}
       </div>
 
-      {/* 투표 통계 (클릭 가능) - 투표 후에만 표시 */}
-      {myStatus !== 'pending' && (
-        <div className="flex gap-2">
+      {/* 투표 통계 (클릭 가능) */}
+      <div className="flex gap-2">
           <Dialog open={detailDialogType === 'attending'} onOpenChange={(open) => setDetailDialogType(open ? 'attending' : null)}>
             <DialogTrigger asChild>
               <button
@@ -913,7 +912,6 @@ return (
             </DialogContent>
           </Dialog>
         </div>
-      )}
     </div>
   )
 }

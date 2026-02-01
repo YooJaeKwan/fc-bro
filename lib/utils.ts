@@ -19,19 +19,35 @@ export function calculateDaysLeft(dateString: string): number {
   return diffDays
 }
 
-// 포지션 카테고리 순서 (공격수 -> 미드필더 -> 수비수 -> 골키퍼)
+// 포지션 카테고리 순서 (공격수 -> 미드필더 -> 수비수 -> 골키퍼 -> 그외)
 export const getPositionOrder = (position: string) => {
-  const pos = position.toUpperCase()
+  const pos = position ? position.toUpperCase() : ''
+  
+  // Goalkeeper
   if (pos === 'GK') return 4
-  if (pos.includes('B') || pos.includes('D')) return 3 // DF
-  if (pos.includes('M') || pos.includes('C')) return 2 // MF
-  if (pos.includes('W') || pos.includes('F') || pos.includes('S')) return 1 // FW
+  
+  // Defenders (수비수)
+  if (['CB', 'LB', 'RB', 'LWB', 'RWB', 'SW', 'DF', 'LRB', 'LRCB'].includes(pos) || pos.includes('B')) return 3
+  
+  // Midfielders (미드필더)
+  if (['CAM', 'CM', 'CDM', 'LM', 'RM', 'AM', 'DM', 'MF'].includes(pos) || pos.includes('M')) return 2
+  
+  // Attackers (공격수)
+  if (['ST', 'CF', 'SS', 'LWF', 'RWF', 'LW', 'RW', 'FW'].includes(pos) || pos.includes('W') || pos.includes('F')) return 1
+  
   return 5 // Unknown
 }
 
-// 팀 선수들을 포지션 순으로 정렬
+// 팀 선수들을 포지션 순으로 정렬 (게스트는 마지막에)
 export const sortByPosition = (players: any[]) => {
   return [...players].sort((a, b) => {
+    // 1. 게스트 여부 확인 (게스트는 뒤로)
+    // isGuest가 true이면 1 (뒤로), false이면 -1 (앞으로)
+    if ((a.isGuest || false) !== (b.isGuest || false)) {
+      return (a.isGuest || false) ? 1 : -1
+    }
+
+    // 2. 포지션 순서 정렬
     const posA = a.position || a.displayPosition || 'MC'
     const posB = b.position || b.displayPosition || 'MC'
     return getPositionOrder(posA) - getPositionOrder(posB)

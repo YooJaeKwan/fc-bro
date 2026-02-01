@@ -92,6 +92,25 @@ export function ScheduleManagement({
     trainingContent: "",
   })
 
+  // 참석 통계 계산 함수
+  const getAttendanceStats = (attendees: any[]) => {
+    if (!attendees || attendees.length === 0) {
+      return { attending: 0, notAttending: 0, pending: 0, total: 0, percentage: 0 }
+    }
+
+    const attending = attendees.filter(att =>
+      att.status === 'attending' || att.status === 'attended'
+    ).length
+    const notAttending = attendees.filter(att =>
+      att.status === 'not_attending' || att.status === 'not_attended'
+    ).length
+    const pending = attendees.filter(att => att.status === 'pending').length
+    const total = attendees.length
+    const percentage = total > 0 ? Math.round((attending / total) * 100) : 0
+
+    return { attending, notAttending, pending, total, percentage }
+  }
+
   useEffect(() => {
     fetchSchedules()
     fetchAvailableLocations()
@@ -1105,6 +1124,17 @@ export function ScheduleManagement({
                           formationConfirmed={nextUpcomingSchedule.formationConfirmed}
                           isManagerMode={isManagerMode}
                           onVoteUpdate={() => refreshSchedule(nextUpcomingSchedule.id)}
+                          initialAttendees={nextUpcomingSchedule.attendees?.map((att: any) => ({
+                            userId: att.userId,
+                            name: att.name,
+                            status: att.status,
+                            position: att.position,
+                            subPositions: att.subPositions,
+                            profileImage: att.profileImage || null,
+                            isGuest: att.isGuest || false,
+                            invitedBy: att.invitedBy
+                          }))}
+                          initialStats={getAttendanceStats(nextUpcomingSchedule.attendees)}
                         />
                       </div>
                     )

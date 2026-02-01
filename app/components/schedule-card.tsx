@@ -436,8 +436,8 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
               </div>
             )}
 
-            {/* 골 기록 표시 - Only for Managers */}
-            {isManagerMode && schedule.goalRecords && Array.isArray(schedule.goalRecords) && schedule.goalRecords.length > 0 && (
+            {/* 골 기록 표시 */}
+            {schedule.goalRecords && Array.isArray(schedule.goalRecords) && schedule.goalRecords.length > 0 && (
               <div className="mt-4 pt-3 border-t border-slate-700/50">
                 <div className="space-y-1">
                   {[...schedule.goalRecords]
@@ -462,8 +462,8 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
               </div>
             )}
 
-            {/* MVP 표시 - Only for Managers */}
-            {isManagerMode && schedule.mvpUserId && (
+            {/* MVP 표시 */}
+            {schedule.mvpUserId && (
               <div className="mt-3 pt-3 border-t border-slate-700/50 flex items-center justify-center gap-2">
                 {(() => {
                   const isBlueTeam = schedule.teamFormation?.blueTeam?.some((p: any) => p.userId === schedule.mvpUserId)
@@ -670,44 +670,56 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
                     </div>
                   </div>
 
-                  {/* 팀 명단 표시 - 좌우 병렬 */}
+                  {/* 팀 명단 표시 - 상하 배치 */}
                   {schedule.teamFormation && (isManagerMode || schedule.formationConfirmed || isPastSchedule) && isRosterExpanded && (
                     <div className="mt-4 pt-3 border-t border-slate-700/50">
-                      <div className="grid grid-cols-2 gap-4 text-xs">
+                      <div className="space-y-6 text-xs">
                         {/* Yellow Team */}
                         <div className="space-y-1">
-                          <div className="font-semibold text-yellow-400 mb-2 text-center">Yellow Team</div>
-                          {sortByPosition(schedule.teamFormation.yellowTeam || []).map((player: any, idx: number) => (
-                            <div key={idx} className="text-slate-300 flex items-center gap-2 py-1">
-                              <Badge variant="outline" className={`text-[10px] ${getPositionColor(player.position || player.displayPosition || 'MC')}`}>
-                                {player.position || player.displayPosition || 'MC'}
-                              </Badge>
-                              <span>
-                                {player.name}
-                                {player.isGuest && player.invitedByName && (
-                                  <span className="text-slate-500 text-[10px] ml-1">({player.invitedByName} 지인)</span>
-                                )}
-                              </span>
-                            </div>
-                          ))}
+                          <div className="font-semibold text-yellow-400 mb-2 border-b border-yellow-400/20 pb-1">
+                            Yellow Team <span className="text-slate-500 font-normal ml-1">({schedule.teamFormation.yellowTeam?.length || 0}명)</span>
+                          </div>
+                          <div className="grid grid-cols-1 gap-1">
+                            {sortByPosition(schedule.teamFormation.yellowTeam || []).map((player: any, idx: number) => (
+                              <div key={idx} className="text-slate-300 flex items-center gap-2 py-1 px-1 hover:bg-white/5 rounded">
+                                <Badge variant="outline" className={`text-[10px] w-10 justify-center ${getPositionColor(player.position || player.displayPosition || 'MC')}`}>
+                                  {player.position || player.displayPosition || 'MC'}
+                                </Badge>
+                                <span className="flex-1">
+                                  {player.name}
+                                  {player.isGuest && (
+                                    <span className="text-slate-500 text-[10px] ml-1">
+                                      {player.invitedByName ? `(${player.invitedByName} 지인)` : '(게스트)'}
+                                    </span>
+                                  )}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
                         </div>
 
                         {/* Blue Team */}
                         <div className="space-y-1">
-                          <div className="font-semibold text-blue-400 mb-2 text-center">Blue Team</div>
-                          {sortByPosition(schedule.teamFormation.blueTeam || []).map((player: any, idx: number) => (
-                            <div key={idx} className="text-slate-300 flex items-center gap-2 py-1">
-                              <Badge variant="outline" className={`text-[10px] ${getPositionColor(player.position || player.displayPosition || 'MC')}`}>
-                                {player.position || player.displayPosition || 'MC'}
-                              </Badge>
-                              <span>
-                                {player.name}
-                                {player.isGuest && player.invitedByName && (
-                                  <span className="text-slate-500 text-[10px] ml-1">({player.invitedByName} 지인)</span>
-                                )}
-                              </span>
-                            </div>
-                          ))}
+                          <div className="font-semibold text-blue-400 mb-2 border-b border-blue-400/20 pb-1">
+                            Blue Team <span className="text-slate-500 font-normal ml-1">({schedule.teamFormation.blueTeam?.length || 0}명)</span>
+                          </div>
+                          <div className="grid grid-cols-1 gap-1">
+                            {sortByPosition(schedule.teamFormation.blueTeam || []).map((player: any, idx: number) => (
+                              <div key={idx} className="text-slate-300 flex items-center gap-2 py-1 px-1 hover:bg-white/5 rounded">
+                                <Badge variant="outline" className={`text-[10px] w-10 justify-center ${getPositionColor(player.position || player.displayPosition || 'MC')}`}>
+                                  {player.position || player.displayPosition || 'MC'}
+                                </Badge>
+                                <span className="flex-1">
+                                  {player.name}
+                                  {player.isGuest && (
+                                    <span className="text-slate-500 text-[10px] ml-1">
+                                      {player.invitedByName ? `(${player.invitedByName} 지인)` : '(게스트)'}
+                                    </span>
+                                  )}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       </div>
                     </div>
