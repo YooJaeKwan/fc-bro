@@ -167,6 +167,7 @@ export async function GET() {
         opponentScore: schedule.opponentScore,
         mvpUserId: schedule.mvpUserId,
         matchSummary: schedule.matchSummary,
+        matchPhotoUrl: schedule.matchPhotoUrl,
         attendees: finalAttendees.map(addTempRating),
         attendanceStats, // 실시간 계산된 통계 추가
         attendances: schedule.attendances, // MVP 조회를 위한 참석 정보

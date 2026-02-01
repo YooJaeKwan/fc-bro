@@ -38,6 +38,7 @@ export function MatchResultDialog({ isOpen, onClose, schedule, onSuccess }: Matc
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [selectedImage, setSelectedImage] = useState<File | null>(null)
     const [imagePreview, setImagePreview] = useState<string | null>(null)
+    const [isImageDeleted, setIsImageDeleted] = useState(false)
     const fileInputRef = useRef<HTMLInputElement>(null)
     const goalsEndRef = useRef<HTMLDivElement>(null)
 
@@ -91,6 +92,10 @@ export function MatchResultDialog({ isOpen, onClose, schedule, onSuccess }: Matc
 
             if (schedule.matchPhotoUrl) {
                 setImagePreview(schedule.matchPhotoUrl)
+                setIsImageDeleted(false)
+            } else {
+                setImagePreview(null)
+                setIsImageDeleted(false)
             }
 
             // 기존 골/도움 기록 로드
@@ -124,6 +129,7 @@ export function MatchResultDialog({ isOpen, onClose, schedule, onSuccess }: Matc
         setOpponentScore(0)
         setSelectedImage(null)
         setImagePreview(null)
+        setIsImageDeleted(false)
         setGoals([])
         setMvpId('')
         if (fileInputRef.current) {
@@ -215,6 +221,7 @@ export function MatchResultDialog({ isOpen, onClose, schedule, onSuccess }: Matc
                 return
             }
             setSelectedImage(file)
+            setIsImageDeleted(false)
             const reader = new FileReader()
             reader.onloadend = () => {
                 setImagePreview(reader.result as string)
@@ -228,6 +235,11 @@ export function MatchResultDialog({ isOpen, onClose, schedule, onSuccess }: Matc
             setIsSubmitting(true)
 
             let matchPhotoUrl = schedule.matchPhotoUrl
+
+            // 이미지가 삭제된 경우
+            if (isImageDeleted && !selectedImage) {
+                matchPhotoUrl = null
+            }
 
             if (selectedImage) {
                 const fileExt = selectedImage.name.split('.').pop()
@@ -521,6 +533,7 @@ export function MatchResultDialog({ isOpen, onClose, schedule, onSuccess }: Matc
                                         onClick={() => {
                                             setSelectedImage(null)
                                             setImagePreview(null)
+                                            setIsImageDeleted(true)
                                             if (fileInputRef.current) fileInputRef.current.value = ''
                                         }}
                                     >

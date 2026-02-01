@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
                     select: { userId: true }
                 }
             },
-            orderBy: { matchDate: 'desc' }
+            orderBy: { matchDate: 'asc' }
         })
 
         // 3. 출석 매트릭스 생성
