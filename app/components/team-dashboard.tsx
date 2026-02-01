@@ -122,7 +122,7 @@ const RankingList = ({
                             {data.map((player, idx) => {
                                 const isTop3 = idx < 3
                                 const rank = idx + 1
-                                
+
                                 return (
                                     <div
                                         key={player.id}
@@ -207,20 +207,6 @@ export function TeamDashboard({ currentUser }: TeamDashboardProps) {
 
     return (
         <div className="space-y-5 p-4 max-w-7xl mx-auto">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-2 border-b border-slate-100">
-                <div>
-                    <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Team Leaderboard</h2>
-                    <p className="text-slate-500 text-sm mt-1">실시간 팀 기록 및 순위 현황</p>
-                </div>
-                {stats?.totalMatches && (
-                    <div className="flex items-center gap-2 text-sm font-medium text-slate-600 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-200">
-                        <span>총 경기 수</span>
-                        <span className="font-bold text-slate-900">{stats.totalMatches}</span>
-                        <span className="text-slate-400">Matches</span>
-                    </div>
-                )}
-            </div>
-
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <RankingList
                     title="Top Scorers"
@@ -260,11 +246,11 @@ export function TeamDashboard({ currentUser }: TeamDashboardProps) {
                         <div className="h-6 w-1 bg-slate-900 rounded-full" />
                         <h3 className="text-lg font-bold text-slate-900">My Performance</h3>
                     </div>
-                    
+
                     <Card className="border-0 shadow-lg bg-gradient-to-br from-slate-900 to-slate-800 text-white overflow-hidden relative">
                         <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-white/5 rounded-full blur-3xl" />
                         <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-40 h-40 bg-blue-500/10 rounded-full blur-3xl" />
-                        
+
                         <CardContent className="p-6 relative z-10">
                             <div className="flex flex-col md:flex-row items-center justify-between gap-6">
                                 <div className="flex items-center gap-4">
