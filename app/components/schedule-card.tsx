@@ -462,7 +462,7 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
               </div>
             )}
 
-            {/* MVP 표시 */}
+            {/* MOM 표시 */}
             {schedule.mvpUserId && (
               <div className="mt-3 pt-3 border-t border-slate-700/50 flex items-center justify-center gap-2">
                 {(() => {
@@ -471,7 +471,7 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
                   return (
                     <>
                       <Trophy className={`h-4 w-4 ${isBlueTeam ? 'text-blue-500' : 'text-yellow-500'}`} />
-                      <span className="text-xs text-slate-300 font-medium">MVP: </span>
+                      <span className="text-xs text-slate-300 font-medium">MOM: </span>
                       <span className={`text-sm font-bold ${isBlueTeam ? 'text-blue-400' : 'text-yellow-400'}`}>
                         {(() => {
                           // 팀편성에서 MVP 찾기

@@ -479,16 +479,16 @@ export function MatchResultDialog({ isOpen, onClose, schedule, onSuccess }: Matc
                                 </div>
                             )}
 
-                            {/* MVP 선택 */}
+                            {/* MOM 선택 */}
                             {players.length > 0 && (
                                 <div className="space-y-2">
                                     <div className="flex items-center gap-2 text-sm font-medium">
                                         <Trophy className="h-4 w-4 text-yellow-500" />
-                                        MVP 선택
+                                        MOM 선택
                                     </div>
                                     <Select value={mvpId || 'none'} onValueChange={setMvpId}>
                                         <SelectTrigger className="h-9">
-                                            <SelectValue placeholder="MVP를 선택하세요" />
+                                            <SelectValue placeholder="MOM을 선택하세요" />
                                         </SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="none">선택 안함</SelectItem>

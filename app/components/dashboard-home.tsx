@@ -533,7 +533,7 @@ export function DashboardHome({ currentUser, isManagerMode }: DashboardHomeProps
                                         </div>
                                     </div>
                                     <div className="flex flex-col items-center justify-center p-3 rounded-lg bg-slate-50 border border-slate-100">
-                                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">MVP</div>
+                                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">MOM</div>
                                         <div className="text-xl font-black text-slate-800 tabular-nums">
                                             {personalStats.mvpCount}<span className="text-[10px] font-medium text-slate-400 ml-0.5 uppercase">회</span>
                                         </div>

@@ -229,8 +229,8 @@ export function TeamDashboard({ currentUser }: TeamDashboardProps) {
                     isLoading={isLoading}
                 />
                 <RankingList
-                    title="MVP Rankings"
-                    subtitle="최다 MVP 선정"
+                    title="MOM Rankings"
+                    subtitle="최다 MOM 선정"
                     icon={<Trophy className="h-5 w-5 text-amber-500" />}
                     data={stats?.topMvps || []}
                     valueKey="mvpCount"
@@ -277,7 +277,7 @@ export function TeamDashboard({ currentUser }: TeamDashboardProps) {
                                         </div>
                                     </div>
                                     <div className="flex flex-col items-center md:items-end">
-                                        <div className="text-xs font-bold text-amber-400 uppercase tracking-wider mb-1">MVP</div>
+                                        <div className="text-xs font-bold text-amber-400 uppercase tracking-wider mb-1">MOM</div>
                                         <div className="text-3xl font-black text-white tabular-nums">
                                             {stats.myStats.mvpCount}
                                         </div>
