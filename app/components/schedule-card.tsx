@@ -775,7 +775,7 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
               ) : (
                 // 예정된 경기: 설명 표시
                 schedule.description && (
-                  <div className="text-sm text-gray-600">
+                  <div className="text-sm text-gray-600 whitespace-pre-wrap">
                     {schedule.description}
                   </div>
                 )
