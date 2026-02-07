@@ -326,9 +326,9 @@ export function MatchResultDialog({ isOpen, onClose, schedule, onSuccess }: Matc
                 </DialogHeader>
 
                 <div className="py-4 space-y-6">
-                    {schedule.type === 'training' ? (
+                    {schedule.type === 'training' || schedule.type === 'futsal' ? (
                         <div className="text-center py-4 text-muted-foreground">
-                            연습 경기는 별도의 점수를 기록하지 않습니다.
+                            {schedule.type === 'training' ? '연습' : '풋살'} 경기는 별도의 점수를 기록하지 않습니다.
                         </div>
                     ) : (
                         <>

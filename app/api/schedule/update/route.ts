@@ -88,6 +88,9 @@ export async function PUT(request: NextRequest) {
       case "internal":
         autoTitle = "자체경기"
         break
+      case "futsal":
+        autoTitle = "풋살"
+        break
       case "match":
         autoTitle = `vs ${opponentTeam}`
         break

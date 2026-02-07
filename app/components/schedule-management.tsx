@@ -290,6 +290,7 @@ export function ScheduleManagement({
       case "internal": return "bg-green-100 text-green-800"
       case "match": return "bg-red-100 text-red-800"
       case "training": return "bg-blue-100 text-blue-800"
+      case "futsal": return "bg-orange-100 text-orange-800"
       default: return "bg-gray-100 text-gray-800"
     }
   }
@@ -709,11 +710,12 @@ export function ScheduleManagement({
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="internal">자체경기</SelectItem>
-                    <SelectItem value="match">A매치</SelectItem>
-                    <SelectItem value="training">연습</SelectItem>
-                  </SelectContent>
+                    <SelectContent>
+                      <SelectItem value="internal">자체경기</SelectItem>
+                      <SelectItem value="futsal">풋살</SelectItem>
+                      <SelectItem value="match">A매치</SelectItem>
+                      <SelectItem value="training">연습</SelectItem>
+                    </SelectContent>
                 </Select>
               </div>
 
@@ -933,6 +935,7 @@ export function ScheduleManagement({
                       <span className="font-medium">
                         {newSchedule.type === "internal" ? "자체경기" :
                           newSchedule.type === "match" ? `vs ${newSchedule.opponentTeam || "상대팀"}` :
+                        newSchedule.type === "futsal" ? "풋살" :
                             `연습 - ${newSchedule.trainingContent || "연습내용"}`}
                       </span>
                     </div>
@@ -1001,8 +1004,8 @@ export function ScheduleManagement({
         </Dialog>
       )}
 
-      {/* 일정 추가 버튼 (총무만) */}
-      {isManagerMode && (
+      {/* 일정 추가 버튼 (총무만, 경기예정 탭에서만) */}
+      {isManagerMode && viewMode === 'upcoming' && (
         <div className="flex justify-end mb-4">
           <Button onClick={() => setIsAddingSchedule(true)} className="gap-2">
             <Plus className="h-4 w-4" />
@@ -1074,7 +1077,7 @@ export function ScheduleManagement({
                   <div className="flex items-center justify-center">
                     <div className="flex items-center gap-2">
                       <Badge className={getTypeColor(nextUpcomingSchedule.type)} variant="secondary">
-                        {nextUpcomingSchedule.type === "internal" ? "자체경기" : nextUpcomingSchedule.type === "match" ? `A매치${nextUpcomingSchedule.opponentTeam ? ` vs ${nextUpcomingSchedule.opponentTeam}` : ''}` : "연습"}
+                        {nextUpcomingSchedule.type === "internal" ? "자체경기" : nextUpcomingSchedule.type === "match" ? `A매치${nextUpcomingSchedule.opponentTeam ? ` vs ${nextUpcomingSchedule.opponentTeam}` : ''}` : nextUpcomingSchedule.type === "futsal" ? "풋살" : "연습"}
                       </Badge>
                       {nextUpcomingSchedule.allowGuests && nextUpcomingSchedule.type === "internal" && (
                         <Badge className="bg-yellow-100 text-yellow-800" variant="secondary">
@@ -1203,8 +1206,8 @@ export function ScheduleManagement({
                         </Button>
                       )}
 
-                      {/* 자동 팀편성 버튼 (총무 전용, 내부 경기만) */}
-                      {isManagerMode && nextUpcomingSchedule.type === "internal" && (() => {
+                      {/* 자동 팀편성 버튼 (총무 전용, 내부 경기 또는 풋살만) */}
+                      {isManagerMode && (nextUpcomingSchedule.type === "internal" || nextUpcomingSchedule.type === "futsal") && (() => {
                         const [year, month, day] = nextUpcomingSchedule.date.split('-')
                         const targetDate = new Date(Number(year), Number(month) - 1, Number(day))
                         const today = new Date()
@@ -1213,14 +1216,26 @@ export function ScheduleManagement({
                         const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
 
                         const attendingCount = nextUpcomingSchedule.attendances?.filter((a: any) => a.status === 'ATTENDING').length || 0
-                        const isEnoughMembers = attendingCount >= 10
+                        const minMembers = nextUpcomingSchedule.type === "futsal" ? 4 : 10
+                        const isEnoughMembers = attendingCount >= minMembers
                         const isTimeReady = daysLeft <= 2
                         const isEnabled = isEnoughMembers && isTimeReady && !isScheduleUpdating(nextUpcomingSchedule.id)
 
                         return (
                           <Button
                             onClick={async () => {
-                              if (!confirm('자동 팀편성을 실행하시겠습니까?')) return
+                              let teamCount = 2
+                              if (nextUpcomingSchedule.type === "futsal") {
+                                const userInput = window.prompt("팀 수를 입력하세요 (2 또는 3)", "3")
+                                if (userInput === null) return
+                                teamCount = parseInt(userInput)
+                                if (isNaN(teamCount) || (teamCount !== 2 && teamCount !== 3)) {
+                                  alert("2 또는 3을 입력해야 합니다.")
+                                  return
+                                }
+                              } else {
+                                if (!confirm('자동 팀편성을 실행하시겠습니까?')) return
+                              }
 
                               startScheduleUpdate(nextUpcomingSchedule.id)
                               try {
@@ -1229,7 +1244,8 @@ export function ScheduleManagement({
                                   headers: { 'Content-Type': 'application/json' },
                                   body: JSON.stringify({
                                     scheduleId: nextUpcomingSchedule.id,
-                                    userId: currentUser?.id
+                                    userId: currentUser?.id,
+                                    teamCount: teamCount
                                   })
                                 })
 

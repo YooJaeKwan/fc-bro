@@ -206,7 +206,7 @@ function calculateFormationScore(
 }
 
 // 팀 편성 함수
-export function formTeams(players: any[]): { yellowTeam: any[], blueTeam: any[], stats: any } {
+export function formTeams(players: any[], teamCount: number = 2): { yellowTeam: any[], blueTeam: any[], greenTeam?: any[], stats: any } {
   if (players.length === 0) {
     return {
       yellowTeam: [],
@@ -221,6 +221,77 @@ export function formTeams(players: any[]): { yellowTeam: any[], blueTeam: any[],
   // 모든 플레이어 셔플
   const shuffledFieldPlayers = shuffle(allPlayers)
 
+  // 3팀 모드 (풋살 등)
+  if (teamCount === 3) {
+    const targetPerTeam = Math.floor(shuffledFieldPlayers.length / 3)
+    
+    // 3팀은 단순 랜덤 + 레벨 균형만 고려 (복잡한 포지션 로직 제외)
+    // 3팀 로직은 단순화: 레벨 순 정렬 후 스네이크 드래프트 방식 + 랜덤 섞기
+    // 혹은 5000번 시도 중 레벨 차이가 가장 적은 것 선택
+    
+    let bestFormation: { yellow: any[], blue: any[], green: any[], score: number } | null = null
+    
+    for (let attempt = 0; attempt < 2000; attempt++) {
+      const reShuffled = shuffle(shuffledFieldPlayers)
+      const currentYellow: any[] = []
+      const currentBlue: any[] = []
+      const currentGreen: any[] = []
+      
+      // 순차 배분
+      reShuffled.forEach((p, idx) => {
+        if (idx % 3 === 0) currentYellow.push(p)
+        else if (idx % 3 === 1) currentBlue.push(p)
+        else currentGreen.push(p)
+      })
+      
+      // 레벨 평균 계산
+      const getAvg = (team: any[]) => {
+        if (team.length === 0) return 0
+        const sum = team.reduce((acc, p) => acc + (p.isGuest ? getGuestLevelScore(p.guestLevel) : getPlayerLevelScore(p.level)), 0)
+        return sum / team.length
+      }
+      
+      const yAvg = getAvg(currentYellow)
+      const bAvg = getAvg(currentBlue)
+      const gAvg = getAvg(currentGreen)
+      
+      // 최대 격차
+      const maxDiff = Math.max(Math.abs(yAvg - bAvg), Math.abs(bAvg - gAvg), Math.abs(yAvg - gAvg))
+      
+      // 점수 (격차가 작을수록 높음)
+      const score = 100 - maxDiff
+      
+      if (!bestFormation || score > bestFormation.score) {
+        bestFormation = {
+          yellow: currentYellow,
+          blue: currentBlue,
+          green: currentGreen,
+          score
+        }
+      }
+    }
+    
+    if (bestFormation) {
+        const getAvg = (team: any[]) => {
+            if (team.length === 0) return 0
+            const sum = team.reduce((acc, p) => acc + (p.isGuest ? getGuestLevelScore(p.guestLevel) : getPlayerLevelScore(p.level)), 0)
+            return Number((sum / team.length).toFixed(2))
+        }
+
+        return {
+            yellowTeam: bestFormation.yellow,
+            blueTeam: bestFormation.blue,
+            greenTeam: bestFormation.green,
+            stats: {
+                yellow: { count: bestFormation.yellow.length, averageScore: getAvg(bestFormation.yellow) },
+                blue: { count: bestFormation.blue.length, averageScore: getAvg(bestFormation.blue) },
+                green: { count: bestFormation.green.length, averageScore: getAvg(bestFormation.green) }
+            }
+        }
+    }
+  }
+
+  // 기존 2팀 로직 (teamCount === 2)
   // 목표 인원수 계산
   const totalPlayers = shuffledFieldPlayers.length
   const targetPerTeam = Math.floor(totalPlayers / 2)

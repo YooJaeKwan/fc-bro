@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 유효한 일정 유형인지 확인
-    const validTypes = ['internal', 'match', 'training']
+    const validTypes = ['internal', 'match', 'training', 'futsal']
     if (!validTypes.includes(type)) {
       return NextResponse.json(
         { error: '유효하지 않은 일정 유형입니다.' },

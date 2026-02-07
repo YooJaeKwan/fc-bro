@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 팀 편성 실행
-    const formation = formTeams(attendingPlayers)
+    const formation = formTeams(attendingPlayers, teamCount)
 
     // 팀편성 결과 저장
     await prisma.schedule.update({

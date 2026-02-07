@@ -87,6 +87,7 @@ export function TeamFormation({
 
   const yellowTeam = teamFormation.yellowTeam || []
   const blueTeam = teamFormation.blueTeam || []
+  const greenTeam = teamFormation.greenTeam || []
   const stats = teamFormation.stats || {}
 
   // 포지션 대분류별로 그룹화 (게스트는 별도)
@@ -139,6 +140,7 @@ export function TeamFormation({
 
   const yellowGrouped = groupByPositionCategory(yellowTeam)
   const blueGrouped = groupByPositionCategory(blueTeam)
+  const greenGrouped = groupByPositionCategory(greenTeam)
 
   // 포지션 텍스트 색상 가져오기
   const getPositionTextColor = (position: string | null | undefined): string => {
@@ -194,7 +196,7 @@ export function TeamFormation({
         </p>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className={`grid grid-cols-1 ${greenTeam.length > 0 ? 'md:grid-cols-3' : 'md:grid-cols-2'} gap-4`}>
         {/* 노랑팀 */}
         <Card className="border-yellow-300 bg-yellow-50/30">
           <CardHeader className="pb-2 px-3 pt-3">
@@ -358,6 +360,86 @@ export function TeamFormation({
             </div>
           </CardContent>
         </Card>
+        {greenTeam.length > 0 && (
+          <Card className="border-green-300 bg-green-50/30">
+            <CardHeader className="pb-2 px-3 pt-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <div className="w-4 h-4 rounded-full bg-green-500"></div>
+                초록팀
+                {stats.green && (
+                  <span className="text-sm font-normal text-gray-600">
+                    ({stats.green.count}명, 평균 레벨: {stats.green.averageScore})
+                  </span>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="px-3 pb-3">
+              <div className="space-y-3">
+                {greenTeam.length === 0 ? (
+                  <p className="text-sm text-gray-500">팀원이 없습니다.</p>
+                ) : (
+                  Object.entries(greenGrouped)
+                    .filter(([category]) => category !== '미정' && greenGrouped[category] && greenGrouped[category].length > 0)
+                    .sort(([a], [b]) => {
+                      const order = ['공격수', '미드필더', '수비수', '골키퍼', '게스트']
+                      const aIndex = order.indexOf(a)
+                      const bIndex = order.indexOf(b)
+                      if (aIndex === -1 && bIndex === -1) return 0
+                      if (aIndex === -1) return 1
+                      if (bIndex === -1) return -1
+                      return aIndex - bIndex
+                    })
+                    .map(([category, players]) => {
+                      if (players.length === 0) return null
+                      return (
+                        <div key={category} className="space-y-1">
+                          <div className="text-xs font-semibold text-gray-600 border-b pb-1 text-left">
+                            {category} ({players.length})
+                          </div>
+                          {players.map((player: any) => (
+                            <div key={player.userId} className="flex items-center gap-2 py-1 rounded hover:bg-green-100/50">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <p className="text-sm font-medium truncate">
+                                    {player.name}
+                                    {player.isGuest && player.invitedByName && (
+                                      <span className="text-gray-400 text-xs ml-1">({player.invitedByName} 지인)</span>
+                                    )}
+                                  </p>
+                                  {(player.displayPosition || player.position) && (
+                                    <>
+                                      <Badge
+                                        variant="outline"
+                                        className={`text-xs font-medium ${getPositionTextColor(player.displayPosition || player.position)} border-current`}
+                                      >
+                                        {player.displayPosition || player.position}
+                                      </Badge>
+                                      {((player.displaySubPositions && player.displaySubPositions.length > 0) || (player.subPositions && player.subPositions.length > 0)) && (
+                                        <span className="text-xs font-medium">
+                                          <span className="text-gray-500">(+</span>
+                                          {(player.displaySubPositions || player.subPositions).map((subPos: string, idx: number) => (
+                                            <span key={idx}>
+                                              <span className={getPositionTextColor(subPos)}>{subPos}</span>
+                                              {idx < (player.displaySubPositions || player.subPositions).length - 1 && <span className="text-gray-400">, </span>}
+                                            </span>
+                                          ))}
+                                          <span className="text-gray-500">)</span>
+                                        </span>
+                                      )}
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )
+                    })
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   )
