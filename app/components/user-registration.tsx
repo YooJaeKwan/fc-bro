@@ -594,7 +594,7 @@ export function UserRegistration({ kakaoUserInfo, onRegistrationComplete }: User
 
             {/* 부포지션 선택 */}
             <div className="space-y-2">
-              <Label>부포지션 1 (선택사항)</Label>
+              <Label>부포지션 1 (희망포지션)</Label>
               <Select
                 value={formData.subPositions[0] || "선택 안함"}
                 onValueChange={(value) => {
@@ -630,7 +630,7 @@ export function UserRegistration({ kakaoUserInfo, onRegistrationComplete }: User
             </div>
 
             <div className="space-y-2">
-              <Label>부포지션 2 (선택사항)</Label>
+              <Label>부포지션 2 (희망포지션)</Label>
               <Select
                 value={formData.subPositions[1] || "선택 안함"}
                 onValueChange={(value) => {

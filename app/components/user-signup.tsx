@@ -321,7 +321,7 @@ export function UserSignup({ kakaoUserInfo, onSignupComplete, onBack }: UserSign
 
           {/* 희망포지션 선택 */}
           <div className="space-y-2">
-            <Label>주포지션 (희망포지션) *</Label>
+            <Label>주포지션 *</Label>
             <Select
               value={formData.preferredPosition}
               onValueChange={(value) => handleInputChange('preferredPosition', value)}
@@ -358,7 +358,7 @@ export function UserSignup({ kakaoUserInfo, onSignupComplete, onBack }: UserSign
             
             {/* 첫 번째 부포지션 */}
             <div className="space-y-2">
-              <Label>부포지션 1 (선택사항)</Label>
+              <Label>부포지션 1 (희망포지션)</Label>
               <Select
                 value={formData.subPosition1 || "none"}
                 onValueChange={(value) => handleInputChange('subPosition1', value === "none" ? "" : value)}
@@ -392,7 +392,7 @@ export function UserSignup({ kakaoUserInfo, onSignupComplete, onBack }: UserSign
 
             {/* 두 번째 부포지션 */}
             <div className="space-y-2">
-              <Label>부포지션 2 (선택사항)</Label>
+              <Label>부포지션 2 (희망포지션)</Label>
               <Select
                 value={formData.subPosition2 || "none"}
                 onValueChange={(value) => handleInputChange('subPosition2', value === "none" ? "" : value)}
