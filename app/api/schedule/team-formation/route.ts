@@ -7,7 +7,7 @@ import { formTeams, getPositionCategory, getLevelCategory, getLevelLabelForForma
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { scheduleId, userId } = body
+    const { scheduleId, userId, teamCount = 2 } = body
 
     if (!scheduleId || !userId) {
       return NextResponse.json(
