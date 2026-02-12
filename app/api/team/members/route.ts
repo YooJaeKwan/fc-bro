@@ -78,10 +78,13 @@ export async function GET(request: NextRequest) {
         case "DL":
           return { ...baseSkills, "수비": 7, "속도": 7, "체력": 8, "패스": 6 }
         case "DM":
+        case "CDM":
           return { ...baseSkills, "수비": 7, "패스": 7, "체력": 8, "멘탈": 7 }
         case "MC":
+        case "CM":
           return { ...baseSkills, "패스": 8, "체력": 7, "멘탈": 7, "드리블": 6 }
         case "AMC":
+        case "CAM":
           return { ...baseSkills, "패스": 8, "드리블": 7, "슈팅": 7, "창조력": 8 }
         case "ST":
         case "CF":
@@ -217,7 +220,7 @@ export async function GET(request: NextRequest) {
     // 클라이언트에 전송할 데이터 구성 (이제 비동기 작업 없음)
     const membersWithTempData = teamMembers.map((member) => {
       try {
-        const tempSkills = generateTempSkills(member.preferredPosition || "MC")
+        const tempSkills = generateTempSkills(member.preferredPosition || "CM")
         const overallRating = calculateOverallRating(tempSkills)
 
         // 메모리에서 참석 정보 가져오기
@@ -233,7 +236,7 @@ export async function GET(request: NextRequest) {
           id: member.id,
           name: member.realName || member.nickname || '이름 없음',
           nickname: member.nickname,
-          mainPosition: member.preferredPosition || 'MC',
+          mainPosition: member.preferredPosition || 'CM',
           subPositions: member.subPositions || [],
           phone: member.phoneNumber || '정보 없음',
           region: member.region || '정보 없음',
@@ -259,7 +262,7 @@ export async function GET(request: NextRequest) {
           id: member.id,
           name: member.realName || member.nickname || '이름 없음',
           nickname: member.nickname,
-          mainPosition: member.preferredPosition || 'MC',
+          mainPosition: member.preferredPosition || 'CM',
           subPositions: member.subPositions || [],
           phone: member.phoneNumber || '정보 없음',
           region: member.region || '정보 없음',
@@ -275,7 +278,7 @@ export async function GET(request: NextRequest) {
           attendedCount: 0,
           totalSchedules: totalSchedulesThisYear,
           lastAttendedDate: null,
-          skills: generateTempSkills(member.preferredPosition || "MC"),
+          skills: generateTempSkills(member.preferredPosition || "CM"),
           overallRating: 5.0
         }
       }

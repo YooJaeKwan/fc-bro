@@ -19,9 +19,9 @@ const positions = {
     { code: "RWF", name: "우측 윙 포워드 (RWF)" },
   ],
   미드필더: [
-    { code: "AMC", name: "공격형 중앙 미드필더 (CAM)" },
-    { code: "MC", name: "중앙 미드필더 (CM)" },
-    { code: "DM", name: "수비형 미드필더 (CDM)" },
+    { code: "CAM", name: "공격형 중앙 미드필더 (CAM)" },
+    { code: "CM", name: "중앙 미드필더 (CM)" },
+    { code: "CDM", name: "수비형 미드필더 (CDM)" },
   ],
   수비수: [
     { code: "CB", name: "센터백 (CB)" },

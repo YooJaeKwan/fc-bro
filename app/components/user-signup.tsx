@@ -48,9 +48,9 @@ export function UserSignup({ kakaoUserInfo, onSignupComplete, onBack }: UserSign
     midfielder: {
       name: "미드필더",
       positions: [
-        { value: "AMC", label: "CAM (공격형 중앙 미드필더)" },
-        { value: "MC", label: "CM (중앙 미드필더)" },
-        { value: "DM", label: "CDM (수비형 미드필더)" }
+        { value: "CAM", label: "CAM (공격형 중앙 미드필더)" },
+        { value: "CM", label: "CM (중앙 미드필더)" },
+        { value: "CDM", label: "CDM (수비형 미드필더)" }
       ]
     },
     defender: {

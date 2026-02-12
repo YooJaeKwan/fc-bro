@@ -42,7 +42,7 @@ interface UserProfileProps {
 
 export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
   const [isEditing, setIsEditing] = useState(false)
-  const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState({
     realName: userInfo?.realName || "",
     phoneNumber: userInfo?.phoneNumber || "",
     preferredPosition: userInfo?.preferredPosition || "",
@@ -51,7 +51,10 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
     region: userInfo?.region || "",
     city: userInfo?.city || "",
     preferredFoot: userInfo?.preferredFoot || "",
-    jerseyNumber: userInfo?.jerseyNumber ? userInfo.jerseyNumber.toString() : ""
+    jerseyNumber: userInfo?.jerseyNumber ? userInfo.jerseyNumber.toString() : "",
+    injuryStatus: userInfo?.injuryStatus || "",
+    injuryDetail: userInfo?.injuryDetail || "",
+    expectedReturnDate: userInfo?.expectedReturnDate ? new Date(userInfo.expectedReturnDate).toISOString().split('T')[0] : ""
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -71,9 +74,9 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
     midfielder: {
       name: "미드필더",
       positions: [
-        { value: "AMC", label: "CAM (공격형 중앙 미드필더)" },
-        { value: "MC", label: "CM (중앙 미드필더)" },
-        { value: "DM", label: "CDM (수비형 미드필더)" }
+        { value: "CAM", label: "CAM (공격형 중앙 미드필더)" },
+        { value: "CM", label: "CM (중앙 미드필더)" },
+        { value: "CDM", label: "CDM (수비형 미드필더)" }
       ]
     },
     defender: {
@@ -187,7 +190,10 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
     setIsSubmitting(true)
 
     try {
-      const updateData = {
+        // 부상 정보 업데이트를 위한 별도 처리 (여기서 한 번에 처리하거나 별도 API 호출)
+        // 기존 update API가 모든 필드를 처리하도록 수정되어 있지 않다면 별도 호출 필요할 수 있음
+        // 일단은 update API가 처리한다고 가정하고 data에 포함
+        const updateData = {
         userId: userInfo?.id,
         realName: formData.realName.trim(),
         phoneNumber: formData.phoneNumber,
@@ -196,11 +202,13 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
         region: formData.region,
         city: formData.city,
         preferredFoot: formData.preferredFoot || null,
-        jerseyNumber: formData.jerseyNumber ? Number(formData.jerseyNumber) : null
+        jerseyNumber: formData.jerseyNumber ? Number(formData.jerseyNumber) : null,
+        injuryStatus: formData.injuryStatus || null,
+        injuryDetail: formData.injuryDetail || null,
+        expectedReturnDate: formData.expectedReturnDate || null
       }
-
-      console.log('정보 수정 요청:', updateData)
-
+      
+      // 1. 기본 정보 업데이트
       const response = await fetch('/api/user/update', {
         method: 'PUT',
         headers: {
@@ -208,6 +216,23 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
         },
         body: JSON.stringify(updateData)
       })
+
+      // 2. 부상 정보 업데이트 (별도 API 사용)
+      if (formData.injuryStatus !== userInfo?.injuryStatus || 
+          formData.injuryDetail !== userInfo?.injuryDetail || 
+          formData.expectedReturnDate !== (userInfo?.expectedReturnDate ? new Date(userInfo.expectedReturnDate).toISOString().split('T')[0] : "")) {
+            
+        await fetch('/api/user/injury', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: userInfo?.id,
+            injuryStatus: formData.injuryStatus || null,
+            injuryDetail: formData.injuryDetail || null,
+            expectedReturnDate: formData.expectedReturnDate || null
+          })
+        })
+      }
 
       const result = await response.json()
 
@@ -249,7 +274,10 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
       region: userInfo?.region || "",
       city: userInfo?.city || "",
       preferredFoot: userInfo?.preferredFoot || "",
-      jerseyNumber: userInfo?.jerseyNumber ? userInfo.jerseyNumber.toString() : ""
+      jerseyNumber: userInfo?.jerseyNumber ? userInfo.jerseyNumber.toString() : "",
+      injuryStatus: userInfo?.injuryStatus || "",
+      injuryDetail: userInfo?.injuryDetail || "",
+      expectedReturnDate: userInfo?.expectedReturnDate ? new Date(userInfo.expectedReturnDate).toISOString().split('T')[0] : ""
     })
     setErrors({})
     setIsEditing(false)
@@ -272,15 +300,26 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
                 {(userInfo?.realName || userInfo?.nickname)?.[0] || 'U'}
               </AvatarFallback>
             </Avatar>
-            <div>
-              <h3 className="text-xl font-semibold">{userInfo?.realName || userInfo?.nickname}</h3>
-              {/* <p className="text-sm text-muted-foreground">#{userInfo?.jerseyNumber || '미지정'}</p>
-              <p className="text-sm text-muted-foreground">
-                {userInfo?.region} {userInfo?.city}
-              </p> */}
-              <p className="text-xs text-muted-foreground mt-1">
-                가입일: {userInfo?.registeredAt ? new Date(userInfo.registeredAt).toLocaleDateString('ko-KR') : '정보 없음'}
-              </p>
+            <div className="flex-1">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="text-xl font-semibold flex items-center gap-2">
+                    {userInfo?.realName || userInfo?.nickname}
+                    {userInfo?.injuryStatus && userInfo.injuryStatus !== "HEALTHY" && (
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                        userInfo.injuryStatus === "INJURED" 
+                          ? "bg-red-100 text-red-800" 
+                          : "bg-amber-100 text-amber-800"
+                      }`}>
+                        {userInfo.injuryStatus === "INJURED" ? "부상중" : "회복중"}
+                      </span>
+                    )}
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    가입일: {userInfo?.registeredAt ? new Date(userInfo.registeredAt).toLocaleDateString('ko-KR') : '정보 없음'}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </CardHeader>
@@ -317,6 +356,54 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
                 <AlertDescription>{errors.submit}</AlertDescription>
               </Alert>
             )}
+
+            {/* 부상 관리 섹션 */}
+            <div className="p-4 border rounded-lg bg-slate-50 space-y-3">
+               <h4 className="font-medium text-sm text-slate-900 flex items-center gap-2">
+                 <AlertCircle className="h-4 w-4 text-red-500" />
+                 부상 관리
+               </h4>
+               
+               <div className="space-y-3">
+                 <div className="space-y-2">
+                   <Label>부상 상태</Label>
+                   <Select
+                     value={formData.injuryStatus || "HEALTHY"}
+                     onValueChange={(value) => handleInputChange('injuryStatus', value === "HEALTHY" ? "" : value)}
+                   >
+                     <SelectTrigger>
+                       <SelectValue placeholder="현재 상태 선택" />
+                     </SelectTrigger>
+                     <SelectContent>
+                       <SelectItem value="HEALTHY">정상 (부상 없음)</SelectItem>
+                       <SelectItem value="INJURED">부상중 (경기 불가)</SelectItem>
+                       <SelectItem value="RECOVERING">회복중 (제한적 참여)</SelectItem>
+                     </SelectContent>
+                   </Select>
+                 </div>
+
+                 {formData.injuryStatus && formData.injuryStatus !== "HEALTHY" && (
+                   <>
+                     <div className="space-y-2">
+                       <Label>부상 부위 및 상세 내용</Label>
+                       <Input 
+                         placeholder="예: 오른쪽 발목 염좌, 햄스트링 부상 등"
+                         value={formData.injuryDetail}
+                         onChange={(e) => handleInputChange('injuryDetail', e.target.value)}
+                       />
+                     </div>
+                     <div className="space-y-2">
+                       <Label>복귀 예상일</Label>
+                       <Input 
+                         type="date"
+                         value={formData.expectedReturnDate}
+                         onChange={(e) => handleInputChange('expectedReturnDate', e.target.value)}
+                       />
+                     </div>
+                   </>
+                 )}
+               </div>
+            </div>
 
             {/* 실명 입력 */}
             <div className="space-y-2">
@@ -662,6 +749,42 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
               </div>
             </CardContent>
           </Card>
+
+          {/* 부상 상태 표시 (있을 경우에만) */}
+          {userInfo?.injuryStatus && userInfo.injuryStatus !== "HEALTHY" && (
+            <Card className="border-red-100 bg-red-50/30">
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center space-x-2 text-red-700 text-base">
+                  <AlertCircle className="h-5 w-5" />
+                  <span>부상 현황</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-4">
+                   <div className="space-y-1">
+                     <Label className="text-xs font-medium text-red-600/70">상태</Label>
+                     <p className="text-sm font-semibold text-red-700">
+                       {userInfo.injuryStatus === "INJURED" ? "부상중 (경기 불가)" : "회복중 (제한적 참여)"}
+                     </p>
+                   </div>
+                   <div className="space-y-1">
+                     <Label className="text-xs font-medium text-red-600/70">복귀 예상</Label>
+                     <p className="text-sm font-semibold text-red-700">
+                       {userInfo.expectedReturnDate 
+                         ? new Date(userInfo.expectedReturnDate).toLocaleDateString('ko-KR') 
+                         : "미정"}
+                     </p>
+                   </div>
+                   {userInfo.injuryDetail && (
+                     <div className="col-span-2 space-y-1">
+                       <Label className="text-xs font-medium text-red-600/70">상세 내용</Label>
+                       <p className="text-sm text-red-700">{userInfo.injuryDetail}</p>
+                     </div>
+                   )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* 포지션 정보 */}
           <Card>

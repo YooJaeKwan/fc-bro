@@ -48,8 +48,8 @@ export const sortByPosition = (players: any[]) => {
     }
 
     // 2. 포지션 순서 정렬
-    const posA = a.position || a.displayPosition || 'MC'
-    const posB = b.position || b.displayPosition || 'MC'
+    const posA = a.position || a.displayPosition || 'CM'
+    const posB = b.position || b.displayPosition || 'CM'
     return getPositionOrder(posA) - getPositionOrder(posB)
   })
 }

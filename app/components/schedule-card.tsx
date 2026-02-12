@@ -157,7 +157,7 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
       return 'border-blue-400/50 text-blue-300 bg-blue-400/10'
     }
     // 미드필더 (CM, CDM, CAM 등) - 초록색
-    if (pos === 'CM' || pos === 'CDM' || pos === 'CAM' || pos === 'DM' || pos === 'AM' || pos === 'LM' || pos === 'RM') {
+    if (pos === 'CM' || pos === 'CDM' || pos === 'CAM' || pos === 'DM' || pos === 'AM' || pos === 'LM' || pos === 'RM' || pos === 'MC' || pos === 'AMC') {
       return 'border-green-400/50 text-green-300 bg-green-400/10'
     }
     // 공격수 (ST, CF, LWF, RWF, SS, LW, RW 등)
@@ -403,8 +403,8 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
                     <div className="font-semibold text-yellow-400 mb-2 text-center">Yellow Team</div>
                     {sortByPosition(schedule.teamFormation.yellowTeam || []).map((player: any, idx: number) => (
                       <div key={idx} className="text-slate-300 flex items-center gap-2 py-1">
-                        <Badge variant="outline" className={`text-[10px] ${getPositionColor(player.position || player.displayPosition || 'MC')}`}>
-                          {player.position || player.displayPosition || 'MC'}
+                        <Badge variant="outline" className={`text-[10px] ${getPositionColor(player.position || player.displayPosition || 'CM')}`}>
+                          {player.position || player.displayPosition || 'CM'}
                         </Badge>
                         <span>
                           {player.name}
@@ -420,8 +420,8 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
                     <div className="font-semibold text-blue-400 mb-2 text-center">Blue Team</div>
                     {sortByPosition(schedule.teamFormation.blueTeam || []).map((player: any, idx: number) => (
                       <div key={idx} className="text-slate-300 flex items-center gap-2 py-1">
-                        <Badge variant="outline" className={`text-[10px] ${getPositionColor(player.position || player.displayPosition || 'MC')}`}>
-                          {player.position || player.displayPosition || 'MC'}
+                        <Badge variant="outline" className={`text-[10px] ${getPositionColor(player.position || player.displayPosition || 'CM')}`}>
+                          {player.position || player.displayPosition || 'CM'}
                         </Badge>
                         <span>
                           {player.name}
@@ -682,8 +682,8 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
                           <div className="grid grid-cols-1 gap-1">
                             {sortByPosition(schedule.teamFormation.yellowTeam || []).map((player: any, idx: number) => (
                               <div key={idx} className="text-slate-300 flex items-center gap-2 py-1 px-1 hover:bg-white/5 rounded">
-                                <Badge variant="outline" className={`text-[10px] w-10 justify-center ${getPositionColor(player.position || player.displayPosition || 'MC')}`}>
-                                  {player.position || player.displayPosition || 'MC'}
+                                <Badge variant="outline" className={`text-[10px] w-10 justify-center ${getPositionColor(player.position || player.displayPosition || 'CM')}`}>
+                                  {player.position || player.displayPosition || 'CM'}
                                 </Badge>
                                 <span className="flex-1">
                                   {player.name}
@@ -706,8 +706,8 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
                           <div className="grid grid-cols-1 gap-1">
                             {sortByPosition(schedule.teamFormation.blueTeam || []).map((player: any, idx: number) => (
                               <div key={idx} className="text-slate-300 flex items-center gap-2 py-1 px-1 hover:bg-white/5 rounded">
-                                <Badge variant="outline" className={`text-[10px] w-10 justify-center ${getPositionColor(player.position || player.displayPosition || 'MC')}`}>
-                                  {player.position || player.displayPosition || 'MC'}
+                                <Badge variant="outline" className={`text-[10px] w-10 justify-center ${getPositionColor(player.position || player.displayPosition || 'CM')}`}>
+                                  {player.position || player.displayPosition || 'CM'}
                                 </Badge>
                                 <span className="flex-1">
                                   {player.name}
