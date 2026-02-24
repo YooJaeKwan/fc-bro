@@ -42,7 +42,7 @@ interface UserProfileProps {
 
 export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
   const [isEditing, setIsEditing] = useState(false)
-    const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState({
     realName: userInfo?.realName || "",
     phoneNumber: userInfo?.phoneNumber || "",
     preferredPosition: userInfo?.preferredPosition || "",
@@ -52,9 +52,9 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
     city: userInfo?.city || "",
     preferredFoot: userInfo?.preferredFoot || "",
     jerseyNumber: userInfo?.jerseyNumber ? userInfo.jerseyNumber.toString() : "",
-    injuryStatus: userInfo?.injuryStatus || "",
-    injuryDetail: userInfo?.injuryDetail || "",
-    expectedReturnDate: userInfo?.expectedReturnDate ? new Date(userInfo.expectedReturnDate).toISOString().split('T')[0] : ""
+    // injuryStatus: userInfo?.injuryStatus || "", // Removed
+    // injuryDetail: userInfo?.injuryDetail || "", // Removed
+    // expectedReturnDate: userInfo?.expectedReturnDate ? new Date(userInfo.expectedReturnDate).toISOString().split('T')[0] : "" // Removed
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -127,12 +127,12 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
 
     // 부포지션 검증 (선택사항)
     const selectedSubPositions = [formData.subPosition1, formData.subPosition2].filter(pos => pos !== "")
-    
+
     // 희망포지션과 중복 확인
     if (selectedSubPositions.includes(formData.preferredPosition)) {
       newErrors.subPositions = "부포지션에는 희망포지션과 다른 포지션을 선택해주세요."
     }
-    
+
     // 부포지션 간 중복 확인
     if (formData.subPosition1 && formData.subPosition2 && formData.subPosition1 === formData.subPosition2) {
       newErrors.subPositions = "부포지션은 서로 다른 포지션을 선택해주세요."
@@ -159,7 +159,7 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
       ...prev,
       [field]: value
     }))
-    
+
     // 입력 시 해당 필드 에러 제거
     if (errors[field]) {
       setErrors(prev => {
@@ -190,10 +190,10 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
     setIsSubmitting(true)
 
     try {
-        // 부상 정보 업데이트를 위한 별도 처리 (여기서 한 번에 처리하거나 별도 API 호출)
-        // 기존 update API가 모든 필드를 처리하도록 수정되어 있지 않다면 별도 호출 필요할 수 있음
-        // 일단은 update API가 처리한다고 가정하고 data에 포함
-        const updateData = {
+      // 부상 정보 업데이트를 위한 별도 처리 (여기서 한 번에 처리하거나 별도 API 호출)
+      // 기존 update API가 모든 필드를 처리하도록 수정되어 있지 않다면 별도 호출 필요할 수 있음
+      // 일단은 update API가 처리한다고 가정하고 data에 포함
+      const updateData = {
         userId: userInfo?.id,
         realName: formData.realName.trim(),
         phoneNumber: formData.phoneNumber,
@@ -202,12 +202,9 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
         region: formData.region,
         city: formData.city,
         preferredFoot: formData.preferredFoot || null,
-        jerseyNumber: formData.jerseyNumber ? Number(formData.jerseyNumber) : null,
-        injuryStatus: formData.injuryStatus || null,
-        injuryDetail: formData.injuryDetail || null,
-        expectedReturnDate: formData.expectedReturnDate || null
+        jerseyNumber: formData.jerseyNumber ? Number(formData.jerseyNumber) : null
       }
-      
+
       // 1. 기본 정보 업데이트
       const response = await fetch('/api/user/update', {
         method: 'PUT',
@@ -217,22 +214,6 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
         body: JSON.stringify(updateData)
       })
 
-      // 2. 부상 정보 업데이트 (별도 API 사용)
-      if (formData.injuryStatus !== userInfo?.injuryStatus || 
-          formData.injuryDetail !== userInfo?.injuryDetail || 
-          formData.expectedReturnDate !== (userInfo?.expectedReturnDate ? new Date(userInfo.expectedReturnDate).toISOString().split('T')[0] : "")) {
-            
-        await fetch('/api/user/injury', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userId: userInfo?.id,
-            injuryStatus: formData.injuryStatus || null,
-            injuryDetail: formData.injuryDetail || null,
-            expectedReturnDate: formData.expectedReturnDate || null
-          })
-        })
-      }
 
       const result = await response.json()
 
@@ -241,22 +222,22 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
       }
 
       console.log('정보 수정 성공:', result)
-      
+
       // 업데이트된 사용자 정보로 상위 컴포넌트 업데이트
       onUserUpdate(result.user)
-      
+
       setIsEditing(false)
       setErrors({})
 
     } catch (error) {
       console.error('정보 수정 중 오류:', error)
-      
+
       let errorMessage = '정보 수정 중 오류가 발생했습니다.'
-      
+
       if (error instanceof Error) {
         errorMessage = error.message
       }
-      
+
       setErrors({ submit: errorMessage })
     } finally {
       setIsSubmitting(false)
@@ -274,10 +255,7 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
       region: userInfo?.region || "",
       city: userInfo?.city || "",
       preferredFoot: userInfo?.preferredFoot || "",
-      jerseyNumber: userInfo?.jerseyNumber ? userInfo.jerseyNumber.toString() : "",
-      injuryStatus: userInfo?.injuryStatus || "",
-      injuryDetail: userInfo?.injuryDetail || "",
-      expectedReturnDate: userInfo?.expectedReturnDate ? new Date(userInfo.expectedReturnDate).toISOString().split('T')[0] : ""
+      jerseyNumber: userInfo?.jerseyNumber ? userInfo.jerseyNumber.toString() : ""
     })
     setErrors({})
     setIsEditing(false)
@@ -305,15 +283,6 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
                 <div>
                   <h3 className="text-xl font-semibold flex items-center gap-2">
                     {userInfo?.realName || userInfo?.nickname}
-                    {userInfo?.injuryStatus && userInfo.injuryStatus !== "HEALTHY" && (
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                        userInfo.injuryStatus === "INJURED" 
-                          ? "bg-red-100 text-red-800" 
-                          : "bg-amber-100 text-amber-800"
-                      }`}>
-                        {userInfo.injuryStatus === "INJURED" ? "부상중" : "회복중"}
-                      </span>
-                    )}
                   </h3>
                   <p className="text-xs text-muted-foreground mt-1">
                     가입일: {userInfo?.registeredAt ? new Date(userInfo.registeredAt).toLocaleDateString('ko-KR') : '정보 없음'}
@@ -323,7 +292,7 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
             </div>
           </div>
         </CardHeader>
-        
+
         {/* 정보 수정 버튼을 Card 하단에 배치 */}
         {!isEditing && (
           <CardContent className="pt-0">
@@ -357,53 +326,6 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
               </Alert>
             )}
 
-            {/* 부상 관리 섹션 */}
-            <div className="p-4 border rounded-lg bg-slate-50 space-y-3">
-               <h4 className="font-medium text-sm text-slate-900 flex items-center gap-2">
-                 <AlertCircle className="h-4 w-4 text-red-500" />
-                 부상 관리
-               </h4>
-               
-               <div className="space-y-3">
-                 <div className="space-y-2">
-                   <Label>부상 상태</Label>
-                   <Select
-                     value={formData.injuryStatus || "HEALTHY"}
-                     onValueChange={(value) => handleInputChange('injuryStatus', value === "HEALTHY" ? "" : value)}
-                   >
-                     <SelectTrigger>
-                       <SelectValue placeholder="현재 상태 선택" />
-                     </SelectTrigger>
-                     <SelectContent>
-                       <SelectItem value="HEALTHY">정상 (부상 없음)</SelectItem>
-                       <SelectItem value="INJURED">부상중 (경기 불가)</SelectItem>
-                       <SelectItem value="RECOVERING">회복중 (제한적 참여)</SelectItem>
-                     </SelectContent>
-                   </Select>
-                 </div>
-
-                 {formData.injuryStatus && formData.injuryStatus !== "HEALTHY" && (
-                   <>
-                     <div className="space-y-2">
-                       <Label>부상 부위 및 상세 내용</Label>
-                       <Input 
-                         placeholder="예: 오른쪽 발목 염좌, 햄스트링 부상 등"
-                         value={formData.injuryDetail}
-                         onChange={(e) => handleInputChange('injuryDetail', e.target.value)}
-                       />
-                     </div>
-                     <div className="space-y-2">
-                       <Label>복귀 예상일</Label>
-                       <Input 
-                         type="date"
-                         value={formData.expectedReturnDate}
-                         onChange={(e) => handleInputChange('expectedReturnDate', e.target.value)}
-                       />
-                     </div>
-                   </>
-                 )}
-               </div>
-            </div>
 
             {/* 실명 입력 */}
             <div className="space-y-2">
@@ -473,7 +395,7 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
               <div className="text-xs text-muted-foreground">
                 주포지션 외에 소화 가능한 포지션을 선택해주세요.
               </div> */}
-              
+
               {/* 첫 번째 부포지션 */}
               <div className="space-y-2">
                 <Label>부포지션 1 (희망포지션)</Label>
@@ -489,7 +411,7 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
                     <SelectItem value="none">
                       <span className="text-muted-foreground">선택없음</span>
                     </SelectItem>
-                    
+
                     {Object.entries(positionCategories).map(([categoryKey, category]) => (
                       <div key={categoryKey}>
                         <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground">
@@ -523,7 +445,7 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
                     <SelectItem value="none">
                       <span className="text-muted-foreground">선택없음</span>
                     </SelectItem>
-                    
+
                     {Object.entries(positionCategories).map(([categoryKey, category]) => (
                       <div key={categoryKey}>
                         <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground">
@@ -570,7 +492,7 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
             {/* 거주 지역 선택 (2단계) */}
             <div className="space-y-3">
               {/* <Label>거주 지역 *</Label> */}
-              
+
               {/* 시도 선택 */}
               <div className="space-y-2">
                 <Label>지역</Label>
@@ -648,26 +570,26 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
                   ))}
                 </SelectContent>
               </Select>
-            {/* <div className="text-xs text-muted-foreground">
+              {/* <div className="text-xs text-muted-foreground">
               팀 편성 시 참고 정보로 활용됩니다.
             </div> */}
-          </div>
+            </div>
 
-          {/* 등번호 입력 */}
-          <div className="space-y-2">
-            <Label>등번호 (선택사항)</Label>
-            <Input
-              type="text"
-              placeholder=""
-              value={formData.jerseyNumber}
-              onChange={(e) => handleJerseyNumberChange(e.target.value)}
-              className={errors.jerseyNumber ? "border-red-500" : ""}
-              maxLength={2}
-            />
-            {errors.jerseyNumber && (
-              <p className="text-sm text-red-500">{errors.jerseyNumber}</p>
-            )}
-          </div>
+            {/* 등번호 입력 */}
+            <div className="space-y-2">
+              <Label>등번호 (선택사항)</Label>
+              <Input
+                type="text"
+                placeholder=""
+                value={formData.jerseyNumber}
+                onChange={(e) => handleJerseyNumberChange(e.target.value)}
+                className={errors.jerseyNumber ? "border-red-500" : ""}
+                maxLength={2}
+              />
+              {errors.jerseyNumber && (
+                <p className="text-sm text-red-500">{errors.jerseyNumber}</p>
+              )}
+            </div>
 
             {/* 저장 버튼 */}
             <div className="flex justify-end space-x-2 pt-4">
@@ -722,7 +644,7 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
                 <div className="space-y-2">
                   <Label className="text-sm font-medium text-muted-foreground">거주지역</Label>
                   <p className="text-base">
-                    {userInfo?.region && userInfo?.city 
+                    {userInfo?.region && userInfo?.city
                       ? `${provinceOptions.find(p => p.value === userInfo.region)?.label} ${userInfo.city}`
                       : '정보 없음'
                     }
@@ -734,7 +656,7 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
                 <div className="space-y-2">
                   <Label className="text-sm font-medium text-muted-foreground">주발</Label>
                   <p className="text-base">
-                    {userInfo?.preferredFoot 
+                    {userInfo?.preferredFoot
                       ? footOptions.find(f => f.value === userInfo.preferredFoot)?.label
                       : '정보 없음'
                     }
@@ -750,41 +672,6 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
             </CardContent>
           </Card>
 
-          {/* 부상 상태 표시 (있을 경우에만) */}
-          {userInfo?.injuryStatus && userInfo.injuryStatus !== "HEALTHY" && (
-            <Card className="border-red-100 bg-red-50/30">
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center space-x-2 text-red-700 text-base">
-                  <AlertCircle className="h-5 w-5" />
-                  <span>부상 현황</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-4">
-                   <div className="space-y-1">
-                     <Label className="text-xs font-medium text-red-600/70">상태</Label>
-                     <p className="text-sm font-semibold text-red-700">
-                       {userInfo.injuryStatus === "INJURED" ? "부상중 (경기 불가)" : "회복중 (제한적 참여)"}
-                     </p>
-                   </div>
-                   <div className="space-y-1">
-                     <Label className="text-xs font-medium text-red-600/70">복귀 예상</Label>
-                     <p className="text-sm font-semibold text-red-700">
-                       {userInfo.expectedReturnDate 
-                         ? new Date(userInfo.expectedReturnDate).toLocaleDateString('ko-KR') 
-                         : "미정"}
-                     </p>
-                   </div>
-                   {userInfo.injuryDetail && (
-                     <div className="col-span-2 space-y-1">
-                       <Label className="text-xs font-medium text-red-600/70">상세 내용</Label>
-                       <p className="text-sm text-red-700">{userInfo.injuryDetail}</p>
-                     </div>
-                   )}
-                </div>
-              </CardContent>
-            </Card>
-          )}
 
           {/* 포지션 정보 */}
           <Card>

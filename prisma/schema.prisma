@@ -37,11 +37,6 @@ model User {
   level            Int?      @default(1) // 선수 레벨 (1-10, 총무만 수정 가능)
   isActive         Boolean   @default(true) // 활성 상태 (총무가 비활성화 가능)
 
-  // 부상 관리 필드
-  injuryStatus     String?   // HEALTHY(null or empty), INJURED, RECOVERING
-  injuryDetail     String?   // 부상 부위 및 설명
-  expectedReturnDate DateTime? // 예상 복귀일
-
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
