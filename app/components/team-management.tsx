@@ -91,6 +91,9 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
   const [activePositionTab, setActivePositionTab] = useState("all")
   const [editingMember, setEditingMember] = useState<any>(null)
   const [tempLevel, setTempLevel] = useState<number>(1)
+  const [tempInjuryStatus, setTempInjuryStatus] = useState<string>("")
+  const [tempInjuryDetail, setTempInjuryDetail] = useState<string>("")
+  const [tempReturnDate, setTempReturnDate] = useState<string>("")
   const [isSaving, setIsSaving] = useState(false)
   const [saveMessage, setSaveMessage] = useState("")
   const [showInactive, setShowInactive] = useState(false)
@@ -686,6 +689,16 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                                 <div className="space-y-1.5">
                                   <div className="flex items-center gap-2 flex-wrap">
                                     <span className="font-bold text-gray-900">{member.name}</span>
+                                    {/* 부상 상태 표시 */}
+                                    {member.injuryStatus && member.injuryStatus !== "HEALTHY" && (
+                                      <Badge variant="outline" className={`text-xs ${
+                                        member.injuryStatus === "INJURED" 
+                                          ? "bg-red-100 text-red-800 border-red-200" 
+                                          : "bg-amber-100 text-amber-800 border-amber-200"
+                                      }`}>
+                                        {member.injuryStatus === "INJURED" ? "부상" : "회복"}
+                                      </Badge>
+                                    )}
                                     {/* 레벨 배지 */}
                                     <Badge
                                       variant="outline"
@@ -874,124 +887,236 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                                       </CardContent>
                                     </Card>
 
+                                    {/* 부상 정보 카드 (총무는 볼 수 있음) */}
+                                    {member.injuryStatus && member.injuryStatus !== "HEALTHY" && (
+                                      <Card className="border-l-4 border-l-red-500 bg-red-50/30">
+                                        <CardHeader className="pb-3">
+                                          <CardTitle className="text-sm flex items-center gap-2 text-red-700">
+                                            <AlertCircle className="h-4 w-4" />
+                                            부상 현황
+                                          </CardTitle>
+                                        </CardHeader>
+                                        <CardContent>
+                                          <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-1">
+                                              <Label className="text-xs font-medium text-red-600/70">상태</Label>
+                                              <p className="text-sm font-semibold text-red-700">
+                                                {member.injuryStatus === "INJURED" ? "부상중 (경기 불가)" : "회복중 (제한적 참여)"}
+                                              </p>
+                                            </div>
+                                            <div className="space-y-1">
+                                              <Label className="text-xs font-medium text-red-600/70">복귀 예상</Label>
+                                              <p className="text-sm font-semibold text-red-700">
+                                                {member.expectedReturnDate
+                                                  ? new Date(member.expectedReturnDate).toLocaleDateString('ko-KR')
+                                                  : "미정"}
+                                              </p>
+                                            </div>
+                                            {member.injuryDetail && (
+                                              <div className="col-span-2 space-y-1">
+                                                <Label className="text-xs font-medium text-red-600/70">상세 내용</Label>
+                                                <p className="text-sm text-red-700">{member.injuryDetail}</p>
+                                              </div>
+                                            )}
+                                          </div>
+                                        </CardContent>
+                                      </Card>
+                                    )}
+
                                     {/* 레벨 관리 (총무 전용) */}
                                     {isManagerMode && (
                                       <div className="space-y-3">
                                         {editingMember?.id !== member.id ? (
-                                          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
-                                            <div className="flex items-center gap-2">
-                                              <span className="text-sm text-gray-600">레벨:</span>
-                                              <Badge className="text-sm px-2 py-1">
-                                                {getLevelLabel(member.level)}
-                                              </Badge>
-                                            </div>
-                                            <Button
-                                              onClick={() => {
-                                                setEditingMember(member)
-                                                setTempLevel(member.level || 1)
-                                                setSaveMessage("")
-                                              }}
-                                              variant="outline"
-                                              size="sm"
-                                            >
-                                              <Edit className="h-3 w-3 mr-1" />
-                                              수정
-                                            </Button>
-                                          </div>
-                                        ) : (
-                                          <div className="space-y-3 p-3 bg-gray-50 rounded-lg border">
-                                            <div className="flex items-center gap-2">
-                                              <Label className="text-sm text-gray-700 min-w-[50px]">레벨:</Label>
-                                              <Select
-                                                value={tempLevel.toString()}
-                                                onValueChange={(value) => {
-                                                  setTempLevel(parseInt(value))
-                                                  setSaveMessage("")
-                                                }}
-                                              >
-                                                <SelectTrigger className="w-full">
-                                                  <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                  {LEVEL_OPTIONS.map((option) => (
-                                                    <SelectItem key={option.value} value={option.value.toString()}>
-                                                      {option.label}
-                                                    </SelectItem>
-                                                  ))}
-                                                </SelectContent>
-                                              </Select>
-                                            </div>
-                                            <div className="flex items-center gap-2">
+                                            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+                                              <div className="flex items-center gap-2">
+                                                <span className="text-sm text-gray-600">레벨:</span>
+                                                <Badge className="text-sm px-2 py-1">
+                                                  {getLevelLabel(member.level)}
+                                                </Badge>
+                                              </div>
                                               <Button
-                                                onClick={async () => {
-                                                  setIsSaving(true)
-                                                  setSaveMessage("")
-                                                  try {
-                                                    const response = await fetch('/api/user/update', {
-                                                      method: 'PUT',
-                                                      headers: { 'Content-Type': 'application/json' },
-                                                      body: JSON.stringify({
-                                                        userId: member.id,
-                                                        level: tempLevel
-                                                      })
-                                                    })
-                                                    if (response.ok) {
-                                                      const updatedData = await response.json()
-                                                      setSaveMessage("저장되었습니다")
-
-                                                      if (updatedData.user) {
-                                                        setTeamMembers(prevMembers =>
-                                                          prevMembers.map(m =>
-                                                            m.id === member.id
-                                                              ? { ...m, level: updatedData.user.level }
-                                                              : m
-                                                          )
-                                                        )
-                                                      }
-
-                                                      setTimeout(() => {
-                                                        setEditingMember(null)
-                                                        setSaveMessage("")
-                                                      }, 1500)
-                                                    } else {
-                                                      setSaveMessage("저장 실패")
-                                                    }
-                                                  } catch (error) {
-                                                    console.error('레벨 수정 오류:', error)
-                                                    setSaveMessage("오류가 발생했습니다")
-                                                  } finally {
-                                                    setIsSaving(false)
-                                                  }
-                                                }}
-                                                disabled={isSaving}
-                                                size="sm"
-                                                className="flex-1"
-                                              >
-                                                {isSaving ? "저장 중..." : "저장"}
-                                              </Button>
-                                              <Button
-                                                variant="outline"
                                                 onClick={() => {
-                                                  setEditingMember(null)
+                                                  setEditingMember(member)
                                                   setTempLevel(member.level || 1)
+                                                  setTempInjuryStatus(member.injuryStatus || "HEALTHY")
+                                                  setTempInjuryDetail(member.injuryDetail || "")
+                                                  setTempReturnDate(member.expectedReturnDate ? new Date(member.expectedReturnDate).toISOString().split('T')[0] : "")
                                                   setSaveMessage("")
                                                 }}
+                                                variant="outline"
                                                 size="sm"
-                                                className="flex-1"
                                               >
-                                                취소
+                                                <Edit className="h-3 w-3 mr-1" />
+                                                수정
                                               </Button>
                                             </div>
-                                            {saveMessage && (
-                                              <p className={`text-xs ${saveMessage.includes('저장되었습니다')
-                                                ? 'text-green-600'
-                                                : 'text-red-600'
-                                                }`}>
-                                                {saveMessage}
-                                              </p>
-                                            )}
-                                          </div>
-                                        )}
+                                          ) : (
+                                            <div className="space-y-3 p-3 bg-gray-50 rounded-lg border">
+                                              {/* 레벨 수정 */}
+                                              <div className="flex items-center gap-2">
+                                                <Label className="text-sm text-gray-700 min-w-[50px]">레벨:</Label>
+                                                <Select
+                                                  value={tempLevel.toString()}
+                                                  onValueChange={(value) => {
+                                                    setTempLevel(parseInt(value))
+                                                    setSaveMessage("")
+                                                  }}
+                                                >
+                                                  <SelectTrigger className="w-full">
+                                                    <SelectValue />
+                                                  </SelectTrigger>
+                                                  <SelectContent>
+                                                    {LEVEL_OPTIONS.map((option) => (
+                                                      <SelectItem key={option.value} value={option.value.toString()}>
+                                                        {option.label}
+                                                      </SelectItem>
+                                                    ))}
+                                                  </SelectContent>
+                                                </Select>
+                                              </div>
+
+                                              <Separator className="my-2" />
+
+                                              {/* 부상 관리 */}
+                                              <div className="space-y-2">
+                                                <div className="flex items-center gap-2">
+                                                  <Label className="text-sm text-gray-700 min-w-[50px]">상태:</Label>
+                                                  <Select
+                                                    value={tempInjuryStatus || "HEALTHY"}
+                                                    onValueChange={(value) => {
+                                                      setTempInjuryStatus(value)
+                                                      setSaveMessage("")
+                                                    }}
+                                                  >
+                                                    <SelectTrigger className="w-full">
+                                                      <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                      <SelectItem value="HEALTHY">정상 (부상 없음)</SelectItem>
+                                                      <SelectItem value="INJURED">부상중 (경기 불가)</SelectItem>
+                                                      <SelectItem value="RECOVERING">회복중 (제한적 참여)</SelectItem>
+                                                    </SelectContent>
+                                                  </Select>
+                                                </div>
+
+                                                {tempInjuryStatus && tempInjuryStatus !== "HEALTHY" && (
+                                                  <>
+                                                    <div className="flex items-center gap-2">
+                                                      <Label className="text-sm text-gray-700 min-w-[50px]">내용:</Label>
+                                                      <Input
+                                                        value={tempInjuryDetail}
+                                                        onChange={(e) => setTempInjuryDetail(e.target.value)}
+                                                        placeholder="부상 부위 등"
+                                                        className="h-9"
+                                                      />
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                      <Label className="text-sm text-gray-700 min-w-[50px]">복귀:</Label>
+                                                      <Input
+                                                        type="date"
+                                                        value={tempReturnDate}
+                                                        onChange={(e) => setTempReturnDate(e.target.value)}
+                                                        className="h-9"
+                                                      />
+                                                    </div>
+                                                  </>
+                                                )}
+                                              </div>
+
+                                              <div className="flex items-center gap-2 mt-2">
+                                                <Button
+                                                  onClick={async () => {
+                                                    setIsSaving(true)
+                                                    setSaveMessage("")
+                                                    try {
+                                                      // 1. 레벨 업데이트
+                                                      const levelResponse = await fetch('/api/user/update', {
+                                                        method: 'PUT',
+                                                        headers: { 'Content-Type': 'application/json' },
+                                                        body: JSON.stringify({
+                                                          userId: member.id,
+                                                          level: tempLevel
+                                                        })
+                                                      })
+
+                                                      // 2. 부상 정보 업데이트
+                                                      const injuryResponse = await fetch('/api/user/injury', {
+                                                        method: 'POST',
+                                                        headers: { 'Content-Type': 'application/json' },
+                                                        body: JSON.stringify({
+                                                          userId: member.id,
+                                                          injuryStatus: tempInjuryStatus === "HEALTHY" ? null : tempInjuryStatus,
+                                                          injuryDetail: tempInjuryDetail || null,
+                                                          expectedReturnDate: tempReturnDate || null
+                                                        })
+                                                      })
+
+                                                      if (levelResponse.ok && injuryResponse.ok) {
+                                                        const updatedData = await levelResponse.json()
+                                                        setSaveMessage("저장되었습니다")
+
+                                                        if (updatedData.user) {
+                                                          setTeamMembers(prevMembers =>
+                                                            prevMembers.map(m =>
+                                                              m.id === member.id
+                                                                ? {
+                                                                    ...m,
+                                                                    level: updatedData.user.level,
+                                                                    injuryStatus: tempInjuryStatus === "HEALTHY" ? null : tempInjuryStatus,
+                                                                    injuryDetail: tempInjuryDetail || null,
+                                                                    expectedReturnDate: tempReturnDate || null
+                                                                  }
+                                                                : m
+                                                            )
+                                                          )
+                                                        }
+
+                                                        setTimeout(() => {
+                                                          setEditingMember(null)
+                                                          setSaveMessage("")
+                                                        }, 1500)
+                                                      } else {
+                                                        setSaveMessage("저장 실패")
+                                                      }
+                                                    } catch (error) {
+                                                      console.error('정보 수정 오류:', error)
+                                                      setSaveMessage("오류가 발생했습니다")
+                                                    } finally {
+                                                      setIsSaving(false)
+                                                    }
+                                                  }}
+                                                  disabled={isSaving}
+                                                  size="sm"
+                                                  className="flex-1"
+                                                >
+                                                  {isSaving ? "저장 중..." : "저장"}
+                                                </Button>
+                                                <Button
+                                                  variant="outline"
+                                                  onClick={() => {
+                                                    setEditingMember(null)
+                                                    setTempLevel(member.level || 1)
+                                                    setTempInjuryStatus("")
+                                                    setTempInjuryDetail("")
+                                                    setTempReturnDate("")
+                                                    setSaveMessage("")
+                                                  }}
+                                                  size="sm"
+                                                  className="flex-1"
+                                                >
+                                                  취소
+                                                </Button>
+                                              </div>
+                                              {saveMessage && (
+                                                <p className={`text-xs ${saveMessage.includes('저장되었습니다')
+                                                  ? 'text-green-600'
+                                                  : 'text-red-600'
+                                                  }`}>
+                                                  {saveMessage}
+                                                </p>
+                                              )}
+                                            </div>
+                                          )}
                                       </div>
                                     )}
                                     {/* 출석 통계 카드 */}
