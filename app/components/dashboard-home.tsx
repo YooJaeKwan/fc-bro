@@ -60,60 +60,61 @@ export function DashboardHome({ currentUser, isManagerMode }: DashboardHomeProps
     const [attendanceStats, setAttendanceStats] = useState<AttendanceStats>({ attended: 0, total: 0, rate: 0 })
     const [recentMatches, setRecentMatches] = useState<RecentMatch[]>([])
     const [userBadges, setUserBadges] = useState<UserBadge[]>([])
-    const [personalStats, setPersonalStats] = useState({ goals: 0, assists: 0, mvpCount: 0 })
+    const [personalStats, setPersonalStats] = useState({ goals: 0, assists: 0, cleanSheets: 0 })
     const [isLoading, setIsLoading] = useState(true)
     const badgeCheckDone = useRef(false) // React Strict Mode에서 두 번 호출 방지
 
     // Fetch all data
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                // Use optimized single endpoint
-                const response = await fetch(`/api/dashboard/stats?userId=${currentUser.id}`)
-                const result = await response.json()
+    const fetchDashboardData = async () => {
+        if (!currentUser?.id) return;
+        try {
+            // Use optimized single endpoint
+            const response = await fetch(`/api/dashboard/stats?userId=${currentUser.id}`)
+            const result = await response.json()
 
-                if (result.success && result.data) {
-                    const { nextSchedule, stats, recentMatches, badges } = result.data
+            if (result.success && result.data) {
+                const { nextSchedule, stats, recentMatches, badges } = result.data
 
-                    // 1. Next Schedule
-                    setNextSchedule(nextSchedule || null)
+                // 1. Next Schedule
+                setNextSchedule(nextSchedule || null)
 
-                    // 2. Stats
-                    setAttendanceStats(stats.attendance)
-                    setMatchStats(stats.matches)
+                // 2. Stats
+                setAttendanceStats(stats.attendance)
+                setMatchStats(stats.matches)
 
-                    // 3. Recent Matches
-                    setRecentMatches(recentMatches)
+                // 3. Recent Matches
+                setRecentMatches(recentMatches)
 
-                    // 4. Badges
-                    setUserBadges(badges)
+                // 4. Badges
+                setUserBadges(badges)
 
-                    // 5. Personal Stats
-                    if (stats.personal) {
-                        setPersonalStats(stats.personal)
-                    }
-
-                    // Check for new badges (background check)
-                    // This is still needed to trigger new calculations if something changed recently
-                    // but we can do it silently (and only once using ref)
-                    if (!badgeCheckDone.current) {
-                        badgeCheckDone.current = true
-                        fetch('/api/user/badges/check', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ userId: currentUser.id })
-                        }).catch(console.error)
-                    }
+                // 5. Personal Stats
+                if (stats.personal) {
+                    setPersonalStats(stats.personal)
                 }
-            } catch (error) {
-                console.error('데이터 조회 오류:', error)
-            } finally {
-                setIsLoading(false)
-            }
-        }
 
+                // Check for new badges (background check)
+                // This is still needed to trigger new calculations if something changed recently
+                // but we can do it silently (and only once using ref)
+                if (!badgeCheckDone.current) {
+                    badgeCheckDone.current = true
+                    fetch('/api/user/badges/check', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ userId: currentUser.id })
+                    }).catch(console.error)
+                }
+            }
+        } catch (error) {
+            console.error('데이터 조회 오류:', error)
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
+    useEffect(() => {
         if (currentUser?.id) {
-            fetchData()
+            fetchDashboardData()
         }
     }, [currentUser?.id])
 
@@ -272,58 +273,8 @@ export function DashboardHome({ currentUser, isManagerMode }: DashboardHomeProps
                                     initialStats={nextSchedule.attendanceStats}
                                     initialMyStatus={nextSchedule.myAttendance?.toLowerCase() as 'attending' | 'not_attending' | 'pending'}
                                     onVoteUpdate={() => {
-                                        // Refresh data when vote is updated
-                                        if (currentUser?.id) {
-                                            fetch('/api/schedule/list')
-                                                .then(res => res.json())
-                                                .then(result => {
-                                                    if (result.success && result.schedules.length > 0) {
-                                                        const now = new Date()
-                                                        now.setHours(0, 0, 0, 0)
-
-                                                        // Update next schedule
-                                                        const upcoming = result.schedules
-                                                            .filter((schedule: any) => {
-                                                                const [year, month, day] = schedule.date.split('-')
-                                                                const scheduleDate = new Date(Number(year), Number(month) - 1, Number(day))
-                                                                scheduleDate.setHours(0, 0, 0, 0)
-                                                                return scheduleDate >= now
-                                                            })
-                                                            .sort((a: any, b: any) => {
-                                                                const [yearA, monthA, dayA] = a.date.split('-')
-                                                                const [yearB, monthB, dayB] = b.date.split('-')
-                                                                const dateA = new Date(Number(yearA), Number(monthA) - 1, Number(dayA))
-                                                                const dateB = new Date(Number(yearB), Number(monthB) - 1, Number(dayB))
-                                                                return dateA.getTime() - dateB.getTime()
-                                                            })
-                                                        if (upcoming.length > 0) {
-                                                            setNextSchedule(upcoming[0])
-                                                        }
-
-                                                        // Update attendance stats
-                                                        const currentYear = new Date().getFullYear()
-                                                        const thisYearSchedules = result.schedules.filter((schedule: any) => {
-                                                            const [year] = schedule.date.split('-')
-                                                            return Number(year) === currentYear
-                                                        })
-
-                                                        let attendedCount = 0
-                                                        thisYearSchedules.forEach((schedule: any) => {
-                                                            const hasAttended = schedule.attendances.some((att: any) =>
-                                                                att.userId === currentUser?.id && att.status === 'ATTENDING'
-                                                            )
-                                                            if (hasAttended) attendedCount++
-                                                        })
-
-                                                        const totalThisYear = thisYearSchedules.length
-                                                        setAttendanceStats({
-                                                            attended: attendedCount,
-                                                            total: totalThisYear,
-                                                            rate: totalThisYear > 0 ? (attendedCount / totalThisYear) * 100 : 0
-                                                        })
-                                                    }
-                                                })
-                                        }
+                                        // 투표 후 깔끔하게 메인 대시보드 API를 다시 호출하여 업데이트
+                                        fetchDashboardData()
                                     }}
                                 />
                             </div>
@@ -533,9 +484,9 @@ export function DashboardHome({ currentUser, isManagerMode }: DashboardHomeProps
                                         </div>
                                     </div>
                                     <div className="flex flex-col items-center justify-center p-3 rounded-lg bg-slate-50 border border-slate-100">
-                                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">MOM</div>
+                                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Clean Sheets</div>
                                         <div className="text-xl font-black text-slate-800 tabular-nums">
-                                            {personalStats.mvpCount}<span className="text-[10px] font-medium text-slate-400 ml-0.5 uppercase">회</span>
+                                            {personalStats.cleanSheets || 0}<span className="text-[10px] font-medium text-slate-400 ml-0.5 uppercase">회</span>
                                         </div>
                                     </div>
                                 </div>

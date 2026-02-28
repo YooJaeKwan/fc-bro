@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Trophy, Crown, HelpingHand } from "lucide-react"
+import { Shield, Crown, HelpingHand } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 
@@ -12,13 +12,19 @@ interface PlayerStat {
     name: string
     goals: number
     assists: number
-    mvpCount: number
+    cleanSheets?: number
+    attendanceRate?: number
+    winRate?: number
+    gamesPlayed?: number
+    wins?: number
 }
 
 interface TeamStatsData {
     topScorers: PlayerStat[]
     topAssists: PlayerStat[]
-    topMvps: PlayerStat[]
+    topCleanSheets: PlayerStat[]
+    topAttendance: PlayerStat[]
+    topWinRate: PlayerStat[]
     myStats: PlayerStat | null
     totalMatches: number
 }
@@ -27,14 +33,14 @@ interface TeamDashboardProps {
     currentUser: any
 }
 
-type ThemeColor = 'red' | 'blue' | 'yellow'
+type ThemeColor = 'red' | 'blue' | 'yellow' | 'green' | 'purple'
 
 interface RankingListProps {
     title: string
     subtitle: string
     icon: React.ReactNode
     data: PlayerStat[]
-    valueKey: 'goals' | 'assists' | 'mvpCount'
+    valueKey: 'goals' | 'assists' | 'cleanSheets' | 'attendanceRate' | 'winRate'
     unit: string
     theme: ThemeColor
     isLoading: boolean
@@ -74,6 +80,22 @@ const RankingList = ({
             rank1: "bg-amber-50/80 text-amber-700",
             icon: "text-amber-500",
             gradient: "from-amber-400 to-orange-500"
+        },
+        green: {
+            accent: "text-emerald-500",
+            bg: "bg-emerald-50",
+            border: "border-emerald-100",
+            rank1: "bg-emerald-50/80 text-emerald-700",
+            icon: "text-emerald-500",
+            gradient: "from-emerald-400 to-green-500"
+        },
+        purple: {
+            accent: "text-purple-500",
+            bg: "bg-purple-50",
+            border: "border-purple-100",
+            rank1: "bg-purple-50/80 text-purple-700",
+            icon: "text-purple-500",
+            gradient: "from-purple-400 to-fuchsia-500"
         }
     }
 
@@ -149,17 +171,26 @@ const RankingList = ({
                                         </div>
 
                                         <div className="col-span-7 flex items-center gap-2 overflow-hidden">
-                                            <span className={cn(
-                                                "text-sm truncate",
-                                                rank === 1 ? "font-bold" : "font-medium"
-                                            )}>
-                                                {player.name}
-                                            </span>
-                                            {rank === 1 && (
-                                                <Badge variant="secondary" className="h-4 px-1 text-[9px] bg-white/50 text-slate-600 border-0">
-                                                    TOP
-                                                </Badge>
-                                            )}
+                                            <div className="flex flex-col">
+                                                <div className="flex items-center gap-2">
+                                                    <span className={cn(
+                                                        "text-sm truncate",
+                                                        rank === 1 ? "font-bold" : "font-medium"
+                                                    )}>
+                                                        {player.name}
+                                                    </span>
+                                                    {rank === 1 && (
+                                                        <Badge variant="secondary" className="h-4 px-1 text-[9px] bg-white/50 text-slate-600 border-0">
+                                                            TOP
+                                                        </Badge>
+                                                    )}
+                                                </div>
+                                                {valueKey === 'winRate' && player.gamesPlayed !== undefined && player.wins !== undefined && (
+                                                    <span className="text-[10px] text-slate-400 mt-0.5">
+                                                        {player.wins}승 {player.gamesPlayed - player.wins}패
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
 
                                         <div className="col-span-3 text-right">
@@ -207,7 +238,7 @@ export function TeamDashboard({ currentUser }: TeamDashboardProps) {
 
     return (
         <div className="space-y-5 p-4 max-w-7xl mx-auto">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <RankingList
                     title="Top Scorers"
                     subtitle="최다 득점 순위"
@@ -229,13 +260,33 @@ export function TeamDashboard({ currentUser }: TeamDashboardProps) {
                     isLoading={isLoading}
                 />
                 <RankingList
-                    title="MOM Rankings"
-                    subtitle="최다 MOM 선정"
-                    icon={<Trophy className="h-5 w-5 text-amber-500" />}
-                    data={stats?.topMvps || []}
-                    valueKey="mvpCount"
+                    title="Clean Sheets"
+                    subtitle="최다 무실점 (수비수/GK)"
+                    icon={<Shield className="h-5 w-5 text-amber-500" />}
+                    data={stats?.topCleanSheets || []}
+                    valueKey="cleanSheets"
                     unit="회"
                     theme="yellow"
+                    isLoading={isLoading}
+                />
+                <RankingList
+                    title="Top Attendance"
+                    subtitle="최우수 출석률"
+                    icon={<span className="text-xl leading-none">🔥</span>}
+                    data={stats?.topAttendance || []}
+                    valueKey="attendanceRate"
+                    unit="%"
+                    theme="green"
+                    isLoading={isLoading}
+                />
+                <RankingList
+                    title="Top Win Rate"
+                    subtitle="최고 승률 (출석 50% 이상)"
+                    icon={<span className="text-xl leading-none">🏆</span>}
+                    data={stats?.topWinRate || []}
+                    valueKey="winRate"
+                    unit="%"
+                    theme="purple"
                     isLoading={isLoading}
                 />
             </div>
@@ -277,9 +328,9 @@ export function TeamDashboard({ currentUser }: TeamDashboardProps) {
                                         </div>
                                     </div>
                                     <div className="flex flex-col items-center md:items-end">
-                                        <div className="text-xs font-bold text-amber-400 uppercase tracking-wider mb-1">MOM</div>
+                                        <div className="text-xs font-bold text-amber-400 uppercase tracking-wider mb-1">Clean Sheets</div>
                                         <div className="text-3xl font-black text-white tabular-nums">
-                                            {stats.myStats.mvpCount}
+                                            {stats.myStats.cleanSheets || 0}
                                         </div>
                                     </div>
                                 </div>

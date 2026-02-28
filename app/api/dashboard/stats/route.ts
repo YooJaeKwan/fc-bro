@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     const today = new Date(now.getTime() + kstOffset)
     today.setUTCHours(0, 0, 0, 0)
     today.setTime(today.getTime() - kstOffset)
-    
+
     // KST 기준 내일 00:00
     const tomorrow = new Date(today)
     tomorrow.setDate(tomorrow.getDate() + 1)
@@ -112,25 +112,35 @@ export async function GET(request: NextRequest) {
       orderBy: { earnedAt: 'desc' }
     })
 
+    // 5. 사용자 포지션 정보 (클린시트 판별용)
+    const userRequest = prisma.user.findUnique({
+      where: { id: userId },
+      select: { preferredPosition: true }
+    })
+
     // 병렬 실행
-    const [activeUserCount, upcomingSchedules, recentMatches, yearSchedules, userBadges] = await Promise.all([
+    const [activeUserCount, upcomingSchedules, recentMatches, yearSchedules, userBadges, user] = await Promise.all([
       activeUserCountRequest,
       upcomingSchedulesRequest,
       recentMatchesRequest,
       yearSchedulesRequest,
-      badgesRequest
+      badgesRequest,
+      userRequest
     ])
 
     // 시작 시간 기준으로 아직 시작하지 않은 경기 필터링
-    const kstNow = new Date(now.getTime() + kstOffset)
     const nextSchedule = upcomingSchedules.find((schedule: any) => {
-      // matchDate가 Date 객체이므로 안전하게 getTime() 사용
-      // KST 기준으로 날짜를 맞춘 뒤 시간을 덮어씁니다.
-      const kstMatchTime = new Date(schedule.matchDate.getTime() + kstOffset)
-      const [hours, minutes] = (schedule.startTime || '23:59').split(':')
-      kstMatchTime.setUTCHours(Number(hours), Number(minutes), 0, 0)
+      // 1. matchDate를 복사해 안전한 객체로 만듦 (UTC 00:00:00)
+      const matchDateTime = new Date(schedule.matchDate.getTime())
 
-      return kstMatchTime > kstNow
+      // 2. startTime (예: "19:00")을 가져와 파싱
+      const [hours, minutes] = (schedule.startTime || '23:59').split(':').map(Number)
+
+      // 3. 서버에 저장된 matchDate의 UTC 기준 시간에 한국 시간 오프셋(-9시간)을 역적용하여 실제 UTC 시작 시간 계산.
+      matchDateTime.setUTCHours(hours - 9, minutes, 0, 0)
+
+      // 4. 현재시간(now)과 비교
+      return matchDateTime > now
     }) || null
 
     // --- 데이터 가공 ---
@@ -139,8 +149,10 @@ export async function GET(request: NextRequest) {
     let attendedCount = 0
     let wins = 0, draws = 0, losses = 0
 
-    // 4. 개인 상세 통계 (골, 도움, MVP)
-    let goals = 0, assists = 0, mvpCount = 0
+    // 4. 개인 상세 통계 (골, 도움, 클린시트)
+    let goals = 0, assists = 0, cleanSheets = 0
+    const defensivePositions = ['DC', 'DR', 'DL', 'DRL', 'DRLC', 'CB', 'LB', 'RB', 'LWB', 'RWB', 'SW', 'GK']
+    const isDefender = defensivePositions.includes(user?.preferredPosition?.toUpperCase() || '')
 
     yearSchedules.forEach((schedule: any) => {
       const isAttended = schedule.attendances.length > 0
@@ -154,12 +166,7 @@ export async function GET(request: NextRequest) {
         })
       }
 
-      // MVP 계산
-      if (schedule.mvpUserId === userId) {
-        mvpCount++
-      }
-
-      // 전적 계산 (내전인 경우만 or A매치 포함? -> 기존 로직은 internal만 승패 계산)
+      // 전적 계산 및 클린시트 계산 (내전인 경우만)
       if (isAttended && schedule.type === 'internal' && schedule.teamFormation &&
         schedule.ourScore !== null && schedule.opponentScore !== null) {
 
@@ -173,10 +180,12 @@ export async function GET(request: NextRequest) {
           if (schedule.ourScore > schedule.opponentScore) wins++
           else if (schedule.ourScore === schedule.opponentScore) draws++
           else losses++
+          if (isDefender && schedule.opponentScore === 0) cleanSheets++
         } else if (isOnBlue) {
           if (schedule.opponentScore > schedule.ourScore) wins++
           else if (schedule.opponentScore === schedule.ourScore) draws++
           else losses++
+          if (isDefender && schedule.ourScore === 0) cleanSheets++
         }
       }
     })
@@ -221,44 +230,44 @@ export async function GET(request: NextRequest) {
     // 3. 최근 경기 가공
     const formattedRecentMatches = recentMatches
       .filter((match: any) => {
-        const kstMatchTime = new Date(match.matchDate.getTime() + kstOffset)
-        const [hours, minutes] = (match.startTime || '00:00').split(':')
-        kstMatchTime.setUTCHours(Number(hours), Number(minutes), 0, 0)
-        
-        return kstMatchTime <= kstNow
+        const matchDateTime = new Date(match.matchDate.getTime())
+        const [hours, minutes] = (match.startTime || '00:00').split(':').map(Number)
+        matchDateTime.setUTCHours(hours - 9, minutes, 0, 0)
+
+        return matchDateTime <= now
       })
       .slice(0, 3)
       .map((match: any) => {
-      let result = undefined
-      // 승패 계산 로직 (위와 동일) - 함수로 분리하면 좋음
-      if (match.type === 'internal' && match.teamFormation &&
-        match.ourScore !== null && match.opponentScore !== null) {
-        // ... (승패 로직)
-        const formation: any = match.teamFormation
-        const yellowTeam = formation.yellowTeam || []
-        const blueTeam = formation.blueTeam || []
-        const isOnYellow = yellowTeam.some((p: any) => p.userId === userId)
-        const isOnBlue = blueTeam.some((p: any) => p.userId === userId)
+        let result = undefined
+        // 승패 계산 로직 (위와 동일) - 함수로 분리하면 좋음
+        if (match.type === 'internal' && match.teamFormation &&
+          match.ourScore !== null && match.opponentScore !== null) {
+          // ... (승패 로직)
+          const formation: any = match.teamFormation
+          const yellowTeam = formation.yellowTeam || []
+          const blueTeam = formation.blueTeam || []
+          const isOnYellow = yellowTeam.some((p: any) => p.userId === userId)
+          const isOnBlue = blueTeam.some((p: any) => p.userId === userId)
 
-        if (isOnYellow) {
-          if (match.ourScore > match.opponentScore) result = 'win'
-          else if (match.ourScore === match.opponentScore) result = 'draw'
-          else result = 'loss'
-        } else if (isOnBlue) {
-          if (match.opponentScore > match.ourScore) result = 'win'
-          else if (match.opponentScore === match.ourScore) result = 'draw'
-          else result = 'loss'
+          if (isOnYellow) {
+            if (match.ourScore > match.opponentScore) result = 'win'
+            else if (match.ourScore === match.opponentScore) result = 'draw'
+            else result = 'loss'
+          } else if (isOnBlue) {
+            if (match.opponentScore > match.ourScore) result = 'win'
+            else if (match.opponentScore === match.ourScore) result = 'draw'
+            else result = 'loss'
+          }
         }
-      }
 
-      return {
-        id: match.id,
-        date: match.matchDate.toISOString().split('T')[0],
-        location: match.location,
-        type: match.type,
-        result
-      }
-    })
+        return {
+          id: match.id,
+          date: match.matchDate.toISOString().split('T')[0],
+          location: match.location,
+          type: match.type,
+          result
+        }
+      })
 
     return NextResponse.json({
       success: true,
@@ -275,7 +284,7 @@ export async function GET(request: NextRequest) {
             total: wins + draws + losses
           },
           personal: {
-            goals, assists, mvpCount
+            goals, assists, cleanSheets
           }
         },
         recentMatches: formattedRecentMatches,
