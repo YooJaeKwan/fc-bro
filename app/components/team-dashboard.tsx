@@ -290,55 +290,6 @@ export function TeamDashboard({ currentUser }: TeamDashboardProps) {
                     isLoading={isLoading}
                 />
             </div>
-
-            {currentUser && stats?.myStats && (
-                <div className="mt-8">
-                    <div className="flex items-center gap-2 mb-4">
-                        <div className="h-6 w-1 bg-slate-900 rounded-full" />
-                        <h3 className="text-lg font-bold text-slate-900">My Performance</h3>
-                    </div>
-
-                    <Card className="border-0 shadow-lg bg-gradient-to-br from-slate-900 to-slate-800 text-white overflow-hidden relative">
-                        <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-white/5 rounded-full blur-3xl" />
-                        <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-40 h-40 bg-blue-500/10 rounded-full blur-3xl" />
-
-                        <CardContent className="p-6 relative z-10">
-                            <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-                                <div className="flex items-center gap-4">
-                                    <div className="h-12 w-12 rounded-full bg-white/10 flex items-center justify-center border border-white/20">
-                                        <span className="text-xl">😎</span>
-                                    </div>
-                                    <div>
-                                        <div className="text-sm text-slate-400 font-medium mb-0.5">Player</div>
-                                        <div className="text-xl font-bold text-white">{stats.myStats.name}</div>
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-3 gap-8 md:gap-12 w-full md:w-auto">
-                                    <div className="flex flex-col items-center md:items-end">
-                                        <div className="text-xs font-bold text-rose-400 uppercase tracking-wider mb-1">Goals</div>
-                                        <div className="text-3xl font-black text-white tabular-nums">
-                                            {stats.myStats.goals}
-                                        </div>
-                                    </div>
-                                    <div className="flex flex-col items-center md:items-end">
-                                        <div className="text-xs font-bold text-blue-400 uppercase tracking-wider mb-1">Assists</div>
-                                        <div className="text-3xl font-black text-white tabular-nums">
-                                            {stats.myStats.assists}
-                                        </div>
-                                    </div>
-                                    <div className="flex flex-col items-center md:items-end">
-                                        <div className="text-xs font-bold text-amber-400 uppercase tracking-wider mb-1">Clean Sheets</div>
-                                        <div className="text-3xl font-black text-white tabular-nums">
-                                            {stats.myStats.cleanSheets || 0}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
-            )}
         </div>
     )
 }

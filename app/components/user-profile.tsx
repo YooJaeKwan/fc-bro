@@ -61,6 +61,13 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [injuryHistory, setInjuryHistory] = useState<any[]>([])
   const [showInjuryForm, setShowInjuryForm] = useState(false)
+  const [editingInjuryId, setEditingInjuryId] = useState<string | null>(null)
+  const [editInjuryFormData, setEditInjuryFormData] = useState({
+    injuryName: "",
+    startDate: "",
+    endDate: "",
+    description: ""
+  })
   const [injuryFormData, setInjuryFormData] = useState({
     injuryStatus: userInfo?.injuryStatus || "HEALTHY",
     injuryName: userInfo?.injuryName || "",
@@ -114,6 +121,73 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
       alert('저장 중 오류가 발생했습니다.')
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  const handleEditInjury = (injury: any) => {
+    setEditingInjuryId(injury.id)
+    setEditInjuryFormData({
+      injuryName: injury.injuryName,
+      startDate: new Date(injury.startDate).toISOString().split('T')[0],
+      endDate: injury.endDate ? new Date(injury.endDate).toISOString().split('T')[0] : "",
+      description: injury.description || ""
+    })
+  }
+
+  const handleCancelEditInjury = () => {
+    setEditingInjuryId(null)
+  }
+
+  const handleUpdateInjury = async () => {
+    if (!editingInjuryId) return
+    setIsSubmitting(true)
+    try {
+      const response = await fetch(`/api/user/injury/${editingInjuryId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: userInfo.id,
+          requesterId: userInfo.id,
+          ...editInjuryFormData
+        })
+      })
+
+      const data = await response.json()
+      if (data.success) {
+        setEditingInjuryId(null)
+        fetchInjuryHistory()
+      } else {
+        alert(data.error || '수정 실패')
+      }
+    } catch (error) {
+      console.error('부상 이력 수정 실패:', error)
+      alert('수정 중 오류가 발생했습니다.')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleDeleteInjury = async (injuryId: string) => {
+    if (!confirm('이 부상 기록을 정말로 삭제하시겠습니까?')) return
+    try {
+      const response = await fetch(`/api/user/injury/${injuryId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: userInfo.id,
+          requesterId: userInfo.id
+        })
+      })
+
+      const data = await response.json()
+      if (data.success) {
+        fetchInjuryHistory()
+      } else {
+        alert(data.error || '삭제 실패')
+      }
+    } catch (error) {
+      console.error('부상 이력 삭제 실패:', error)
+      alert('삭제 중 오류가 발생했습니다.')
     }
   }
 
@@ -919,17 +993,72 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
                   <div className="space-y-2">
                     {injuryHistory.map((injury, index) => (
                       <div key={injury.id || index} className="p-3 bg-white border rounded-md text-sm">
-                        <div className="flex justify-between items-start">
-                          <p className="font-medium text-gray-900">{injury.injuryName}</p>
-                          <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${injury.endDate ? 'bg-gray-100 text-gray-600' : 'bg-red-100 text-red-600'}`}>
-                            {injury.endDate ? '완치' : '진행중'}
-                          </span>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {new Date(injury.startDate).toLocaleDateString()} ~ {injury.endDate ? new Date(injury.endDate).toLocaleDateString() : '진행 중'}
-                        </p>
-                        {injury.description && (
-                          <p className="text-xs text-gray-600 mt-2 italic">"{injury.description}"</p>
+                        {editingInjuryId === injury.id ? (
+                          <div className="space-y-3">
+                            <div className="space-y-1">
+                              <Label className="text-xs">부상명</Label>
+                              <Input
+                                value={editInjuryFormData.injuryName}
+                                onChange={(e) => setEditInjuryFormData(prev => ({ ...prev, injuryName: e.target.value }))}
+                                className="h-8 text-xs"
+                              />
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                              <div className="space-y-1">
+                                <Label className="text-xs">발생일</Label>
+                                <Input
+                                  type="date"
+                                  value={editInjuryFormData.startDate}
+                                  onChange={(e) => setEditInjuryFormData(prev => ({ ...prev, startDate: e.target.value }))}
+                                  className="h-8 text-xs"
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-xs">완치일</Label>
+                                <Input
+                                  type="date"
+                                  value={editInjuryFormData.endDate}
+                                  onChange={(e) => setEditInjuryFormData(prev => ({ ...prev, endDate: e.target.value }))}
+                                  className="h-8 text-xs"
+                                />
+                              </div>
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">상세 정보</Label>
+                              <Input
+                                value={editInjuryFormData.description}
+                                onChange={(e) => setEditInjuryFormData(prev => ({ ...prev, description: e.target.value }))}
+                                className="h-8 text-xs"
+                              />
+                            </div>
+                            <div className="flex justify-end gap-2 pt-1">
+                              <Button variant="outline" size="sm" className="h-7 text-xs px-2" onClick={handleCancelEditInjury}>취소</Button>
+                              <Button size="sm" className="h-7 text-xs px-2 bg-blue-600 hover:bg-blue-700 text-white" onClick={handleUpdateInjury} disabled={isSubmitting}>
+                                {isSubmitting ? "저장중" : "저장"}
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="flex justify-between items-start">
+                              <p className="font-medium text-gray-900">{injury.injuryName}</p>
+                              <div className="flex items-center gap-2">
+                                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${injury.endDate ? 'bg-gray-100 text-gray-600' : 'bg-red-100 text-red-600'}`}>
+                                  {injury.endDate ? '완치' : '진행중'}
+                                </span>
+                              </div>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {new Date(injury.startDate).toLocaleDateString()} ~ {injury.endDate ? new Date(injury.endDate).toLocaleDateString() : '진행 중'}
+                            </p>
+                            {injury.description && (
+                              <p className="text-xs text-gray-600 mt-2 italic">"{injury.description}"</p>
+                            )}
+                            <div className="flex justify-end gap-2 mt-2">
+                              <Button variant="ghost" size="sm" className="h-6 text-xs px-2 text-muted-foreground" onClick={() => handleEditInjury(injury)}>수정</Button>
+                              <Button variant="ghost" size="sm" className="h-6 text-xs px-2 text-red-500 hover:text-red-700" onClick={() => handleDeleteInjury(injury.id)}>삭제</Button>
+                            </div>
+                          </>
                         )}
                       </div>
                     ))}

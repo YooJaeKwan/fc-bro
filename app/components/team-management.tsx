@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Progress } from "@/components/ui/progress"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
-import { Edit, Star, MapPin, Phone, Calendar, TrendingUp, Eye, Target, BarChart3, Shield, Award, Users, User, AlertCircle, UserMinus, UserX, Power, Footprints, Search, Loader2, X } from 'lucide-react'
+import { Edit, Star, MapPin, Phone, Calendar, TrendingUp, Eye, Target, BarChart3, Shield, Award, Users, User, AlertCircle, UserMinus, UserX, Power, Footprints, Search, Loader2, X, Activity, History } from 'lucide-react'
 import { Separator } from "@/components/ui/separator"
 import { LEVEL_OPTIONS, LEVEL_CATEGORIES, LEVEL_SYSTEM, getLevelLabel, getLevelShortLabel, getLevelColor } from '@/lib/level-system'
 // 포지션별 한국어 매핑
@@ -81,13 +81,32 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
   const [activePositionTab, setActivePositionTab] = useState("all")
-  const [editingMember, setEditingMember] = useState<any>(null)
+  const [editingLevelMemberId, setEditingLevelMemberId] = useState<string | null>(null)
+  const [editingInjuryMemberId, setEditingInjuryMemberId] = useState<string | null>(null)
+  const [selectedMemberInjuryHistory, setSelectedMemberInjuryHistory] = useState<any[]>([])
+  const [editingHistoryInjuryId, setEditingHistoryInjuryId] = useState<string | null>(null)
+  const [selectedMemberForDialog, setSelectedMemberForDialog] = useState<any>(null)
+
   const [tempLevel, setTempLevel] = useState<number>(1)
   const [tempInjuryStatus, setTempInjuryStatus] = useState<string>("")
+  const [tempInjuryName, setTempInjuryName] = useState<string>("")
+  const [tempInjuryStartDate, setTempInjuryStartDate] = useState<string>("")
   const [tempInjuryDetail, setTempInjuryDetail] = useState<string>("")
   const [tempReturnDate, setTempReturnDate] = useState<string>("")
-  const [isSaving, setIsSaving] = useState(false)
-  const [saveMessage, setSaveMessage] = useState("")
+
+  const [editHistoryFormData, setEditHistoryFormData] = useState({
+    injuryName: "",
+    startDate: "",
+    endDate: "",
+    description: ""
+  })
+
+  const [isSavingLevel, setIsSavingLevel] = useState(false)
+  const [isSavingInjury, setIsSavingInjury] = useState(false)
+  const [isSavingHistory, setIsSavingHistory] = useState(false)
+  const [saveMessageLevel, setSaveMessageLevel] = useState("")
+  const [saveMessageInjury, setSaveMessageInjury] = useState("")
+
   const [statusFilter, setStatusFilter] = useState("all") // all, active, inactive, injured
   const [showInactive, setShowInactive] = useState(false)
   const [positionFilter, setPositionFilter] = useState<string | null>(null) // null = 전체 표시
@@ -198,6 +217,31 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
       setIsLoading(false)
     }
   }
+
+  const fetchInjuryHistory = async (memberId: string) => {
+    try {
+      const user = currentUser || JSON.parse(sessionStorage.getItem('user') || '{}')
+      const requesterId = user?.id || ''
+      const response = await fetch(`/api/user/injury/history?userId=${memberId}&requesterId=${requesterId}`)
+      const data = await response.json()
+      if (data.success) {
+        setSelectedMemberInjuryHistory(data.injuries || [])
+      }
+    } catch (error) {
+      console.error('부상 이력 조회 실패:', error)
+    }
+  }
+
+  const handleOpenDialog = (member: any) => {
+    setSelectedMemberForDialog(member)
+    setEditingLevelMemberId(null)
+    setEditingInjuryMemberId(null)
+    setEditingHistoryInjuryId(null)
+    setSaveMessageLevel("")
+    setSaveMessageInjury("")
+    fetchInjuryHistory(member.id)
+  }
+
   // 포지션별 카테고리 색상
   const getCategoryColor = (position: string) => {
     const positionType = positionMapping[position] || position
@@ -228,8 +272,8 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
   const getSubPositionColor = () => {
     return "bg-blue-100 text-blue-800 border-blue-300"
   }
-  // 포지션별 팀원 필터링 및 정렬
-  const getFilteredMembers = () => {
+  // 기본 필터(상태, 검색어)가 적용된 멤버 목록
+  const getBaseFilteredMembers = () => {
     let filtered = teamMembers
 
     // 상태 필터 적용
@@ -249,6 +293,13 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
         return name.toLowerCase().includes(searchQuery.toLowerCase().trim())
       })
     }
+
+    return filtered
+  }
+
+  // 포지션별 팀원 필터링 및 정렬
+  const getFilteredMembers = () => {
+    let filtered = getBaseFilteredMembers()
 
     // 포지션 필터 적용 (null이면 전체 표시)
     if (positionFilter) {
@@ -271,9 +322,9 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
     const category = LEVEL_SYSTEM[level as keyof typeof LEVEL_SYSTEM]?.category
     return category || '루키'
   }
-  // 포지션별 카운트
+  // 포지션별 카운트 (기본 필터 적용된 목록에서 계산)
   const getPositionCount = (positionType: string) => {
-    return teamMembers.filter(member => {
+    return getBaseFilteredMembers().filter(member => {
       const memberPositionType = positionMapping[member.mainPosition || member.preferredPosition] || (member.mainPosition || member.preferredPosition)
       return memberPositionType === positionType
     }).length
@@ -370,7 +421,7 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
               <span className="flex items-center gap-1 text-xs sm:text-base">
                 All
                 <Badge variant="secondary" className="text-xs px-1.5 py-0">
-                  {teamMembers.length}
+                  {getBaseFilteredMembers().length}
                 </Badge>
               </span>
             </Button>
@@ -505,7 +556,7 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                 {/* 상세보기/수정 버튼 - 총무만 표시 (선수는 숨김) */}
                 {isManagerMode && (
                   <div className="flex items-center gap-1">
-                    <Dialog>
+                    <Dialog onOpenChange={(open) => { if (open) handleOpenDialog(member) }}>
                       <DialogTrigger asChild>
                         <Button variant="ghost" size="sm" className="flex-shrink-0">
                           <Edit className="h-4 w-4" />
@@ -644,89 +695,330 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                           {/* 레벨 관리 (총무 전용) */}
                           {isManagerMode && (
                             <div className="space-y-3">
-                              {editingMember?.id !== member.id ? (
-                                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-sm text-gray-600">레벨:</span>
-                                    <Badge className="text-sm px-2 py-1">
-                                      {getLevelLabel(member.level)}
-                                    </Badge>
-                                  </div>
-                                  <Button
-                                    onClick={() => {
-                                      setEditingMember(member)
-                                      setTempLevel(member.level || 1)
-                                      setTempInjuryStatus(member.injuryStatus || "HEALTHY")
-                                      setTempInjuryDetail(member.injuryDetail || "")
-                                      setTempReturnDate(member.expectedReturnDate ? new Date(member.expectedReturnDate).toISOString().split('T')[0] : "")
-                                      setSaveMessage("")
-                                    }}
-                                    variant="outline"
-                                    size="sm"
-                                  >
-                                    <Edit className="h-3 w-3 mr-1" />
-                                    수정
-                                  </Button>
-                                </div>
-                              ) : (
-                                <div className="space-y-3 p-3 bg-gray-50 rounded-lg border">
-                                  {/* 레벨 수정 */}
-                                  <div className="flex items-center gap-2">
-                                    <Label className="text-sm text-gray-700 min-w-[50px]">레벨:</Label>
-                                    <Select
-                                      value={tempLevel.toString()}
-                                      onValueChange={(value) => {
-                                        setTempLevel(parseInt(value))
-                                        setSaveMessage("")
+                              {editingLevelMemberId !== member.id ? (
+                                <Card className="border-l-4 border-l-purple-500 shadow-sm">
+                                  <CardContent className="p-3 flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                      <div className="bg-purple-100 p-2 rounded-full">
+                                        <TrendingUp className="h-4 w-4 text-purple-600" />
+                                      </div>
+                                      <div>
+                                        <p className="text-xs text-muted-foreground font-medium">선수 레벨</p>
+                                        <p className="font-semibold">{getLevelLabel(member.level)}</p>
+                                      </div>
+                                    </div>
+                                    <Button
+                                      onClick={() => {
+                                        setEditingLevelMemberId(member.id)
+                                        setTempLevel(member.level || 1)
+                                        setSaveMessageLevel("")
                                       }}
+                                      variant="outline"
+                                      size="sm"
                                     >
-                                      <SelectTrigger className="w-full">
-                                        <SelectValue />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        {LEVEL_OPTIONS.map((option) => (
-                                          <SelectItem key={option.value} value={option.value.toString()}>
-                                            {option.label}
-                                          </SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
-                                  </div>
-                                  <Separator className="my-2" />
-                                  {/* 부상 관리 */}
-                                  <div className="space-y-2">
+                                      <Edit className="h-3 w-3 mr-1" />
+                                      레벨 수정
+                                    </Button>
+                                  </CardContent>
+                                </Card>
+                              ) : (
+                                <Card className="border-purple-200">
+                                  <CardHeader className="pb-2 pt-3 px-4">
+                                    <CardTitle className="text-sm">선수 레벨 수정</CardTitle>
+                                  </CardHeader>
+                                  <CardContent className="space-y-3 px-4 pb-4">
+                                    {/* 레벨 수정 */}
                                     <div className="flex items-center gap-2">
-                                      <Label className="text-sm text-gray-700 min-w-[50px]">상태:</Label>
+                                      <Label className="text-sm text-gray-700 min-w-[50px]">레벨:</Label>
                                       <Select
-                                        value={tempInjuryStatus || "HEALTHY"}
+                                        value={tempLevel.toString()}
                                         onValueChange={(value) => {
-                                          setTempInjuryStatus(value)
-                                          setSaveMessage("")
+                                          setTempLevel(parseInt(value))
+                                          setSaveMessageLevel("")
                                         }}
                                       >
                                         <SelectTrigger className="w-full">
                                           <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
-                                          <SelectItem value="HEALTHY">정상 (부상 없음)</SelectItem>
-                                          <SelectItem value="INJURED">부상중 (경기 불가)</SelectItem>
-                                          <SelectItem value="RECOVERING">회복중 (제한적 참여)</SelectItem>
+                                          {LEVEL_OPTIONS.map((option) => (
+                                            <SelectItem key={option.value} value={option.value.toString()}>
+                                              {option.label}
+                                            </SelectItem>
+                                          ))}
                                         </SelectContent>
                                       </Select>
                                     </div>
-                                    {tempInjuryStatus && tempInjuryStatus !== "HEALTHY" && (
-                                      <>
-                                        <div className="flex items-center gap-2">
-                                          <Label className="text-sm text-gray-700 min-w-[50px]">내용:</Label>
+                                    <div className="flex items-center gap-2 mt-2">
+                                      <Button
+                                        onClick={async () => {
+                                          setIsSavingLevel(true)
+                                          setSaveMessageLevel("")
+                                          try {
+                                            const levelResponse = await fetch('/api/user/update', {
+                                              method: 'PUT',
+                                              headers: { 'Content-Type': 'application/json' },
+                                              body: JSON.stringify({
+                                                userId: member.id,
+                                                level: tempLevel
+                                              })
+                                            })
+                                            if (levelResponse.ok) {
+                                              const updatedData = await levelResponse.json()
+                                              setSaveMessageLevel("저장되었습니다")
+                                              if (updatedData.user) {
+                                                setTeamMembers(prevMembers =>
+                                                  prevMembers.map(m =>
+                                                    m.id === member.id
+                                                      ? { ...m, level: updatedData.user.level }
+                                                      : m
+                                                  )
+                                                )
+                                              }
+                                              setTimeout(() => {
+                                                setEditingLevelMemberId(null)
+                                                setSaveMessageLevel("")
+                                              }, 1500)
+                                            } else {
+                                              setSaveMessageLevel("저장 실패")
+                                            }
+                                          } catch (error) {
+                                            console.error('레벨 수정 오류:', error)
+                                            setSaveMessageLevel("오류가 발생했습니다")
+                                          } finally {
+                                            setIsSavingLevel(false)
+                                          }
+                                        }}
+                                        disabled={isSavingLevel}
+                                        size="sm"
+                                        className="flex-1 bg-purple-600 hover:bg-purple-700 text-white"
+                                      >
+                                        {isSavingLevel ? "저장 중..." : "저장"}
+                                      </Button>
+                                      <Button
+                                        variant="outline"
+                                        onClick={() => {
+                                          setEditingLevelMemberId(null)
+                                          setSaveMessageLevel("")
+                                        }}
+                                        size="sm"
+                                        className="flex-1"
+                                      >
+                                        취소
+                                      </Button>
+                                    </div>
+                                    {saveMessageLevel && (
+                                      <p className={`text-xs ${saveMessageLevel.includes('저장되었습니다') ? 'text-green-600' : 'text-red-600'}`}>
+                                        {saveMessageLevel}
+                                      </p>
+                                    )}
+                                  </CardContent>
+                                </Card>
+                              )}
+                            </div>
+                          )}
+
+                          {/* 부상 관리 (총무 전용) */}
+                          {isManagerMode && (
+                            <div className="space-y-3">
+                              {editingInjuryMemberId !== member.id ? (
+                                <Card className="border-l-4 border-l-red-500 shadow-sm">
+                                  <CardContent className="p-3">
+                                    <div className="flex items-center justify-between mb-3">
+                                      <div className="flex items-center gap-3">
+                                        <div className={`p-2 rounded-full ${member.injuryStatus === "INJURED" ? "bg-red-100 text-red-600" :
+                                          member.injuryStatus === "RECOVERING" ? "bg-amber-100 text-amber-600" :
+                                            "bg-green-100 text-green-600"
+                                          }`}>
+                                          <Activity className="h-4 w-4" />
+                                        </div>
+                                        <div>
+                                          <p className="font-semibold text-sm">
+                                            {member.injuryStatus === "INJURED" ? "부상 중" :
+                                              member.injuryStatus === "RECOVERING" ? "회복 중" : "정상"}
+                                          </p>
+                                          {member.injuryStatus && member.injuryStatus !== "HEALTHY" && member.injuryName && (
+                                            <p className="text-xs text-muted-foreground">{member.injuryName}</p>
+                                          )}
+                                        </div>
+                                      </div>
+                                      <Button
+                                        onClick={() => {
+                                          setEditingInjuryMemberId(member.id)
+                                          setTempInjuryStatus(member.injuryStatus || "HEALTHY")
+                                          setTempInjuryName(member.injuryName || "")
+                                          setTempInjuryStartDate(member.injuryStartDate ? new Date(member.injuryStartDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0])
+                                          setTempInjuryDetail(member.injuryDetail || "")
+                                          setTempReturnDate(member.expectedReturnDate ? new Date(member.expectedReturnDate).toISOString().split('T')[0] : "")
+                                          setSaveMessageInjury("")
+                                        }}
+                                        variant="outline"
+                                        size="sm"
+                                      >
+                                        상태 변경
+                                      </Button>
+                                    </div>
+                                    <div className="space-y-2 mt-2 pt-2 border-t">
+                                      <div className="flex justify-between items-center text-xs">
+                                        <span className="text-muted-foreground font-medium">부상 이력 ({selectedMemberInjuryHistory.length})</span>
+                                      </div>
+                                      {selectedMemberInjuryHistory.length > 0 ? (
+                                        <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                                          {selectedMemberInjuryHistory.map((injury, index) => (
+                                            <div key={injury.id || index} className="p-2 border rounded bg-gray-50 text-xs relative group">
+                                              {editingHistoryInjuryId === injury.id ? (
+                                                <div className="space-y-2">
+                                                  <Input value={editHistoryFormData.injuryName} onChange={e => setEditHistoryFormData(p => ({ ...p, injuryName: e.target.value }))} className="h-7 text-xs" placeholder="부상명" />
+                                                  <div className="grid grid-cols-2 gap-1">
+                                                    <div>
+                                                      <span className="text-[10px] text-muted-foreground">발생일</span>
+                                                      <Input type="date" value={editHistoryFormData.startDate} onChange={e => setEditHistoryFormData(p => ({ ...p, startDate: e.target.value }))} className="h-7 text-xs px-1" />
+                                                    </div>
+                                                    <div>
+                                                      <span className="text-[10px] text-muted-foreground">완치일</span>
+                                                      <Input type="date" value={editHistoryFormData.endDate} onChange={e => setEditHistoryFormData(p => ({ ...p, endDate: e.target.value }))} className="h-7 text-xs px-1" />
+                                                    </div>
+                                                  </div>
+                                                  <Input value={editHistoryFormData.description} onChange={e => setEditHistoryFormData(p => ({ ...p, description: e.target.value }))} className="h-7 text-xs" placeholder="상세 정보" />
+                                                  <div className="flex justify-end gap-1 mt-1">
+                                                    <Button size="sm" variant="outline" className="h-6 text-[10px] px-2" onClick={() => setEditingHistoryInjuryId(null)}>취소</Button>
+                                                    <Button size="sm" className="h-6 text-[10px] px-2 bg-blue-600 hover:bg-blue-700 text-white" disabled={isSavingHistory} onClick={async () => {
+                                                      setIsSavingHistory(true)
+                                                      try {
+                                                        const response = await fetch(`/api/user/injury/${injury.id}`, {
+                                                          method: 'PUT',
+                                                          headers: { 'Content-Type': 'application/json' },
+                                                          body: JSON.stringify({
+                                                            userId: member.id,
+                                                            requesterId: currentUser?.id,
+                                                            ...editHistoryFormData
+                                                          })
+                                                        })
+                                                        if (response.ok) {
+                                                          setEditingHistoryInjuryId(null)
+                                                          fetchInjuryHistory(member.id)
+                                                        } else {
+                                                          alert('수정 실패')
+                                                        }
+                                                      } catch (e) {
+                                                        alert('오류가 발생했습니다.')
+                                                      } finally {
+                                                        setIsSavingHistory(false)
+                                                      }
+                                                    }}>
+                                                      저장
+                                                    </Button>
+                                                  </div>
+                                                </div>
+                                              ) : (
+                                                <>
+                                                  <div className="flex justify-between items-start">
+                                                    <span className="font-semibold text-gray-800">{injury.injuryName}</span>
+                                                    <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${injury.endDate ? 'bg-gray-200 text-gray-600' : 'bg-red-100 text-red-600'}`}>
+                                                      {injury.endDate ? '완치' : '진행중'}
+                                                    </span>
+                                                  </div>
+                                                  <div className="text-[10px] text-muted-foreground mt-0.5">
+                                                    {new Date(injury.startDate).toLocaleDateString()} ~ {injury.endDate ? new Date(injury.endDate).toLocaleDateString() : '현재'}
+                                                  </div>
+                                                  <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 bg-white rounded shadow-sm">
+                                                    <Button variant="ghost" size="sm" className="h-5 w-5 p-0" onClick={() => {
+                                                      setEditingHistoryInjuryId(injury.id)
+                                                      setEditHistoryFormData({
+                                                        injuryName: injury.injuryName,
+                                                        startDate: injury.startDate ? new Date(injury.startDate).toISOString().split('T')[0] : "",
+                                                        endDate: injury.endDate ? new Date(injury.endDate).toISOString().split('T')[0] : "",
+                                                        description: injury.description || ""
+                                                      })
+                                                    }}>
+                                                      <Edit className="h-3 w-3 text-gray-500" />
+                                                    </Button>
+                                                    <Button variant="ghost" size="sm" className="h-5 w-5 p-0" onClick={async () => {
+                                                      if (!confirm('이 기록을 삭제하시겠습니까?')) return
+                                                      try {
+                                                        const user = currentUser || JSON.parse(sessionStorage.getItem('user') || '{}')
+                                                        const response = await fetch(`/api/user/injury/${injury.id}`, {
+                                                          method: 'DELETE',
+                                                          headers: { 'Content-Type': 'application/json' },
+                                                          body: JSON.stringify({ userId: member.id, requesterId: user.id })
+                                                        })
+                                                        if (response.ok) fetchInjuryHistory(member.id)
+                                                        else alert('삭제 실패')
+                                                      } catch (e) {
+                                                        alert('오류가 발생했습니다.')
+                                                      }
+                                                    }}>
+                                                      <span className="text-red-500 text-[10px]">X</span>
+                                                    </Button>
+                                                  </div>
+                                                </>
+                                              )}
+                                            </div>
+                                          ))}
+                                        </div>
+                                      ) : (
+                                        <div className="text-center py-2 text-xs text-muted-foreground bg-gray-50 rounded border border-dashed">
+                                          기록된 이력이 없습니다.
+                                        </div>
+                                      )}
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                              ) : (
+                                <Card className="border-red-200">
+                                  <CardHeader className="pb-2 pt-3 px-4 flex flex-row items-center justify-between">
+                                    <CardTitle className="text-sm">현재 부상 상태 변경</CardTitle>
+                                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => setEditingInjuryMemberId(null)}>
+                                      <span className="text-muted-foreground">X</span>
+                                    </Button>
+                                  </CardHeader>
+                                  <CardContent className="space-y-4 px-4 pb-4">
+                                    <div className="grid gap-4 sm:grid-cols-2">
+                                      <div className="space-y-2">
+                                        <Label className="text-sm text-gray-700">현재 상태</Label>
+                                        <Select
+                                          value={tempInjuryStatus || "HEALTHY"}
+                                          onValueChange={(value) => {
+                                            setTempInjuryStatus(value)
+                                            setSaveMessageInjury("")
+                                          }}
+                                        >
+                                          <SelectTrigger className="w-full">
+                                            <SelectValue />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="HEALTHY">정상 (활동 가능)</SelectItem>
+                                            <SelectItem value="INJURED">부상 중 (활동 중단)</SelectItem>
+                                            <SelectItem value="RECOVERING">회복 중 (재활 단계)</SelectItem>
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                      {tempInjuryStatus !== "HEALTHY" && (
+                                        <div className="space-y-2">
+                                          <Label className="text-sm text-gray-700">부상명</Label>
                                           <Input
-                                            value={tempInjuryDetail}
-                                            onChange={(e) => setTempInjuryDetail(e.target.value)}
-                                            placeholder="부상 부위 등"
+                                            value={tempInjuryName}
+                                            onChange={(e) => setTempInjuryName(e.target.value)}
+                                            placeholder="예: 발목 염좌, 근육 파열"
                                             className="h-9"
                                           />
                                         </div>
-                                        <div className="flex items-center gap-2">
-                                          <Label className="text-sm text-gray-700 min-w-[50px]">복귀:</Label>
+                                      )}
+                                    </div>
+
+                                    {tempInjuryStatus !== "HEALTHY" && (
+                                      <div className="grid gap-4 sm:grid-cols-2">
+                                        <div className="space-y-2">
+                                          <Label className="text-sm text-gray-700">부상 발생일</Label>
+                                          <Input
+                                            type="date"
+                                            value={tempInjuryStartDate}
+                                            onChange={(e) => setTempInjuryStartDate(e.target.value)}
+                                            className="h-9"
+                                          />
+                                        </div>
+                                        <div className="space-y-2">
+                                          <Label className="text-sm text-gray-700">복귀 예상일</Label>
                                           <Input
                                             type="date"
                                             value={tempReturnDate}
@@ -734,143 +1026,89 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                                             className="h-9"
                                           />
                                         </div>
-                                      </>
+                                      </div>
                                     )}
-                                  </div>
-                                  <div className="flex items-center gap-2 mt-2">
-                                    <Button
-                                      onClick={async () => {
-                                        setIsSaving(true)
-                                        setSaveMessage("")
-                                        try {
-                                          // 1. 레벨 업데이트
-                                          const levelResponse = await fetch('/api/user/update', {
-                                            method: 'PUT',
-                                            headers: { 'Content-Type': 'application/json' },
-                                            body: JSON.stringify({
-                                              userId: member.id,
-                                              level: tempLevel
+
+                                    <div className="space-y-2">
+                                      <Label className="text-sm text-gray-700">상세 정보</Label>
+                                      <Input
+                                        value={tempInjuryDetail}
+                                        onChange={(e) => setTempInjuryDetail(e.target.value)}
+                                        placeholder="부상 경위나 현재 증상 등"
+                                        className="h-9"
+                                      />
+                                    </div>
+                                    <div className="flex items-center gap-2 mt-4">
+                                      <Button
+                                        onClick={async () => {
+                                          setIsSavingInjury(true)
+                                          setSaveMessageInjury("")
+                                          try {
+                                            const injuryResponse = await fetch('/api/user/injury', {
+                                              method: 'POST',
+                                              headers: { 'Content-Type': 'application/json' },
+                                              body: JSON.stringify({
+                                                userId: member.id,
+                                                requesterId: currentUser?.id,
+                                                injuryStatus: tempInjuryStatus === "HEALTHY" ? "HEALTHY" : tempInjuryStatus,
+                                                injuryName: tempInjuryName || null,
+                                                injuryStartDate: tempInjuryStartDate || null,
+                                                injuryDetail: tempInjuryDetail || null,
+                                                expectedReturnDate: tempReturnDate || null
+                                              })
                                             })
-                                          })
-                                          // 2. 부상 정보 업데이트
-                                          const injuryResponse = await fetch('/api/user/injury', {
-                                            method: 'POST',
-                                            headers: { 'Content-Type': 'application/json' },
-                                            body: JSON.stringify({
-                                              userId: member.id,
-                                              requesterId: currentUser?.id,
-                                              injuryStatus: tempInjuryStatus === "HEALTHY" ? "HEALTHY" : tempInjuryStatus,
-                                              injuryDetail: tempInjuryDetail || null,
-                                              expectedReturnDate: tempReturnDate || null
-                                            })
-                                          })
-                                          if (levelResponse.ok && injuryResponse.ok) {
-                                            const updatedData = await levelResponse.json()
-                                            setSaveMessage("저장되었습니다")
-                                            if (updatedData.user) {
-                                              setTeamMembers(prevMembers =>
-                                                prevMembers.map(m =>
-                                                  m.id === member.id
-                                                    ? {
-                                                      ...m,
-                                                      level: updatedData.user.level,
-                                                      injuryStatus: tempInjuryStatus === "HEALTHY" ? null : tempInjuryStatus,
-                                                      injuryDetail: tempInjuryDetail || null,
-                                                      expectedReturnDate: tempReturnDate || null
-                                                    }
-                                                    : m
+                                            if (injuryResponse.ok) {
+                                              const updatedData = await injuryResponse.json()
+                                              setSaveMessageInjury("저장되었습니다")
+                                              if (updatedData.user) {
+                                                setTeamMembers(prevMembers =>
+                                                  prevMembers.map(m =>
+                                                    m.id === member.id
+                                                      ? {
+                                                        ...m,
+                                                        injuryStatus: tempInjuryStatus === "HEALTHY" ? null : tempInjuryStatus,
+                                                        injuryName: tempInjuryName || null,
+                                                        injuryStartDate: tempInjuryStartDate || null,
+                                                        injuryDetail: tempInjuryDetail || null,
+                                                        expectedReturnDate: tempReturnDate || null
+                                                      }
+                                                      : m
+                                                  )
                                                 )
-                                              )
+                                              }
+                                              fetchInjuryHistory(member.id)
+                                              setTimeout(() => {
+                                                setEditingInjuryMemberId(null)
+                                                setSaveMessageInjury("")
+                                              }, 1500)
+                                            } else {
+                                              setSaveMessageInjury("저장 실패")
                                             }
-                                            setTimeout(() => {
-                                              setEditingMember(null)
-                                              setSaveMessage("")
-                                            }, 1500)
-                                          } else {
-                                            setSaveMessage("저장 실패")
+                                          } catch (error) {
+                                            console.error('부상 상태 수정 오류:', error)
+                                            setSaveMessageInjury("오류가 발생했습니다")
+                                          } finally {
+                                            setIsSavingInjury(false)
                                           }
-                                        } catch (error) {
-                                          console.error('정보 수정 오류:', error)
-                                          setSaveMessage("오류가 발생했습니다")
-                                        } finally {
-                                          setIsSaving(false)
-                                        }
-                                      }}
-                                      disabled={isSaving}
-                                      size="sm"
-                                      className="flex-1"
-                                    >
-                                      {isSaving ? "저장 중..." : "저장"}
-                                    </Button>
-                                    <Button
-                                      variant="outline"
-                                      onClick={() => {
-                                        setEditingMember(null)
-                                        setTempLevel(member.level || 1)
-                                        setTempInjuryStatus("")
-                                        setTempInjuryDetail("")
-                                        setTempReturnDate("")
-                                        setSaveMessage("")
-                                      }}
-                                      size="sm"
-                                      className="flex-1"
-                                    >
-                                      취소
-                                    </Button>
-                                  </div>
-                                  {saveMessage && (
-                                    <p className={`text-xs ${saveMessage.includes('저장되었습니다')
-                                      ? 'text-green-600'
-                                      : 'text-red-600'
-                                      }`}>
-                                      {saveMessage}
-                                    </p>
-                                  )}
-                                </div>
+                                        }}
+                                        disabled={isSavingInjury}
+                                        size="sm"
+                                        className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                                      >
+                                        {isSavingInjury ? "저장 중..." : "저장"}
+                                      </Button>
+                                    </div>
+                                    {saveMessageInjury && (
+                                      <p className={`text-xs ${saveMessageInjury.includes('저장되었습니다') ? 'text-green-600' : 'text-red-600'}`}>
+                                        {saveMessageInjury}
+                                      </p>
+                                    )}
+                                  </CardContent>
+                                </Card>
                               )}
                             </div>
                           )}
-                          {/* 출석 통계 카드 */}
-                          <Card className="border-l-4 border-l-orange-500">
-                            <CardHeader className="pb-3">
-                              <CardTitle className="text-sm flex items-center gap-2">
-                                <BarChart3 className="h-4 w-4 text-orange-500" />
-                                출석 통계
-                              </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                              <div className="space-y-3">
-                                <div className="flex items-center justify-between">
-                                  <Label className="text-xs font-medium text-gray-700">전체 참석률</Label>
-                                  <div className="flex items-center gap-2">
-                                    <Badge variant="outline" className="text-sm px-2 py-1 font-bold">
-                                      {member.attendanceRate}%
-                                    </Badge>
-                                  </div>
-                                </div>
-                                <div className="space-y-2">
-                                  <Progress
-                                    value={member.attendanceRate}
-                                    className="h-3 bg-gray-200"
-                                  />
-                                  <div className="flex justify-between text-xs text-muted-foreground">
-                                    <span>0%</span>
-                                    <span>50%</span>
-                                    <span>100%</span>
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-4 pt-2">
-                                  <div className="flex items-center gap-2">
-                                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                                    <span className="text-xs text-muted-foreground">
-                                      {member.attendanceRate >= 80 ? '우수' :
-                                        member.attendanceRate >= 60 ? '양호' : '개선 필요'}
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
+
                           {/* 관리 버튼들 (총무 전용) */}
                           {isManagerMode && (
                             <div className="flex flex-col gap-3 pt-4 border-t">

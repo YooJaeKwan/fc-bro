@@ -87,14 +87,14 @@ export default function Dashboard({ userInfo, onUserUpdate, onLogout }: Dashboar
 
   const tabItems = [
     { value: "dashboard", label: "대시보드", icon: BarChart3 },
-    { value: "team-stats", label: "팀 대시보드", icon: Trophy },
+    { value: "team-stats", label: "팀 랭킹", icon: Trophy },
+    { value: "team", label: "팀 멤버", icon: Users },
     { value: "schedule", label: "경기예정", icon: Calendar },
     { value: "results", label: "경기결과", icon: ClipboardList },
     ...(isManagerMode ? [
       { value: "attendance", label: "출석부", icon: Users }
     ] : []),
     { value: "album", label: "앨범", icon: ImageIcon },
-    { value: "team", label: "팀멤버", icon: Users },
     { value: "profile", label: "내 정보", icon: User },
   ]
 
