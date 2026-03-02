@@ -47,6 +47,11 @@ export async function GET(request: NextRequest) {
         level: true, // 레벨 정보 추가
         role: true,  // 역할 정보 추가
         isActive: true, // 활성 상태 추가
+        injuryStatus: true,
+        injuryName: true,
+        injuryStartDate: true,
+        expectedReturnDate: true,
+        injuryDetail: true,
         createdAt: true
       },
       orderBy: {
@@ -246,6 +251,11 @@ export async function GET(request: NextRequest) {
           level: member.level || 1,
           role: member.role || 'MEMBER',
           isActive: member.isActive,
+          injuryStatus: member.injuryStatus || 'HEALTHY',
+          injuryName: member.injuryName,
+          injuryStartDate: member.injuryStartDate,
+          expectedReturnDate: member.expectedReturnDate,
+          injuryDetail: member.injuryDetail,
           profileImage: member.image,
           joinDate: member.createdAt.toLocaleDateString('ko-KR'),
           attendanceRate,

@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Separator } from "@/components/ui/separator"
-import { Users, AlertCircle, CheckCircle, Edit, Save, X, Target, MapPin } from "lucide-react"
+import { Users, AlertCircle, CheckCircle, Edit, Save, X, Target, MapPin, Activity, History, Plus } from "lucide-react"
+import { useEffect } from "react"
 import { regionData, provinceOptions, footOptions } from "@/lib/region-data"
 
 // 커스텀 SoccerBall 아이콘 컴포넌트
@@ -58,6 +59,63 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [injuryHistory, setInjuryHistory] = useState<any[]>([])
+  const [showInjuryForm, setShowInjuryForm] = useState(false)
+  const [injuryFormData, setInjuryFormData] = useState({
+    injuryStatus: userInfo?.injuryStatus || "HEALTHY",
+    injuryName: userInfo?.injuryName || "",
+    injuryStartDate: userInfo?.injuryStartDate ? new Date(userInfo.injuryStartDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+    expectedReturnDate: userInfo?.expectedReturnDate ? new Date(userInfo.expectedReturnDate).toISOString().split('T')[0] : "",
+    injuryDetail: userInfo?.injuryDetail || ""
+  })
+
+  // 부상 이력 가져오기
+  useEffect(() => {
+    if (userInfo?.id) {
+      fetchInjuryHistory()
+    }
+  }, [userInfo?.id])
+
+  const fetchInjuryHistory = async () => {
+    try {
+      const response = await fetch(`/api/user/injury/history?userId=${userInfo.id}&requesterId=${userInfo.id}`)
+      const data = await response.json()
+      if (data.success) {
+        setInjuryHistory(data.injuries || [])
+      }
+    } catch (error) {
+      console.error('부상 이력 조회 실패:', error)
+    }
+  }
+
+  const handleInjurySave = async () => {
+    setIsSubmitting(true)
+    try {
+      const response = await fetch('/api/user/injury', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: userInfo.id,
+          requesterId: userInfo.id,
+          ...injuryFormData
+        })
+      })
+
+      const data = await response.json()
+      if (data.success) {
+        onUserUpdate(data.user)
+        setShowInjuryForm(false)
+        fetchInjuryHistory()
+      } else {
+        alert(data.error || '저장 실패')
+      }
+    } catch (error) {
+      console.error('부상 정보 저장 실패:', error)
+      alert('저장 중 오류가 발생했습니다.')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
   // 포지션 옵션 - 카테고리별 분류 (회원가입과 동일)
   const positionCategories = {
@@ -719,6 +777,171 @@ export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
           </Card>
         </div>
       )}
+
+      {/* 부상 관리 섹션 추가 */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <div className="space-y-1">
+            <CardTitle className="text-xl font-bold flex items-center gap-2">
+              <Activity className="h-5 w-5 text-red-500" />
+              부상 관리
+            </CardTitle>
+          </div>
+          {!isEditing && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setInjuryFormData({
+                  injuryStatus: userInfo?.injuryStatus || "HEALTHY",
+                  injuryName: userInfo?.injuryName || "",
+                  injuryStartDate: userInfo?.injuryStartDate ? new Date(userInfo.injuryStartDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+                  expectedReturnDate: userInfo?.expectedReturnDate ? new Date(userInfo.expectedReturnDate).toISOString().split('T')[0] : "",
+                  injuryDetail: userInfo?.injuryDetail || ""
+                })
+                setShowInjuryForm(!showInjuryForm)
+              }}
+            >
+              {showInjuryForm ? <X className="h-4 w-4" /> : (userInfo?.injuryStatus === "HEALTHY" || !userInfo?.injuryStatus ? "부상 신고" : "상태 업데이트")}
+            </Button>
+          )}
+        </CardHeader>
+        <CardContent>
+          {showInjuryForm ? (
+            <div className="space-y-4 pt-2">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>현재 상태</Label>
+                  <Select
+                    value={injuryFormData.injuryStatus}
+                    onValueChange={(value) => setInjuryFormData(prev => ({ ...prev, injuryStatus: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="HEALTHY">정상 (활동 가능)</SelectItem>
+                      <SelectItem value="INJURED">부상 중 (활동 중단)</SelectItem>
+                      <SelectItem value="RECOVERING">회복 중 (재활 단계)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {injuryFormData.injuryStatus !== "HEALTHY" && (
+                  <div className="space-y-2">
+                    <Label>부상명</Label>
+                    <Input
+                      value={injuryFormData.injuryName}
+                      onChange={(e) => setInjuryFormData(prev => ({ ...prev, injuryName: e.target.value }))}
+                      placeholder="예: 발목 염좌, 근육 파열"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {injuryFormData.injuryStatus !== "HEALTHY" && (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>부상 발생일</Label>
+                    <Input
+                      type="date"
+                      value={injuryFormData.injuryStartDate}
+                      onChange={(e) => setInjuryFormData(prev => ({ ...prev, injuryStartDate: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>복귀 예상일</Label>
+                    <Input
+                      type="date"
+                      value={injuryFormData.expectedReturnDate}
+                      onChange={(e) => setInjuryFormData(prev => ({ ...prev, expectedReturnDate: e.target.value }))}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label>상세 정보</Label>
+                <Input
+                  value={injuryFormData.injuryDetail}
+                  onChange={(e) => setInjuryFormData(prev => ({ ...prev, injuryDetail: e.target.value }))}
+                  placeholder="부상 경위나 현재 증상 등"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <Button variant="ghost" size="sm" onClick={() => setShowInjuryForm(false)}>취소</Button>
+                <Button
+                  onClick={handleInjurySave}
+                  disabled={isSubmitting}
+                  size="sm"
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                >
+                  {isSubmitting ? "저장 중..." : "저장하기"}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {/* 현재 상태 요약 */}
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border">
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-full ${userInfo?.injuryStatus === "INJURED" ? "bg-red-100 text-red-600" :
+                    userInfo?.injuryStatus === "RECOVERING" ? "bg-amber-100 text-amber-600" :
+                      "bg-green-100 text-green-600"
+                    }`}>
+                    <Activity className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="font-semibold">
+                      {userInfo?.injuryStatus === "INJURED" ? "부상 중" :
+                        userInfo?.injuryStatus === "RECOVERING" ? "회복 중" : "정상"}
+                    </p>
+                    {userInfo?.injuryStatus && userInfo?.injuryStatus !== "HEALTHY" && userInfo?.injuryName && (
+                      <p className="text-sm text-muted-foreground">{userInfo.injuryName}</p>
+                    )}
+                  </div>
+                </div>
+                {userInfo?.injuryStatus && userInfo?.injuryStatus !== "HEALTHY" && userInfo?.expectedReturnDate && (
+                  <div className="text-right">
+                    <p className="text-xs text-muted-foreground">복귀 예정일</p>
+                    <p className="text-sm font-medium">{new Date(userInfo.expectedReturnDate).toLocaleDateString('ko-KR')}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* 부상 이력 */}
+              <div className="space-y-3">
+                <h4 className="text-sm font-semibold flex items-center gap-2">
+                  <History className="h-4 w-4 text-muted-foreground" />
+                  부상 이력
+                </h4>
+                {injuryHistory.length > 0 ? (
+                  <div className="space-y-2">
+                    {injuryHistory.map((injury, index) => (
+                      <div key={injury.id || index} className="p-3 bg-white border rounded-md text-sm">
+                        <div className="flex justify-between items-start">
+                          <p className="font-medium text-gray-900">{injury.injuryName}</p>
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${injury.endDate ? 'bg-gray-100 text-gray-600' : 'bg-red-100 text-red-600'}`}>
+                            {injury.endDate ? '완치' : '진행중'}
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {new Date(injury.startDate).toLocaleDateString()} ~ {injury.endDate ? new Date(injury.endDate).toLocaleDateString() : '진행 중'}
+                        </p>
+                        {injury.description && (
+                          <p className="text-xs text-gray-600 mt-2 italic">"{injury.description}"</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground py-8 text-center border border-dashed rounded-lg">기록된 부상 이력이 없습니다.</p>
+                )}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 }

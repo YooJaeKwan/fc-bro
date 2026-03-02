@@ -483,9 +483,9 @@ export function DashboardHome({ currentUser, isManagerMode }: DashboardHomeProps
                                             {personalStats.assists}<span className="text-[10px] font-medium text-slate-400 ml-0.5 uppercase">도움</span>
                                         </div>
                                     </div>
-                                    <div className="flex flex-col items-center justify-center p-3 rounded-lg bg-slate-50 border border-slate-100">
+                                    <div className="flex flex-col items-center justify-center p-3 rounded-lg bg-slate-50 border border-slate-100 text-center">
                                         <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Clean Sheets</div>
-                                        <div className="text-xl font-black text-slate-800 tabular-nums">
+                                        <div className="text-xl font-black text-slate-800 tabular-nums text-center">
                                             {personalStats.cleanSheets || 0}<span className="text-[10px] font-medium text-slate-400 ml-0.5 uppercase">회</span>
                                         </div>
                                     </div>

@@ -23,10 +23,18 @@ export async function GET(request: NextRequest) {
         const { searchParams } = new URL(request.url)
         const userId = searchParams.get('userId')
 
+        const now = new Date()
+        const currentYear = now.getFullYear()
+        const yearStart = new Date(currentYear, 0, 1)
+
         // 모든 일정의 기록과 MVP 정보, 참석자 정보 조회
         const schedules = await prisma.schedule.findMany({
             where: {
-                status: 'COMPLETED'
+                status: 'COMPLETED',
+                matchDate: {
+                    gte: yearStart,
+                    lte: now
+                }
             },
             select: {
                 id: true,

@@ -37,6 +37,13 @@ model User {
   level            Int?      @default(1) // 선수 레벨 (1-10, 총무만 수정 가능)
   isActive         Boolean   @default(true) // 활성 상태 (총무가 비활성화 가능)
 
+  // 부상 관련 필드 (현재 상태)
+  injuryStatus     String?   @default("HEALTHY")
+  injuryName       String?      // 부상명
+  injuryStartDate  DateTime?    // 부상이 시작된 날짜
+  expectedReturnDate DateTime? // 복귀 예상일
+  injuryDetail     String?      // 상세 내용 (기존 필드 활용 또는 통합 가능)
+
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -52,6 +59,7 @@ model User {
   badges           UserBadge[]
   scheduleComments ScheduleComment[] @relation("ScheduleCommentAuthor")
   announcementReads AnnouncementRead[]
+  injuries         Injury[]
 
   @@unique([provider, providerId])
 }
@@ -287,5 +295,21 @@ model AnnouncementRead {
   announcement   Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
 
   @@unique([userId, announcementId])
+  @@index([userId])
+}
+
+// 부상 이력 모델
+model Injury {
+  id          String   @id @default(cuid())
+  userId      String
+  injuryName  String
+  startDate   DateTime
+  endDate     DateTime?
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([userId])
 }

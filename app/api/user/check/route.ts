@@ -35,13 +35,18 @@ export async function POST(request: NextRequest) {
         role: true,
         level: true,
         image: true,
-        createdAt: true
+        createdAt: true,
+        injuryStatus: true,
+        injuryName: true,
+        injuryStartDate: true,
+        expectedReturnDate: true,
+        injuryDetail: true
       }
     })
 
     if (existingUser) {
       console.log('기존 사용자 발견:', existingUser.id)
-      
+
       return NextResponse.json({
         exists: true,
         user: {
@@ -59,12 +64,17 @@ export async function POST(request: NextRequest) {
           role: existingUser.role,
           level: existingUser.level,
           profileImage: existingUser.image,
-          registeredAt: existingUser.createdAt.toISOString()
+          registeredAt: existingUser.createdAt.toISOString(),
+          injuryStatus: existingUser.injuryStatus,
+          injuryName: existingUser.injuryName,
+          injuryStartDate: existingUser.injuryStartDate,
+          expectedReturnDate: existingUser.expectedReturnDate,
+          injuryDetail: existingUser.injuryDetail
         }
       })
     } else {
       console.log('신규 사용자:', kakaoId)
-      
+
       return NextResponse.json({
         exists: false,
         message: '신규 사용자입니다. 회원가입을 진행해주세요.'
@@ -73,7 +83,7 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('사용자 조회 중 오류:', error)
-    
+
     return NextResponse.json(
       { error: '사용자 조회 중 오류가 발생했습니다.' },
       { status: 500 }
