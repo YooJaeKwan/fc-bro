@@ -90,6 +90,7 @@ export async function GET(request: NextRequest) {
       select: {
         id: true,
         type: true,
+        status: true,
         matchDate: true,
         ourScore: true,
         opponentScore: true,
@@ -112,14 +113,14 @@ export async function GET(request: NextRequest) {
       orderBy: { earnedAt: 'desc' }
     })
 
-    // 5. 사용자 포지션 정보 (클린시트 판별용)
+    // 5. 사용자 정보 (가입일, 포지션)
     const userRequest = prisma.user.findUnique({
       where: { id: userId },
-      select: { preferredPosition: true }
+      select: { preferredPosition: true, createdAt: true }
     })
 
     // 병렬 실행
-    const [activeUserCount, upcomingSchedules, recentMatches, yearSchedules, userBadges, user] = await Promise.all([
+    const [activeUserCount, upcomingSchedules, recentMatches, allYearSchedules, userBadges, user] = await Promise.all([
       activeUserCountRequest,
       upcomingSchedulesRequest,
       recentMatchesRequest,
@@ -128,18 +129,21 @@ export async function GET(request: NextRequest) {
       userRequest
     ])
 
+    const userJoinDate = user?.createdAt ? new Date(user.createdAt) : yearStart
+
+    // 가입일 이후의 완료된 경기만 필터링
+    const yearSchedules = allYearSchedules.filter((s: any) => {
+      // 상태가 COMPLETED여야 함
+      if (s.status !== 'COMPLETED') return false
+      // 가입일 이후여야 함
+      return new Date(s.matchDate) >= userJoinDate
+    })
+
     // 시작 시간 기준으로 아직 시작하지 않은 경기 필터링
     const nextSchedule = upcomingSchedules.find((schedule: any) => {
-      // 1. matchDate를 복사해 안전한 객체로 만듦 (UTC 00:00:00)
       const matchDateTime = new Date(schedule.matchDate.getTime())
-
-      // 2. startTime (예: "19:00")을 가져와 파싱
       const [hours, minutes] = (schedule.startTime || '23:59').split(':').map(Number)
-
-      // 3. 서버에 저장된 matchDate의 UTC 기준 시간에 한국 시간 오프셋(-9시간)을 역적용하여 실제 UTC 시작 시간 계산.
       matchDateTime.setUTCHours(hours - 9, minutes, 0, 0)
-
-      // 4. 현재시간(now)과 비교
       return matchDateTime > now
     }) || null
 

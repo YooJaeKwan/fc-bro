@@ -23,8 +23,8 @@ export async function GET(request: NextRequest) {
     // 활성 상태 필터링 조건 설정
     let whereClause: any = {}
 
-    // 일반 사용자거나 총무가 비활성화 사용자를 포함하지 않는 경우
-    if (!isAdmin || !includeInactive) {
+    // 비활성화 사용자를 포함 여부 확인
+    if (!includeInactive) {
       whereClause.isActive = true
     }
 

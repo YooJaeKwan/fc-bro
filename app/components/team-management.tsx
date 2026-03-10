@@ -108,7 +108,7 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
   const [saveMessageInjury, setSaveMessageInjury] = useState("")
 
   const [statusFilter, setStatusFilter] = useState("all") // all, active, inactive, injured
-  const [showInactive, setShowInactive] = useState(false)
+  const [showInactive, setShowInactive] = useState(true)
   const [positionFilter, setPositionFilter] = useState<string | null>(null) // null = 전체 표시
   const [searchQuery, setSearchQuery] = useState<string>("") // 이름 검색어
   // 중복 호출 방지를 위한 ref
@@ -391,7 +391,6 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">전체</SelectItem>
-            <SelectItem value="active">활동 중</SelectItem>
             <SelectItem value="inactive">비활성</SelectItem>
             <SelectItem value="injured">부상자</SelectItem>
           </SelectContent>

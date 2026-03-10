@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Download, Users, Calendar as CalendarIcon } from 'lucide-react'
+import { Download, Users, Calendar as CalendarIcon, ChevronUp, ChevronDown } from 'lucide-react'
 import * as XLSX from 'xlsx'
 
 interface UserStat {
@@ -33,6 +33,7 @@ export function AttendanceStatsView() {
     const [data, setData] = useState<AttendanceData | null>(null)
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
+    const [sortConfig, setSortConfig] = useState<{ key: 'rate' | 'name'; direction: 'asc' | 'desc' } | null>({ key: 'name', direction: 'asc' })
 
     useEffect(() => {
         fetchData()
@@ -69,6 +70,33 @@ export function AttendanceStatsView() {
     const averageRate = data ?
         Math.round((data.users.reduce((sum, u) => sum + u.rate, 0) / data.users.length) * 10) / 10
         : 0
+
+    // 정렬 함수
+    const handleSort = (key: 'rate' | 'name') => {
+        let direction: 'asc' | 'desc' = 'desc'
+        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'desc') {
+            direction = 'asc'
+        }
+        setSortConfig({ key, direction })
+    }
+
+    // 정렬된 데이터 가져오기
+    const sortedUsers = React.useMemo(() => {
+        if (!data) return []
+        const users = [...data.users]
+        if (!sortConfig) return users
+
+        return users.sort((a, b) => {
+            if (sortConfig.key === 'rate') {
+                return sortConfig.direction === 'asc' ? a.rate - b.rate : b.rate - a.rate
+            } else if (sortConfig.key === 'name') {
+                return sortConfig.direction === 'asc'
+                    ? a.name.localeCompare(b.name, 'ko')
+                    : b.name.localeCompare(a.name, 'ko')
+            }
+            return 0
+        })
+    }, [data, sortConfig])
 
     const handleExportExcel = () => {
         if (!data) return
@@ -157,8 +185,30 @@ export function AttendanceStatsView() {
                         <thead>
                             <tr className="bg-gray-50">
                                 <th className="border px-2 py-2 text-center min-w-[50px]">등급</th>
-                                <th className="sticky left-0 bg-gray-50 text-center z-10 border px-2 py-2 text-left min-w-[50px]">이름</th>
-                                <th className="border px-2 py-2 text-center min-w-[50px]">출석률</th>
+                                <th
+                                    className="sticky left-0 bg-gray-50 z-10 border px-2 py-2 text-center min-w-[65px] cursor-pointer hover:bg-gray-100"
+                                    onClick={() => handleSort('name')}
+                                >
+                                    <div className="flex items-center justify-center gap-1">
+                                        이름
+                                        <div className="flex flex-col">
+                                            <ChevronUp className={`h-2.5 w-2.5 ${sortConfig?.key === 'name' && sortConfig.direction === 'asc' ? 'text-blue-600' : 'text-gray-300'}`} />
+                                            <ChevronDown className={`h-2.5 w-2.5 -mt-1 ${sortConfig?.key === 'name' && sortConfig.direction === 'desc' ? 'text-blue-600' : 'text-gray-300'}`} />
+                                        </div>
+                                    </div>
+                                </th>
+                                <th
+                                    className="border px-2 py-2 text-center min-w-[85px] cursor-pointer hover:bg-gray-100 whitespace-nowrap"
+                                    onClick={() => handleSort('rate')}
+                                >
+                                    <div className="flex items-center justify-center gap-1">
+                                        출석률
+                                        <div className="flex flex-col">
+                                            <ChevronUp className={`h-2.5 w-2.5 ${sortConfig?.key === 'rate' && sortConfig.direction === 'asc' ? 'text-blue-600' : 'text-gray-300'}`} />
+                                            <ChevronDown className={`h-2.5 w-2.5 -mt-1 ${sortConfig?.key === 'rate' && sortConfig.direction === 'desc' ? 'text-blue-600' : 'text-gray-300'}`} />
+                                        </div>
+                                    </div>
+                                </th>
                                 {data.schedules.map(schedule => (
                                     <th
                                         key={schedule.id}
@@ -173,12 +223,12 @@ export function AttendanceStatsView() {
                             </tr>
                         </thead>
                         <tbody>
-                            {data.users.map(user => (
+                            {sortedUsers.map(user => (
                                 <tr key={user.id} className="hover:bg-gray-50">
                                     <td className={`border px-2 py-1.5 text-center font-bold ${getGrade(user.rate).color}`}>
                                         {getGrade(user.rate).grade}
                                     </td>
-                                    <td className="sticky left-0 bg-white z-10 text-center border px-2 py-1.5 font-medium">
+                                    <td className="sticky left-0 bg-white z-10 border px-2 py-1.5 font-medium text-center">
                                         {user.name}
                                     </td>
                                     <td className={`border px-2 py-1.5 text-center font-semibold ${user.rate >= 80 ? 'text-green-600' :

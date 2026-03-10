@@ -74,13 +74,6 @@ export async function PUT(request: NextRequest) {
 
     // 한국시간을 명시적으로 지정하여 DateTime 생성
     const kstDateTime = new Date(`${date}T${time}:00.000+09:00`)
-    
-    if (kstDateTime < new Date()) {
-      return NextResponse.json(
-        { error: '과거 날짜로는 일정을 수정할 수 없습니다.' },
-        { status: 400 }
-      )
-    }
 
     // 유형에 따른 제목 자동 생성
     let autoTitle = ""
@@ -156,7 +149,7 @@ export async function PUT(request: NextRequest) {
 
   } catch (error) {
     console.error('일정 수정 중 오류:', error)
-    
+
     return NextResponse.json(
       { error: '일정 수정 중 오류가 발생했습니다.' },
       { status: 500 }

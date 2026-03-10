@@ -159,34 +159,29 @@ export async function GET(request: NextRequest) {
       })
 
       // 2. 해당 일정의 참석 데이터 집계 (상태별, 게스트 여부별)
-      const attendanceStats = await prisma.scheduleAttendance.groupBy({
-        by: ['status', 'isGuest'],
+      // 활성 회원만 필터링하여 투표 인원 집계
+      const attendancesData = await prisma.scheduleAttendance.findMany({
         where: { scheduleId },
-        _count: { status: true }
+        include: { user: { select: { isActive: true } } }
       })
 
       // 3. 통계 계산
       let attending = 0
       let notAttending = 0
-      let votedMembers = 0
+      let activeVotedCount = 0
 
-      attendanceStats.forEach(stat => {
-        const count = stat._count.status
-        
-        if (stat.status === 'ATTENDING') {
-          attending += count
-        } else if (stat.status === 'NOT_ATTENDING') {
-          notAttending += count
-        }
+      attendancesData.forEach(att => {
+        if (att.status === 'ATTENDING') attending++
+        else if (att.status === 'NOT_ATTENDING') notAttending++
 
-        // 미정(Pending) 계산을 위해 투표한 정회원 수 집계 (게스트 제외)
-        if (!stat.isGuest && (stat.status === 'ATTENDING' || stat.status === 'NOT_ATTENDING')) {
-          votedMembers += count
+        // 미정 계산을 위해 투표한 '활성' 정회원 수 집계
+        if (!att.isGuest && att.user?.isActive && (att.status === 'ATTENDING' || att.status === 'NOT_ATTENDING')) {
+          activeVotedCount++
         }
       })
 
-      // 미정 인원 = 전체 활성 회원 - 투표한 정회원
-      const pending = Math.max(0, totalActiveUsers - votedMembers)
+      // 미정 인원 = 전체 활성 회원 - 투표한 활성 회원
+      const pending = Math.max(0, totalActiveUsers - activeVotedCount)
 
       return NextResponse.json({
         success: true,
@@ -213,7 +208,8 @@ export async function GET(request: NextRequest) {
             preferredPosition: true,
             subPositions: true,
             level: true,
-            image: true
+            image: true,
+            isActive: true
           }
         },
         invitedBy: {
@@ -229,8 +225,9 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    // 아직 투표하지 않은 사용자들도 포함 (모든 팀원)
-    const allUsers = await prisma.user.findMany({
+    // 아직 투표하지 않은 사용자들도 포함 (활성 팀원만)
+    const activeUsers = await prisma.user.findMany({
+      where: { isActive: true },
       select: {
         id: true,
         realName: true,
@@ -242,8 +239,8 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    // 참석 투표 데이터와 전체 사용자 데이터 병합
-    const regularAttendees = allUsers.map(user => {
+    // 참석 투표 데이터와 활성 사용자 데이터 병합
+    const regularAttendees = activeUsers.map(user => {
       const attendance = attendances.find(att => att.userId === user.id && !att.isGuest)
 
       // 임시 능력치 생성 (포지션 기반)
@@ -266,6 +263,27 @@ export async function GET(request: NextRequest) {
       }
     })
 
+    // 비활성 회원 중 '참석' 또는 '불참'을 이미 누른 사람도 포함 (혹시 모를 예외 처리)
+    const inactiveVotedAttendees = attendances
+      .filter(att => !att.isGuest && att.user && !att.user.isActive && att.status !== 'PENDING')
+      .map(att => {
+        // 임시 능력치
+        const rating = Math.random() * 2 + 6
+
+        return {
+          userId: att.userId,
+          name: att.user?.realName || att.user?.nickname || '이름 없음',
+          position: att.user?.preferredPosition || 'MC',
+          subPositions: att.user?.subPositions || [],
+          status: att.status.toLowerCase(),
+          rating: Number(rating.toFixed(1)),
+          level: att.user?.level || 1,
+          profileImage: att.user?.image || null,
+          updatedAt: att.updatedAt.toISOString(),
+          isGuest: false
+        }
+      })
+
     // 게스트 참석자 추가
     const guestAttendees = attendances
       .filter(att => att.isGuest)
@@ -284,7 +302,7 @@ export async function GET(request: NextRequest) {
         isGuest: true
       }))
 
-    const attendeeList = [...regularAttendees, ...guestAttendees]
+    const attendeeList = [...regularAttendees, ...inactiveVotedAttendees, ...guestAttendees]
 
     console.log(`참석자 목록 조회 완료: ${attendeeList.length}명`)
 

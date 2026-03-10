@@ -121,9 +121,9 @@ export async function GET() {
         }
       })
 
-      // 2. 비활성 회원 중 투표한 사람 (투표함)
+      // 2. 비활성 회원 중 응답한 사람 (투표함 - 단, pending 가 아닌 사람만)
       const inactiveUserAttendees = attendees.filter(a =>
-        !a.isGuest && !allUsers.some(u => u.id === a.userId)
+        !a.isGuest && !allUsers.some(u => u.id === a.userId) && a.status !== 'pending'
       )
 
       // 3. 게스트 (투표함)

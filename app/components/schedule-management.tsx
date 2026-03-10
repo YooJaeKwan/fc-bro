@@ -544,8 +544,9 @@ export function ScheduleManagement({
         const [year, month, day] = schedule.date.split('-')
         const [hours, minutes] = (schedule.time || '23:59').split(':')
         const scheduleDateTime = new Date(Number(year), Number(month) - 1, Number(day), Number(hours), Number(minutes))
-        // 시작 시간이 지나지 않은 경기만 표시
-        return scheduleDateTime > now && schedule.status === 'scheduled'
+        // 시작 후 3시간 이내(결과입력 대기)이거나 시작 전인 경기 표시
+        const endTime = new Date(scheduleDateTime.getTime() + (3 * 60 * 60 * 1000))
+        return endTime > now && schedule.status === 'scheduled'
       })
       .sort((a, b) => {
         // 날짜와 시간을 함께 비교
@@ -571,17 +572,19 @@ export function ScheduleManagement({
     const [hours, minutes] = (schedule.time || '23:59').split(':')
     const matchDateTime = new Date(Number(year), Number(month) - 1, Number(day), Number(hours), Number(minutes))
     const now = new Date()
+    // 시작 후 3시간 초과 시점부터 지난 일정으로 분류
+    const endTime = new Date(matchDateTime.getTime() + (3 * 60 * 60 * 1000))
 
     if (viewMode === 'past') {
-      // 경기 시간이 지난 경기
-      return matchDateTime <= now
+      // 경기 시작 후 3시간이 지난 경기
+      return endTime <= now
     } else {
-      // 경기 시간이 지나지 않은 경기 (upcoming)
+      // 예상, 또는 진행 중인 경기 (시작 후 3시간 이내)
       // 다음 일정은 상단에 표시되므로 목록에서 제외
       if (nextUpcomingSchedule && schedule.id === nextUpcomingSchedule.id) {
         return false
       }
-      return matchDateTime > now
+      return endTime > now
     }
   }).sort((a, b) => {
     const [yearA, monthA, dayA] = a.date.split('-')
@@ -710,12 +713,12 @@ export function ScheduleManagement({
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="internal">자체경기</SelectItem>
-                      <SelectItem value="futsal">풋살</SelectItem>
-                      <SelectItem value="match">A매치</SelectItem>
-                      <SelectItem value="training">연습</SelectItem>
-                    </SelectContent>
+                  <SelectContent>
+                    <SelectItem value="internal">자체경기</SelectItem>
+                    <SelectItem value="futsal">풋살</SelectItem>
+                    <SelectItem value="match">A매치</SelectItem>
+                    <SelectItem value="training">연습</SelectItem>
+                  </SelectContent>
                 </Select>
               </div>
 
@@ -935,8 +938,8 @@ export function ScheduleManagement({
                       <span className="font-medium">
                         {newSchedule.type === "internal" ? "자체경기" :
                           newSchedule.type === "match" ? `vs ${newSchedule.opponentTeam || "상대팀"}` :
-                        newSchedule.type === "futsal" ? "풋살" :
-                            `연습 - ${newSchedule.trainingContent || "연습내용"}`}
+                            newSchedule.type === "futsal" ? "풋살" :
+                              `연습 - ${newSchedule.trainingContent || "연습내용"}`}
                       </span>
                     </div>
                     {(() => {

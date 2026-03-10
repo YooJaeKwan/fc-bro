@@ -39,6 +39,7 @@ export async function GET(request: NextRequest) {
             select: {
                 id: true,
                 type: true,
+                matchDate: true,
                 ourScore: true,
                 opponentScore: true,
                 goalRecords: true,
@@ -54,7 +55,7 @@ export async function GET(request: NextRequest) {
         })
 
         const users = await prisma.user.findMany({
-            select: { id: true, name: true, nickname: true, realName: true, preferredPosition: true },
+            select: { id: true, name: true, nickname: true, realName: true, preferredPosition: true, createdAt: true },
             where: { isActive: true }
         })
         const validUserIds = new Set(users.map(u => u.id))
@@ -173,8 +174,17 @@ export async function GET(request: NextRequest) {
 
         // 파생 지표(출석율, 승률) 계산 및 배열로 변환
         const statsArray = Object.values(playerStats).map(stat => {
-            const attendanceRate = totalCompletedSchedules > 0 ? Math.round((stat.attendanceCount / totalCompletedSchedules) * 100) : 0
+            // 유저별 가입일 이후의 종료된 경기 수만 계산
+            const user = users.find(u => u.id === stat.id)
+            const userJoinDate = user ? new Date(user.createdAt) : yearStart
+            const userTotalCompletedSchedules = schedules.filter(s => new Date(s.matchDate) >= userJoinDate).length
+
+            const attendanceRate = userTotalCompletedSchedules > 0 ? Math.round((stat.attendanceCount / userTotalCompletedSchedules) * 100) : 0
             const winRate = stat.gamesPlayed > 0 ? Math.round((stat.wins / stat.gamesPlayed) * 100) : 0
+
+            // 전체 경기 대비 출석 비율 (랭킹 진입 조건용)
+            // (stat.attendanceCount / totalCompletedSchedules) >= 0.5
+
             return {
                 ...stat,
                 attendanceRate,
@@ -205,9 +215,12 @@ export async function GET(request: NextRequest) {
         const topScorers = getTopWithTies(statsArray, 'goals', 5);
         const topAssists = getTopWithTies(statsArray, 'assists', 5);
         const topCleanSheets = getTopWithTies(statsArray, 'cleanSheets', 5);
-        const topAttendance = getTopWithTies(statsArray, 'attendanceRate', 5);
-        // 승률은 출석율 50% 이상 기준
-        const topWinRate = getTopWithTies(statsArray, 'winRate', 5, (p) => (p.attendanceRate || 0) >= 50);
+
+        // 출석률과 승률은 "올해 전체 경기의 50프로" 이상 출석한 사람만 대상
+        const eligibilityFilter = (p: PlayerStat) => (p.attendanceCount / totalCompletedSchedules) >= 0.5;
+
+        const topAttendance = getTopWithTies(statsArray, 'attendanceRate', 5, eligibilityFilter);
+        const topWinRate = getTopWithTies(statsArray, 'winRate', 5, eligibilityFilter);
 
         // 개인 통계 (userId가 있는 경우)
         let myStats = null
@@ -238,7 +251,7 @@ export async function GET(request: NextRequest) {
                 topAttendance,
                 topWinRate,
                 myStats,
-                totalMatches: totalCompletedSchedules
+                totalMatches: schedules.length
             }
         })
 

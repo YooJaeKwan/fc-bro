@@ -101,12 +101,9 @@ export function MatchResultsView({ isManagerMode, currentUser }: MatchResultsVie
             const [hours, minutes] = schedule.time.split(':')
 
             const scheduleDate = new Date(Number(year), Number(month) - 1, Number(day), Number(hours), Number(minutes))
-            // 경기 시간이 확실히 지난 경우만 표시 (마진 2시간?) 
-            // -> 그냥 현재 시간보다 앞서면 '지난 일정'으로 간주하지만, 
-            //    경기 진행중일 수 있으니 쿼터타임 고려? 
-            //    단순히 시작시간이 지났으면 리스트에 띄우는게 결과 입력하기 좋음.
+            const endTime = new Date(scheduleDate.getTime() + (3 * 60 * 60 * 1000))
             const now = new Date()
-            return scheduleDate < now
+            return endTime < now
         })
         .sort((a, b) => {
             const [yearA, monthA, dayA] = a.date.split('-')

@@ -12,21 +12,20 @@ export async function GET(request: NextRequest) {
                 realName: true,
                 nickname: true,
                 preferredPosition: true,
+                createdAt: true,
             },
             orderBy: { realName: 'asc' }
         })
 
-        // 2. 올해 지난 일정만 조회 (날짜 순 정렬)
+        // 2. 올해 종료된 일정만 조회 (날짜 순 정렬)
         const now = new Date()
-        now.setHours(0, 0, 0, 0)
-
         const currentYear = now.getFullYear()
         const yearStart = new Date(currentYear, 0, 1) // 1월 1일
 
         const schedules = await prisma.schedule.findMany({
             where: {
+                status: 'COMPLETED',
                 matchDate: {
-                    lt: now,
                     gte: yearStart  // 올해 1월 1일 이후
                 }
             },
@@ -44,12 +43,19 @@ export async function GET(request: NextRequest) {
         })
 
         // 3. 출석 매트릭스 생성
-        // 각 유저별로, 각 일정에 참석했는지 여부를 O/X로 기록
+        // 각 유저별로, 각 일정에 참석했는지 여부를 O/X/-로 기록
         const attendanceMatrix: Record<string, Record<string, 'O' | 'X' | '-'>> = {}
 
         users.forEach(user => {
             attendanceMatrix[user.id] = {}
             schedules.forEach(schedule => {
+                // 가입일 이전 경기는 '-'로 표시
+                const isAfterJoin = new Date(schedule.matchDate) >= new Date(user.createdAt)
+                if (!isAfterJoin) {
+                    attendanceMatrix[user.id][schedule.id] = '-'
+                    return
+                }
+
                 const attended = schedule.attendances.some(a => a.userId === user.id)
                 attendanceMatrix[user.id][schedule.id] = attended ? 'O' : 'X'
             })
@@ -57,10 +63,14 @@ export async function GET(request: NextRequest) {
 
         // 4. 유저별 출석률 계산
         const userStats = users.map(user => {
-            const totalSchedules = schedules.length
-            const attendedCount = schedules.filter(s =>
+            // 유저별로 가입일 이후의 경기들만 모수(total)로 계산
+            const validSchedules = schedules.filter(s => new Date(s.matchDate) >= new Date(user.createdAt))
+            const totalSchedules = validSchedules.length
+
+            const attendedCount = validSchedules.filter(s =>
                 s.attendances.some(a => a.userId === user.id)
             ).length
+
             const rate = totalSchedules > 0 ? (attendedCount / totalSchedules) * 100 : 0
 
             return {
