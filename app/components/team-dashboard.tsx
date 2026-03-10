@@ -260,7 +260,7 @@ export function TeamDashboard({ currentUser }: TeamDashboardProps) {
                     isLoading={isLoading}
                 />
                 <RankingList
-                    title="Clean Sheets"
+                    title="Top Clean Sheets"
                     subtitle="최다 무실점 쿼터 (수비수/GK)"
                     icon={<Shield className="h-5 w-5 text-amber-500" />}
                     data={stats?.topCleanSheets || []}

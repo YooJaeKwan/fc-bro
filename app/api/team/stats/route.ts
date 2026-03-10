@@ -163,24 +163,26 @@ export async function GET(request: NextRequest) {
                 if (schedule.goalRecords && Array.isArray(schedule.goalRecords)) {
                     const goals = schedule.goalRecords as any[]
 
-                    // 보통 4쿼터까지 진행하므로 1~4쿼터 각각 체크
-                    for (let q = 1; q <= 4; q++) {
-                        // 노랑팀 무실점 여부 (상대팀인 파랑팀이 해당 쿼터에 득점하지 않음)
-                        const blueScoredInQ = goals.some(g => (g.team === 'blue' || g.team === 'away') && g.quarter === q)
-                        if (!blueScoredInQ) {
-                            rewardCleanSheets(yellowTeam, 1)
-                        }
+                    // 데이터 정합성 확인 (스코어와 실제 기록된 골 수가 일치하는지 확인)
+                    const yellowGoalsTotal = goals.filter(g => (g.team === 'yellow' || g.team === 'home')).length
+                    const blueGoalsTotal = goals.filter(g => (g.team === 'blue' || g.team === 'away')).length
 
-                        // 파랑팀 무실점 여부 (우리팀인 노랑팀이 해당 쿼터에 득점하지 않음)
-                        const yellowScoredInQ = goals.some(g => (g.team === 'yellow' || g.team === 'home') && g.quarter === q)
-                        if (!yellowScoredInQ) {
-                            rewardCleanSheets(blueTeam, 1)
+                    if (yellowGoalsTotal === schedule.ourScore && blueGoalsTotal === schedule.opponentScore) {
+                        // 보통 4쿼터까지 진행하므로 1~4쿼터 각각 체크
+                        for (let q = 1; q <= 4; q++) {
+                            // 노랑팀 무실점 여부 (상대팀인 파랑팀이 해당 쿼터에 득점하지 않음)
+                            const blueScoredInQ = goals.some(g => (g.team === 'blue' || g.team === 'away') && g.quarter === q)
+                            if (!blueScoredInQ) {
+                                rewardCleanSheets(yellowTeam, 1)
+                            }
+
+                            // 파랑팀 무실점 여부 (우리팀인 노랑팀이 해당 쿼터에 득점하지 않음)
+                            const yellowScoredInQ = goals.some(g => (g.team === 'yellow' || g.team === 'home') && g.quarter === q)
+                            if (!yellowScoredInQ) {
+                                rewardCleanSheets(blueTeam, 1)
+                            }
                         }
                     }
-                } else {
-                    // 골 기록이 없는 경우 (0:0 등), 전체 스코어 기준으로 처리
-                    if (schedule.opponentScore === 0) rewardCleanSheets(yellowTeam, 4)
-                    if (schedule.ourScore === 0) rewardCleanSheets(blueTeam, 4)
                 }
             }
         }

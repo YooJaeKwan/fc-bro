@@ -189,12 +189,15 @@ export async function GET(request: NextRequest) {
           if (isDefender) {
             if (schedule.goalRecords && Array.isArray(schedule.goalRecords)) {
               const goals = schedule.goalRecords as any[]
-              for (let q = 1; q <= 4; q++) {
-                const blueScoredInQ = goals.some(g => (g.team === 'blue' || g.team === 'away') && g.quarter === q)
-                if (!blueScoredInQ) cleanSheets++
+              const recordedYellowGoals = goals.filter(g => g.team === 'yellow' || g.team === 'home').length
+              const recordedBlueGoals = goals.filter(g => g.team === 'blue' || g.team === 'away').length
+
+              if (recordedYellowGoals === schedule.ourScore && recordedBlueGoals === schedule.opponentScore) {
+                for (let q = 1; q <= 4; q++) {
+                  const blueScoredInQ = goals.some(g => (g.team === 'blue' || g.team === 'away') && g.quarter === q)
+                  if (!blueScoredInQ) cleanSheets++
+                }
               }
-            } else if (schedule.opponentScore === 0) {
-              cleanSheets += 4
             }
           }
         } else if (isOnBlue) {
@@ -206,12 +209,15 @@ export async function GET(request: NextRequest) {
           if (isDefender) {
             if (schedule.goalRecords && Array.isArray(schedule.goalRecords)) {
               const goals = schedule.goalRecords as any[]
-              for (let q = 1; q <= 4; q++) {
-                const yellowScoredInQ = goals.some(g => (g.team === 'yellow' || g.team === 'home') && g.quarter === q)
-                if (!yellowScoredInQ) cleanSheets++
+              const recordedYellowGoals = goals.filter(g => g.team === 'yellow' || g.team === 'home').length
+              const recordedBlueGoals = goals.filter(g => g.team === 'blue' || g.team === 'away').length
+
+              if (recordedYellowGoals === schedule.ourScore && recordedBlueGoals === schedule.opponentScore) {
+                for (let q = 1; q <= 4; q++) {
+                  const yellowScoredInQ = goals.some(g => (g.team === 'yellow' || g.team === 'home') && g.quarter === q)
+                  if (!yellowScoredInQ) cleanSheets++
+                }
               }
-            } else if (schedule.ourScore === 0) {
-              cleanSheets += 4
             }
           }
         }
