@@ -184,12 +184,36 @@ export async function GET(request: NextRequest) {
           if (schedule.ourScore > schedule.opponentScore) wins++
           else if (schedule.ourScore === schedule.opponentScore) draws++
           else losses++
-          if (isDefender && schedule.opponentScore === 0) cleanSheets++
+
+          // 쿼터별 클린시트 계산
+          if (isDefender) {
+            if (schedule.goalRecords && Array.isArray(schedule.goalRecords)) {
+              const goals = schedule.goalRecords as any[]
+              for (let q = 1; q <= 4; q++) {
+                const blueScoredInQ = goals.some(g => (g.team === 'blue' || g.team === 'away') && g.quarter === q)
+                if (!blueScoredInQ) cleanSheets++
+              }
+            } else if (schedule.opponentScore === 0) {
+              cleanSheets += 4
+            }
+          }
         } else if (isOnBlue) {
           if (schedule.opponentScore > schedule.ourScore) wins++
           else if (schedule.opponentScore === schedule.ourScore) draws++
           else losses++
-          if (isDefender && schedule.ourScore === 0) cleanSheets++
+
+          // 쿼터별 클린시트 계산
+          if (isDefender) {
+            if (schedule.goalRecords && Array.isArray(schedule.goalRecords)) {
+              const goals = schedule.goalRecords as any[]
+              for (let q = 1; q <= 4; q++) {
+                const yellowScoredInQ = goals.some(g => (g.team === 'yellow' || g.team === 'home') && g.quarter === q)
+                if (!yellowScoredInQ) cleanSheets++
+              }
+            } else if (schedule.ourScore === 0) {
+              cleanSheets += 4
+            }
+          }
         }
       }
     })

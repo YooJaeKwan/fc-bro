@@ -41,6 +41,7 @@ export async function GET(request: NextRequest) {
                 type: true,
                 matchDate: true,
                 ourScore: true,
+                status: true,
                 opponentScore: true,
                 goalRecords: true,
                 mvpUserId: true,
@@ -124,12 +125,12 @@ export async function GET(request: NextRequest) {
                 const defensivePositions = ['DC', 'DR', 'DL', 'DRL', 'DRLC', 'CB', 'LB', 'RB', 'LWB', 'RWB', 'SW', 'GK']
 
                 // 해당 팀 구성원 중 수비수의 클린시트를 올려주는 함수
-                const rewardCleanSheets = (teamPlayers: any[]) => {
+                const rewardCleanSheets = (teamPlayers: any[], count: number = 1) => {
                     teamPlayers.forEach(p => {
                         if (p.userId && validUserIds.has(p.userId)) {
                             const playerPos = playerStats[p.userId].mainPosition?.toUpperCase() || ''
                             if (defensivePositions.includes(playerPos)) {
-                                playerStats[p.userId].cleanSheets += 1
+                                playerStats[p.userId].cleanSheets += count
                             }
                         }
                     })
@@ -158,14 +159,28 @@ export async function GET(request: NextRequest) {
                     processMatchResult(blueTeam, false)
                 }
 
-                // 노랑팀 무실점 (상대 스코어 === 0)
-                if (schedule.opponentScore === 0) {
-                    rewardCleanSheets(yellowTeam)
-                }
+                // 쿼터별 무실점 계산 (내전인 경우)
+                if (schedule.goalRecords && Array.isArray(schedule.goalRecords)) {
+                    const goals = schedule.goalRecords as any[]
 
-                // 파랑팀 무실점 (우리 스코어 === 0)
-                if (schedule.ourScore === 0) {
-                    rewardCleanSheets(blueTeam)
+                    // 보통 4쿼터까지 진행하므로 1~4쿼터 각각 체크
+                    for (let q = 1; q <= 4; q++) {
+                        // 노랑팀 무실점 여부 (상대팀인 파랑팀이 해당 쿼터에 득점하지 않음)
+                        const blueScoredInQ = goals.some(g => (g.team === 'blue' || g.team === 'away') && g.quarter === q)
+                        if (!blueScoredInQ) {
+                            rewardCleanSheets(yellowTeam, 1)
+                        }
+
+                        // 파랑팀 무실점 여부 (우리팀인 노랑팀이 해당 쿼터에 득점하지 않음)
+                        const yellowScoredInQ = goals.some(g => (g.team === 'yellow' || g.team === 'home') && g.quarter === q)
+                        if (!yellowScoredInQ) {
+                            rewardCleanSheets(blueTeam, 1)
+                        }
+                    }
+                } else {
+                    // 골 기록이 없는 경우 (0:0 등), 전체 스코어 기준으로 처리
+                    if (schedule.opponentScore === 0) rewardCleanSheets(yellowTeam, 4)
+                    if (schedule.ourScore === 0) rewardCleanSheets(blueTeam, 4)
                 }
             }
         }
