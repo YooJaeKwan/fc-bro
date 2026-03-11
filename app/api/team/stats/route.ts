@@ -58,12 +58,12 @@ export async function GET(request: NextRequest) {
         })
 
         const users = await prisma.user.findMany({
-            select: { 
-                id: true, 
-                name: true, 
-                nickname: true, 
-                realName: true, 
-                preferredPosition: true, 
+            select: {
+                id: true,
+                name: true,
+                nickname: true,
+                realName: true,
+                preferredPosition: true,
                 createdAt: true,
                 image: true,
                 jerseyNumber: true
@@ -135,7 +135,7 @@ export async function GET(request: NextRequest) {
                 const blueTeam: any[] = formation.blueTeam || []
 
                 // 클린시트 대상 수비/골키퍼 포지션 목록 (DB에 저장된 형태 기준)
-                const defensivePositions = ['DC', 'DR', 'DL', 'DRL', 'DRLC', 'CB', 'LB', 'RB', 'LWB', 'RWB', 'SW', 'GK', 'LRB', 'SB', 'LCB', 'RCB', 'DF']
+                const defensivePositions = ['DC', 'DR', 'DL', 'DRL', 'DRLC', 'CB', 'LB', 'RB', 'LWB', 'RWB', 'SW', 'GK', 'LRB', 'SB', 'LCB', 'RCB', 'DF', 'LRCB']
 
                 // 해당 팀 구성원 중 수비수의 클린시트를 올려주는 함수
                 const rewardCleanSheets = (teamPlayers: any[], count: number = 1) => {
