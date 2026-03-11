@@ -5,12 +5,23 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog"
 import {
     Calendar,
     CalendarCheck,
     MapPin,
     Clock,
     Users,
+    UsersRound,
     Trophy,
     ChevronRight,
     Plus,
@@ -23,8 +34,10 @@ import {
     MinusCircle,
     ChevronDown,
     ChevronUp,
+    Share2,
 } from "lucide-react"
 import { AttendanceVoting } from "./attendance-voting"
+import { generateKakaoShareText } from "@/lib/utils"
 import { MatchResultDialog } from "./match-result-dialog"
 
 interface MatchScheduleProps {
@@ -98,6 +111,11 @@ export function MatchSchedule({ isManagerMode, currentUser, onEditSchedule, onAd
     const [expandedUpcoming, setExpandedUpcoming] = useState<string | null>(null)
     const [isResultDialogOpen, setIsResultDialogOpen] = useState(false)
     const [resultEditingSchedule, setResultEditingSchedule] = useState<any>(null)
+
+    // 일정 수정 다이얼로그 상태
+    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+    const [editForm, setEditForm] = useState<any>(null)
+    const [isEditSubmitting, setIsEditSubmitting] = useState(false)
 
     const fetchSchedules = async () => {
         try {
@@ -194,42 +212,57 @@ export function MatchSchedule({ isManagerMode, currentUser, onEditSchedule, onAd
         setResultEditingSchedule(null)
     }
 
+    // 일정 수정 핸들러
+    const handleEditSchedule = (schedule: any) => {
+        if (onEditSchedule) {
+            onEditSchedule(schedule)
+            return
+        }
+        setEditForm({
+            scheduleId: schedule.id,
+            type: schedule.type || 'internal',
+            date: schedule.date || '',
+            time: schedule.time || '',
+            gatherTime: schedule.gatherTime || '',
+            location: schedule.location || '',
+            quarterTime: schedule.quarterTime || 15,
+            restTime: schedule.restTime || 3,
+            description: schedule.description || '',
+            opponentTeam: schedule.opponentTeam || '',
+        })
+        setIsEditDialogOpen(true)
+    }
+
+    const handleEditSubmit = async () => {
+        if (!editForm || !currentUser?.id) return
+        setIsEditSubmitting(true)
+        try {
+            const response = await fetch('/api/schedule/update', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ...editForm, userId: currentUser.id })
+            })
+            const result = await response.json()
+            if (!response.ok) throw new Error(result.error || '수정 중 오류')
+            setIsEditDialogOpen(false)
+            setEditForm(null)
+            fetchSchedules()
+        } catch (error) {
+            alert(error instanceof Error ? error.message : '일정 수정 중 오류가 발생했습니다.')
+        } finally {
+            setIsEditSubmitting(false)
+        }
+    }
+
     const nextMatch = upcomingSchedules[0] || null
     const otherUpcoming = upcomingSchedules.slice(1)
 
-    // 스켈레톤 로딩
+    // 로딩
     if (isLoading) {
         return (
-            <div className="space-y-8 max-w-3xl mx-auto">
-                {/* Hero skeleton */}
-                <div className="space-y-3">
-                    <Skeleton className="h-5 w-28" />
-                    <div className="rounded-2xl border p-6 space-y-4">
-                        <div className="flex items-center gap-3">
-                            <Skeleton className="h-14 w-14 rounded-xl" />
-                            <div className="space-y-2 flex-1">
-                                <Skeleton className="h-6 w-48" />
-                                <Skeleton className="h-4 w-32" />
-                            </div>
-                        </div>
-                        <Skeleton className="h-10 w-full rounded-lg" />
-                        <Skeleton className="h-20 w-full rounded-lg" />
-                    </div>
-                </div>
-                {/* Timeline skeleton */}
-                <div className="space-y-3">
-                    <Skeleton className="h-5 w-20" />
-                    {[1, 2].map(i => (
-                        <Skeleton key={i} className="h-16 w-full rounded-xl" />
-                    ))}
-                </div>
-                {/* Past skeleton */}
-                <div className="space-y-3">
-                    <Skeleton className="h-5 w-28" />
-                    {[1, 2, 3].map(i => (
-                        <Skeleton key={i} className="h-14 w-full rounded-lg" />
-                    ))}
-                </div>
+            <div className="flex items-center justify-center py-20 text-slate-500 gap-2">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                <span className="text-sm">경기 일정 불러오는 중입니다.</span>
             </div>
         )
     }
@@ -386,25 +419,140 @@ export function MatchSchedule({ isManagerMode, currentUser, onEditSchedule, onAd
                                                 hasTeamFormation={!!nextMatch.teamFormation}
                                                 formationConfirmed={nextMatch.formationConfirmed}
                                                 initialStats={nextMatch.attendanceStats}
+                                                initialAttendees={nextMatch.attendees?.map((att: any) => ({
+                                                    userId: att.userId,
+                                                    name: att.name,
+                                                    status: att.status,
+                                                    position: att.position,
+                                                    subPositions: att.subPositions,
+                                                    profileImage: att.profileImage || null,
+                                                    isGuest: att.isGuest || false,
+                                                    invitedBy: att.invitedBy,
+                                                }))}
                                                 onVoteUpdate={() => fetchSchedules()}
                                             />
                                         </div>
                                     )}
 
-                                    {/* 관리자 액션 */}
+                                    {/* 관리자 액션 버튼들 */}
                                     {isManagerMode && (
-                                        <div className="flex items-center gap-2 pt-1 border-t border-slate-100">
-                                            {onEditSchedule && (
-                                                <Button size="sm" variant="ghost" className="text-xs text-slate-500 gap-1" onClick={() => onEditSchedule(nextMatch)}>
+                                        <div className="space-y-2 pt-2 border-t border-slate-100">
+                                            <div className="flex gap-2 flex-wrap">
+                                                {/* 게스트 허용 버튼 (내부경기/풋살만) */}
+                                                {(nextMatch.type === 'internal' || nextMatch.type === 'futsal') && (
+                                                    <Button
+                                                        onClick={async () => {
+                                                            try {
+                                                                const response = await fetch('/api/schedule/toggle-guests', {
+                                                                    method: 'POST',
+                                                                    headers: { 'Content-Type': 'application/json' },
+                                                                    body: JSON.stringify({
+                                                                        scheduleId: nextMatch.id,
+                                                                        userId: currentUser?.id,
+                                                                        allowGuests: !nextMatch.allowGuests
+                                                                    })
+                                                                })
+                                                                if (response.ok) fetchSchedules()
+                                                            } catch (error) {
+                                                                console.error('게스트 허용 상태 변경 오류:', error)
+                                                            }
+                                                        }}
+                                                        variant={nextMatch.allowGuests ? "destructive" : "outline"}
+                                                        size="sm"
+                                                        className={`flex-1 text-xs ${nextMatch.allowGuests ? '' : 'bg-yellow-400 hover:bg-yellow-500 text-black'}`}
+                                                    >
+                                                        {nextMatch.allowGuests ? '게스트 중단' : '게스트 허용'}
+                                                    </Button>
+                                                )}
+
+                                                {/* 공유 버튼 */}
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="flex-1 text-xs bg-green-100 text-green-700 border-green-300 hover:bg-green-200"
+                                                    onClick={async () => {
+                                                        const text = generateKakaoShareText(nextMatch, isManagerMode)
+                                                        try {
+                                                            await navigator.clipboard.writeText(text)
+                                                            alert('경기 정보가 클립보드에 복사되었습니다.\n카카오톡 채팅창에 붙여넣기(Ctrl+V) 하세요.')
+                                                        } catch (err) {
+                                                            prompt('아래 텍스트를 복사하세요:', text)
+                                                        }
+                                                    }}
+                                                >
+                                                    <Share2 className="h-3.5 w-3.5 mr-1" /> 공유
+                                                </Button>
+
+                                                {/* 자동 팀편성 버튼 (내부경기/풋살만) */}
+                                                {(nextMatch.type === 'internal' || nextMatch.type === 'futsal') && (() => {
+                                                    const daysLeft = calculateDaysLeft(nextMatch.date)
+                                                    const attendingCount = nextMatch.attendees?.filter((a: any) => a.status === 'attending').length || 0
+                                                    const minMembers = nextMatch.type === 'futsal' ? 4 : 10
+                                                    const isEnoughMembers = attendingCount >= minMembers
+                                                    const isTimeReady = daysLeft <= 2
+                                                    const isEnabled = isEnoughMembers && isTimeReady
+
+                                                    return (
+                                                        <Button
+                                                            onClick={async () => {
+                                                                let teamCount = 2
+                                                                if (nextMatch.type === 'futsal') {
+                                                                    const userInput = window.prompt('팀 수를 입력하세요 (2 또는 3)', '3')
+                                                                    if (userInput === null) return
+                                                                    teamCount = parseInt(userInput)
+                                                                    if (isNaN(teamCount) || (teamCount !== 2 && teamCount !== 3)) {
+                                                                        alert('2 또는 3을 입력해야 합니다.')
+                                                                        return
+                                                                    }
+                                                                } else {
+                                                                    if (!confirm('자동 팀편성을 실행하시겠습니까?')) return
+                                                                }
+                                                                try {
+                                                                    const response = await fetch('/api/schedule/team-formation', {
+                                                                        method: 'POST',
+                                                                        headers: { 'Content-Type': 'application/json' },
+                                                                        body: JSON.stringify({
+                                                                            scheduleId: nextMatch.id,
+                                                                            userId: currentUser?.id,
+                                                                            teamCount
+                                                                        })
+                                                                    })
+                                                                    const result = await response.json()
+                                                                    if (result.success) {
+                                                                        alert('팀편성이 완료되었습니다.')
+                                                                        fetchSchedules()
+                                                                    } else {
+                                                                        alert(result.error || '팀편성 중 오류가 발생했습니다.')
+                                                                    }
+                                                                } catch (error) {
+                                                                    console.error('팀편성 오류:', error)
+                                                                    alert('팀편성 처리 중 오류가 발생했습니다.')
+                                                                }
+                                                            }}
+                                                            disabled={!isEnabled}
+                                                            variant="default"
+                                                            size="sm"
+                                                            className="flex-1 text-xs bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:text-gray-500"
+                                                        >
+                                                            <UsersRound className="h-3.5 w-3.5 mr-1" />
+                                                            {!isEnoughMembers ? `팀편성 (${attendingCount}/${minMembers}명)` :
+                                                                !isTimeReady ? `팀편성 (D-${daysLeft})` :
+                                                                    '자동 팀편성'
+                                                            }
+                                                        </Button>
+                                                    )
+                                                })()}
+                                            </div>
+
+                                            {/* 수정/삭제 */}
+                                            <div className="flex items-center gap-2">
+                                                <Button size="sm" variant="ghost" className="text-xs text-slate-500 gap-1" onClick={() => handleEditSchedule(nextMatch)}>
                                                     <Pencil className="h-3 w-3" /> 수정
                                                 </Button>
-                                            )}
-                                            <Button size="sm" variant="ghost" className="text-xs text-slate-500 gap-1" onClick={() => handleOpenResultDialog(nextMatch)}>
-                                                <ClipboardEdit className="h-3 w-3" /> 결과입력
-                                            </Button>
-                                            <Button size="sm" variant="ghost" className="text-xs text-rose-400 gap-1 ml-auto" onClick={() => handleDeleteSchedule(nextMatch.id, nextMatch.title)}>
-                                                <Trash2 className="h-3 w-3" /> 삭제
-                                            </Button>
+                                                <Button size="sm" variant="ghost" className="text-xs text-rose-400 gap-1 ml-auto" onClick={() => handleDeleteSchedule(nextMatch.id, nextMatch.title)}>
+                                                    <Trash2 className="h-3 w-3" /> 삭제
+                                                </Button>
+                                            </div>
                                         </div>
                                     )}
                                 </div>
@@ -427,7 +575,7 @@ export function MatchSchedule({ isManagerMode, currentUser, onEditSchedule, onAd
                                                     }`}
                                                 onClick={() => setExpandedUpcoming(isExpanded ? null : schedule.id)}
                                             >
-                                                {/* 날짜 블록 */}
+                                                {/* 날짜+시간 블록 */}
                                                 <div className="flex flex-col items-center justify-center w-12 flex-shrink-0">
                                                     <span className="text-xs text-slate-400 font-medium">
                                                         {(() => {
@@ -437,6 +585,9 @@ export function MatchSchedule({ isManagerMode, currentUser, onEditSchedule, onAd
                                                     </span>
                                                     <span className="text-lg font-bold text-slate-700 leading-tight">
                                                         {schedule.date.split('-')[2]}
+                                                    </span>
+                                                    <span className="text-[10px] font-semibold text-blue-600 mt-0.5">
+                                                        {schedule.time}
                                                     </span>
                                                 </div>
 
@@ -452,15 +603,12 @@ export function MatchSchedule({ isManagerMode, currentUser, onEditSchedule, onAd
                                                             <span className="text-xs font-medium text-slate-600 truncate">vs {schedule.opponentTeam}</span>
                                                         )}
                                                     </div>
-                                                    <div className="flex items-center gap-2 text-xs text-slate-500">
-                                                        <span>{schedule.time}</span>
-                                                        {schedule.location && (
-                                                            <>
-                                                                <span className="text-slate-300">·</span>
-                                                                <span className="truncate">{schedule.location}</span>
-                                                            </>
-                                                        )}
-                                                    </div>
+                                                    {schedule.location && (
+                                                        <div className="flex items-center gap-1 text-xs text-slate-500">
+                                                            <MapPin className="h-3 w-3 text-slate-400 flex-shrink-0" />
+                                                            <span className="truncate">{schedule.location}</span>
+                                                        </div>
+                                                    )}
                                                 </div>
 
                                                 {/* 우측: D-day + 참석 수 */}
@@ -522,6 +670,16 @@ export function MatchSchedule({ isManagerMode, currentUser, onEditSchedule, onAd
                                                             hasTeamFormation={!!schedule.teamFormation}
                                                             formationConfirmed={schedule.formationConfirmed}
                                                             initialStats={schedule.attendanceStats}
+                                                            initialAttendees={schedule.attendees?.map((att: any) => ({
+                                                                userId: att.userId,
+                                                                name: att.name,
+                                                                status: att.status,
+                                                                position: att.position,
+                                                                subPositions: att.subPositions,
+                                                                profileImage: att.profileImage || null,
+                                                                isGuest: att.isGuest || false,
+                                                                invitedBy: att.invitedBy,
+                                                            }))}
                                                             onVoteUpdate={() => fetchSchedules()}
                                                         />
                                                     )}
@@ -533,13 +691,8 @@ export function MatchSchedule({ isManagerMode, currentUser, onEditSchedule, onAd
                                                     {/* 관리자 액션 */}
                                                     {isManagerMode && (
                                                         <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
-                                                            {onEditSchedule && (
-                                                                <Button size="sm" variant="ghost" className="text-xs text-slate-500 gap-1 h-7" onClick={() => onEditSchedule(schedule)}>
-                                                                    <Pencil className="h-3 w-3" /> 수정
-                                                                </Button>
-                                                            )}
-                                                            <Button size="sm" variant="ghost" className="text-xs text-slate-500 gap-1 h-7" onClick={() => handleOpenResultDialog(schedule)}>
-                                                                <ClipboardEdit className="h-3 w-3" /> 결과입력
+                                                            <Button size="sm" variant="ghost" className="text-xs text-slate-500 gap-1 h-7" onClick={() => handleEditSchedule(schedule)}>
+                                                                <Pencil className="h-3 w-3" /> 수정
                                                             </Button>
                                                             <Button size="sm" variant="ghost" className="text-xs text-rose-400 gap-1 h-7 ml-auto" onClick={() => handleDeleteSchedule(schedule.id, schedule.title)}>
                                                                 <Trash2 className="h-3 w-3" /> 삭제
@@ -611,75 +764,143 @@ export function MatchSchedule({ isManagerMode, currentUser, onEditSchedule, onAd
                                             const hasScore = schedule.ourScore != null && schedule.opponentScore != null
 
                                             return (
-                                                <div
-                                                    key={schedule.id}
-                                                    className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-all ${style.bg} ${style.border} hover:shadow-sm`}
-                                                >
-                                                    {/* 결과 인디케이터 */}
-                                                    <div className={`w-1 h-10 rounded-full flex-shrink-0 ${style.accent}`} />
+                                                <div key={schedule.id} className="space-y-0">
+                                                    <div
+                                                        className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-all ${style.bg} ${style.border} hover:shadow-sm`}
+                                                    >
+                                                        {/* 결과 인디케이터 */}
+                                                        <div className={`w-1 h-10 rounded-full flex-shrink-0 ${style.accent}`} />
 
-                                                    {/* 날짜 */}
-                                                    <div className="flex flex-col items-center w-10 flex-shrink-0">
-                                                        <span className="text-[11px] text-slate-400 font-medium">
-                                                            {(() => {
-                                                                const d = parseScheduleDate(schedule.date)
-                                                                return d.toLocaleDateString('ko-KR', { weekday: 'short' })
-                                                            })()}
-                                                        </span>
-                                                        <span className="text-base font-bold text-slate-700 leading-tight">
-                                                            {schedule.date.split('-')[2]}
-                                                        </span>
-                                                    </div>
+                                                        {/* 날짜 */}
+                                                        <div className="flex flex-col items-center w-10 flex-shrink-0">
+                                                            <span className="text-[11px] text-slate-400 font-medium">
+                                                                {(() => {
+                                                                    const d = parseScheduleDate(schedule.date)
+                                                                    return d.toLocaleDateString('ko-KR', { weekday: 'short' })
+                                                                })()}
+                                                            </span>
+                                                            <span className="text-base font-bold text-slate-700 leading-tight">
+                                                                {schedule.date.split('-')[2]}
+                                                            </span>
+                                                        </div>
 
-                                                    {/* 경기 정보 */}
-                                                    <div className="flex-1 min-w-0">
-                                                        <div className="flex items-center gap-1.5 mb-0.5">
-                                                            <Badge variant="outline" className={`text-[10px] font-semibold px-1.5 py-0 ${typeInfo.color}`}>
-                                                                {typeInfo.label}
-                                                            </Badge>
-                                                            {schedule.opponentTeam && (
-                                                                <span className="text-xs font-medium text-slate-600 truncate">vs {schedule.opponentTeam}</span>
+                                                        {/* 경기 정보 */}
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="flex items-center gap-1.5 mb-0.5">
+                                                                <Badge variant="outline" className={`text-[10px] font-semibold px-1.5 py-0 ${typeInfo.color}`}>
+                                                                    {typeInfo.label}
+                                                                </Badge>
+                                                                {schedule.opponentTeam && (
+                                                                    <span className="text-xs font-medium text-slate-600 truncate">vs {schedule.opponentTeam}</span>
+                                                                )}
+                                                            </div>
+                                                            <div className="flex items-center gap-2 text-[11px] text-slate-500">
+                                                                {schedule.location && <span className="truncate">{schedule.location}</span>}
+                                                            </div>
+                                                        </div>
+
+                                                        {/* 스코어 + 결과수정 */}
+                                                        <div className="flex items-center gap-2 flex-shrink-0">
+                                                            {hasScore ? (
+                                                                <div className="flex items-center gap-1">
+                                                                    <span className={`text-[9px] font-bold px-1 py-0.5 rounded ${schedule.type === 'internal' ? 'bg-amber-100 text-amber-700' : 'bg-sky-100 text-sky-700'}`}>
+                                                                        {schedule.type === 'internal' ? 'Y' : 'H'}
+                                                                    </span>
+                                                                    <span className={`text-lg font-black tabular-nums ${result === 'win' ? 'text-emerald-700' : result === 'loss' ? 'text-rose-700' : 'text-slate-600'}`}>
+                                                                        {schedule.ourScore}
+                                                                    </span>
+                                                                    <span className="text-xs text-slate-400 font-medium">:</span>
+                                                                    <span className={`text-lg font-black tabular-nums ${result === 'loss' ? 'text-emerald-700' : result === 'win' ? 'text-rose-700' : 'text-slate-600'}`}>
+                                                                        {schedule.opponentScore}
+                                                                    </span>
+                                                                    <span className={`text-[9px] font-bold px-1 py-0.5 rounded ${schedule.type === 'internal' ? 'bg-blue-100 text-blue-700' : 'bg-rose-100 text-rose-700'}`}>
+                                                                        {schedule.type === 'internal' ? 'B' : 'A'}
+                                                                    </span>
+                                                                    <Badge className={`text-[10px] font-bold ml-1 ${result === 'win' ? 'bg-emerald-500 hover:bg-emerald-600' :
+                                                                            result === 'draw' ? 'bg-slate-400 hover:bg-slate-500' :
+                                                                                'bg-rose-500 hover:bg-rose-600'
+                                                                        } text-white border-0`}>
+                                                                        {style.label}
+                                                                    </Badge>
+                                                                    {isManagerMode && (
+                                                                        <button
+                                                                            className="ml-1 p-1 rounded-md text-slate-300 hover:text-slate-500 hover:bg-slate-100 transition-colors"
+                                                                            onClick={() => handleOpenResultDialog(schedule)}
+                                                                            title="결과 수정"
+                                                                        >
+                                                                            <Pencil className="h-3 w-3" />
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                            ) : (
+                                                                isManagerMode ? (
+                                                                    <Button
+                                                                        size="sm"
+                                                                        variant="outline"
+                                                                        className="text-[11px] h-7 gap-1 text-amber-600 border-amber-200 hover:bg-amber-50"
+                                                                        onClick={() => handleOpenResultDialog(schedule)}
+                                                                    >
+                                                                        <ClipboardEdit className="h-3 w-3" />
+                                                                        결과입력
+                                                                    </Button>
+                                                                ) : (
+                                                                    <span className="text-xs text-slate-400">결과 미입력</span>
+                                                                )
                                                             )}
                                                         </div>
-                                                        <div className="flex items-center gap-2 text-[11px] text-slate-500">
-                                                            {schedule.location && <span className="truncate">{schedule.location}</span>}
-                                                        </div>
                                                     </div>
 
-                                                    {/* 스코어 */}
-                                                    <div className="flex items-center gap-2 flex-shrink-0">
-                                                        {hasScore ? (
-                                                            <div className="flex items-center gap-1.5">
-                                                                <span className={`text-lg font-black tabular-nums ${result === 'win' ? 'text-emerald-700' : result === 'loss' ? 'text-rose-700' : 'text-slate-600'}`}>
-                                                                    {schedule.ourScore}
-                                                                </span>
-                                                                <span className="text-xs text-slate-400 font-medium">-</span>
-                                                                <span className={`text-lg font-black tabular-nums ${result === 'loss' ? 'text-emerald-700' : result === 'win' ? 'text-rose-700' : 'text-slate-600'}`}>
-                                                                    {schedule.opponentScore}
-                                                                </span>
-                                                                <Badge className={`text-[10px] font-bold ml-1 ${result === 'win' ? 'bg-emerald-500 hover:bg-emerald-600' :
-                                                                        result === 'draw' ? 'bg-slate-400 hover:bg-slate-500' :
-                                                                            'bg-rose-500 hover:bg-rose-600'
-                                                                    } text-white border-0`}>
-                                                                    {style.label}
-                                                                </Badge>
+                                                    {/* 골 기록 — 쿼터별 그룹 */}
+                                                    {schedule.goalRecords && Array.isArray(schedule.goalRecords) && schedule.goalRecords.length > 0 && (() => {
+                                                        // 쿼터별 그룹핑
+                                                        const byQuarter: Record<number, any[]> = {}
+                                                        ;[...schedule.goalRecords]
+                                                            .sort((a: any, b: any) => (a.quarter || 1) - (b.quarter || 1))
+                                                            .forEach((g: any) => {
+                                                                const q = g.quarter || 1
+                                                                if (!byQuarter[q]) byQuarter[q] = []
+                                                                byQuarter[q].push(g)
+                                                            })
+
+                                                        return (
+                                                            <div className="ml-14 mr-2 -mt-1 mb-1">
+                                                                <div className="border-l-2 border-slate-200 pl-3 py-1.5 space-y-0">
+                                                                    {Object.entries(byQuarter).map(([quarter, goals]) =>
+                                                                        goals.map((goal: any, idx: number) => (
+                                                                            <div key={`${quarter}-${idx}`} className="grid grid-cols-[24px_1fr] gap-2 items-center min-h-[22px]">
+                                                                                {/* 쿼터 뱃지: 첫 번째 골에만 표시 */}
+                                                                                {idx === 0 ? (
+                                                                                    <span className="inline-flex items-center justify-center w-6 h-5 rounded bg-slate-100 text-[10px] font-bold text-slate-500">
+                                                                                        {quarter}Q
+                                                                                    </span>
+                                                                                ) : (
+                                                                                    <span />
+                                                                                )}
+                                                                                {/* 골 정보 */}
+                                                                                <span className="inline-flex items-center gap-1 text-[11px]">
+                                                                                    <span className="text-[10px]">⚽</span>
+                                                                                    <span className={`font-semibold ${
+                                                                                        goal.scorerId === 'own_goal'
+                                                                                            ? 'text-rose-500 line-through'
+                                                                                            : goal.team === 'yellow'
+                                                                                                ? 'text-amber-700'
+                                                                                                : 'text-blue-700'
+                                                                                    }`}>
+                                                                                        {goal.scorerName}
+                                                                                    </span>
+                                                                                    {goal.assistName && (
+                                                                                        <span className="text-slate-400 font-normal">
+                                                                                            (도움 : {goal.assistName})
+                                                                                        </span>
+                                                                                    )}
+                                                                                </span>
+                                                                            </div>
+                                                                        ))
+                                                                    )}
+                                                                </div>
                                                             </div>
-                                                        ) : (
-                                                            isManagerMode ? (
-                                                                <Button
-                                                                    size="sm"
-                                                                    variant="outline"
-                                                                    className="text-[11px] h-7 gap-1 text-amber-600 border-amber-200 hover:bg-amber-50"
-                                                                    onClick={() => handleOpenResultDialog(schedule)}
-                                                                >
-                                                                    <ClipboardEdit className="h-3 w-3" />
-                                                                    결과입력
-                                                                </Button>
-                                                            ) : (
-                                                                <span className="text-xs text-slate-400">결과 미입력</span>
-                                                            )
-                                                        )}
-                                                    </div>
+                                                        )
+                                                    })()}
                                                 </div>
                                             )
                                         })}
@@ -690,6 +911,75 @@ export function MatchSchedule({ isManagerMode, currentUser, onEditSchedule, onAd
                     </div>
                 )}
             </section>
+
+            {/* 일정 수정 다이얼로그 */}
+            <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+                <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>일정 수정</DialogTitle>
+                    </DialogHeader>
+                    {editForm && (
+                        <div className="space-y-4 pt-2">
+                            <div className="space-y-2">
+                                <Label>경기 유형</Label>
+                                <Select value={editForm.type} onValueChange={(v) => setEditForm({ ...editForm, type: v })}>
+                                    <SelectTrigger><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="internal">자체경기</SelectItem>
+                                        <SelectItem value="match">A매치</SelectItem>
+                                        <SelectItem value="training">연습</SelectItem>
+                                        <SelectItem value="futsal">풋살</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            {(editForm.type === 'match') && (
+                                <div className="space-y-2">
+                                    <Label>상대팀</Label>
+                                    <Input value={editForm.opponentTeam} onChange={(e) => setEditForm({ ...editForm, opponentTeam: e.target.value })} placeholder="상대팀명" />
+                                </div>
+                            )}
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-2">
+                                    <Label>날짜</Label>
+                                    <Input type="date" value={editForm.date} onChange={(e) => setEditForm({ ...editForm, date: e.target.value })} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>경기 시간</Label>
+                                    <Input type="time" value={editForm.time} onChange={(e) => setEditForm({ ...editForm, time: e.target.value })} />
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <Label>집합 시간</Label>
+                                <Input type="time" value={editForm.gatherTime} onChange={(e) => setEditForm({ ...editForm, gatherTime: e.target.value })} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>장소</Label>
+                                <Input value={editForm.location} onChange={(e) => setEditForm({ ...editForm, location: e.target.value })} placeholder="경기 장소" />
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-2">
+                                    <Label>쿼터 시간(분)</Label>
+                                    <Input type="number" value={editForm.quarterTime} onChange={(e) => setEditForm({ ...editForm, quarterTime: Number(e.target.value) })} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>쉬는 시간(분)</Label>
+                                    <Input type="number" value={editForm.restTime} onChange={(e) => setEditForm({ ...editForm, restTime: Number(e.target.value) })} />
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <Label>설명</Label>
+                                <Textarea value={editForm.description} onChange={(e) => setEditForm({ ...editForm, description: e.target.value })} placeholder="경기 설명" rows={3} />
+                            </div>
+                            <div className="flex gap-2 pt-2">
+                                <Button variant="outline" className="flex-1" onClick={() => setIsEditDialogOpen(false)}>취소</Button>
+                                <Button className="flex-1" onClick={handleEditSubmit} disabled={isEditSubmitting}>
+                                    {isEditSubmitting ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> 저장 중...</> : '저장'}
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
 
             {/* 결과 입력 다이얼로그 */}
             <MatchResultDialog

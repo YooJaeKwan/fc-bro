@@ -102,114 +102,114 @@ const RankingList = ({
     const styles = themeStyles[theme]
 
     return (
-        <Card className="overflow-hidden border-slate-200 shadow-sm hover:shadow-md transition-shadow duration-300">
-            <CardHeader className="pb-0 pt-5 px-5">
-                <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                        <div className={cn("p-2 rounded-lg bg-slate-50 shrink-0", styles.bg)}>
-                            {icon}
-                        </div>
-                        <div>
-                            <CardTitle className="text-lg font-bold text-slate-800 whitespace-nowrap">
-                                {title}
-                            </CardTitle>
-                            <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">
-                                {subtitle}
-                            </p>
-                        </div>
+        <div className="space-y-2">
+            {/* 타이틀 영역 (카드 밖) */}
+            <div className="flex items-center gap-3 px-1">
+                <div className={cn("p-2 rounded-lg bg-slate-50 shrink-0 border", styles.bg, styles.border)}>
+                    {icon}
+                </div>
+                <div>
+                    <h3 className="text-lg font-bold text-slate-800 whitespace-nowrap">
+                        {title}
+                    </h3>
+                    <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">
+                        {subtitle}
+                    </p>
+                </div>
+            </div>
+
+            {/* 리더보드 (카드 안) */}
+            <Card className="overflow-hidden border-slate-200 shadow-sm hover:shadow-md transition-shadow duration-300">
+                <CardContent className="p-0">
+                    <div className="grid grid-cols-12 gap-2 px-5 py-2 bg-slate-50/50 border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                        <div className="col-span-2 text-center">Rank</div>
+                        <div className="col-span-7">Player</div>
+                        <div className="col-span-3 text-right">Count</div>
                     </div>
-                    <div className={cn("h-1 w-12 rounded-full opacity-20", `bg-gradient-to-r ${styles.gradient}`)} />
-                </div>
-            </CardHeader>
-            <CardContent className="p-0 mt-4">
-                <div className="grid grid-cols-12 gap-2 px-5 py-2 bg-slate-50/50 border-y border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                    <div className="col-span-2 text-center">Rank</div>
-                    <div className="col-span-7">Player</div>
-                    <div className="col-span-3 text-right">Count</div>
-                </div>
 
-                <div className="px-3 py-2">
-                    {isLoading ? (
-                        <div className="space-y-2 px-2">
-                            {[1, 2, 3, 4, 5].map(i => (
-                                <Skeleton key={i} className="h-10 w-full rounded-md" />
-                            ))}
-                        </div>
-                    ) : data.length === 0 ? (
-                        <div className="text-center py-8 text-sm text-slate-400">
-                            아직 기록이 없습니다
-                        </div>
-                    ) : (
-                        <div className="space-y-1">
-                            {data.map((player, idx) => {
-                                const currentValue = player[valueKey];
-                                const rank = data.findIndex(p => p[valueKey] === currentValue) + 1;
+                    <div className="px-3 py-2">
+                        {isLoading ? (
+                            <div className="space-y-2 px-2">
+                                {[1, 2, 3, 4, 5].map(i => (
+                                    <Skeleton key={i} className="h-10 w-full rounded-md" />
+                                ))}
+                            </div>
+                        ) : data.length === 0 ? (
+                            <div className="text-center py-8 text-sm text-slate-400">
+                                아직 기록이 없습니다
+                            </div>
+                        ) : (
+                            <div className="space-y-1">
+                                {data.map((player, idx) => {
+                                    const currentValue = player[valueKey];
+                                    const rank = data.findIndex(p => p[valueKey] === currentValue) + 1;
 
-                                return (
-                                    <div
-                                        key={player.id}
-                                        className={cn(
-                                            "grid grid-cols-12 gap-2 items-center py-2.5 px-2 rounded-lg transition-all",
-                                            rank === 1 ? styles.rank1 : "hover:bg-slate-50",
-                                            rank !== 1 && "text-slate-600"
-                                        )}
-                                    >
-                                        <div className="col-span-2 flex justify-center">
-                                            {rank === 1 ? (
-                                                <Crown className={cn("h-5 w-5", styles.icon)} fill="currentColor" fillOpacity={0.2} />
-                                            ) : rank === 2 ? (
-                                                <div className="relative flex items-center justify-center h-6 w-6 rounded-full bg-slate-100 text-slate-500 font-bold text-xs border border-slate-200">
-                                                    2
-                                                </div>
-                                            ) : rank === 3 ? (
-                                                <div className="relative flex items-center justify-center h-6 w-6 rounded-full bg-orange-50 text-orange-700 font-bold text-xs border border-orange-100">
-                                                    3
-                                                </div>
-                                            ) : (
-                                                <span className="text-sm font-medium text-slate-400 w-6 text-center">{rank}</span>
+                                    return (
+                                        <div
+                                            key={player.id}
+                                            className={cn(
+                                                "grid grid-cols-12 gap-2 items-center py-2.5 px-2 rounded-lg transition-all",
+                                                rank === 1 ? styles.rank1 : "hover:bg-slate-50",
+                                                rank !== 1 && "text-slate-600"
                                             )}
-                                        </div>
-
-                                        <div className="col-span-7 flex items-center gap-2 overflow-hidden">
-                                            <div className="flex flex-col">
-                                                <div className="flex items-center gap-2">
-                                                    <span className={cn(
-                                                        "text-sm truncate",
-                                                        rank === 1 ? "font-bold" : "font-medium"
-                                                    )}>
-                                                        {player.name}
-                                                    </span>
-                                                    {rank === 1 && (
-                                                        <Badge variant="secondary" className="h-4 px-1 text-[9px] bg-white/50 text-slate-600 border-0">
-                                                            TOP
-                                                        </Badge>
-                                                    )}
-                                                </div>
-                                                {valueKey === 'winRate' && player.gamesPlayed !== undefined && player.wins !== undefined && (
-                                                    <span className="text-[10px] text-slate-400 mt-0.5">
-                                                        {player.wins}승 {player.gamesPlayed - player.wins}패
-                                                    </span>
+                                        >
+                                            <div className="col-span-2 flex justify-center">
+                                                {rank === 1 ? (
+                                                    <Crown className={cn("h-5 w-5", styles.icon)} fill="currentColor" fillOpacity={0.2} />
+                                                ) : rank === 2 ? (
+                                                    <div className="relative flex items-center justify-center h-6 w-6 rounded-full bg-slate-100 text-slate-500 font-bold text-xs border border-slate-200">
+                                                        2
+                                                    </div>
+                                                ) : rank === 3 ? (
+                                                    <div className="relative flex items-center justify-center h-6 w-6 rounded-full bg-orange-50 text-orange-700 font-bold text-xs border border-orange-100">
+                                                        3
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-sm font-medium text-slate-400 w-6 text-center">{rank}</span>
                                                 )}
                                             </div>
-                                        </div>
 
-                                        <div className="col-span-3 text-right">
-                                            <span className={cn(
-                                                "text-base font-black tabular-nums tracking-tight",
-                                                rank === 1 ? styles.accent : "text-slate-700"
-                                            )}>
-                                                {player[valueKey]}
-                                            </span>
-                                            <span className="text-[10px] text-slate-400 ml-1 font-medium">{unit}</span>
+                                            <div className="col-span-7 flex items-center gap-2 overflow-hidden">
+                                                <div className="flex flex-col">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className={cn(
+                                                            "text-sm truncate",
+                                                            rank === 1 ? "font-bold" : "font-medium"
+                                                        )}>
+                                                            {player.name}
+                                                        </span>
+                                                        {rank === 1 && (
+                                                            <Badge variant="secondary" className="h-4 px-1 text-[9px] bg-white/50 text-slate-600 border-0">
+                                                                TOP
+                                                            </Badge>
+                                                        )}
+                                                    </div>
+                                                    {valueKey === 'winRate' && player.gamesPlayed !== undefined && player.wins !== undefined && (
+                                                        <span className="text-[10px] text-slate-400 mt-0.5">
+                                                            {player.wins}승 {player.gamesPlayed - player.wins}패
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            <div className="col-span-3 text-right">
+                                                <span className={cn(
+                                                    "text-base font-black tabular-nums tracking-tight",
+                                                    rank === 1 ? styles.accent : "text-slate-700"
+                                                )}>
+                                                    {player[valueKey]}
+                                                </span>
+                                                <span className="text-[10px] text-slate-400 ml-1 font-medium">{unit}</span>
+                                            </div>
                                         </div>
-                                    </div>
-                                )
-                            })}
-                        </div>
-                    )}
-                </div>
-            </CardContent>
-        </Card>
+                                    )
+                                })}
+                            </div>
+                        )}
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
     )
 }
 
