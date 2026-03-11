@@ -16,6 +16,8 @@ interface PlayerStat {
     attendanceRate?: number // 파생: 출석율
     winRate?: number        // 파생: 승률
     mainPosition?: string   // 추가: 클린시트 판별용 주 포지션
+    image?: string          // 추가: 프로필 사진
+    jerseyNumber?: number | string // 추가: 등번호
 }
 
 export async function GET(request: NextRequest) {
@@ -56,7 +58,16 @@ export async function GET(request: NextRequest) {
         })
 
         const users = await prisma.user.findMany({
-            select: { id: true, name: true, nickname: true, realName: true, preferredPosition: true, createdAt: true },
+            select: { 
+                id: true, 
+                name: true, 
+                nickname: true, 
+                realName: true, 
+                preferredPosition: true, 
+                createdAt: true,
+                image: true,
+                jerseyNumber: true
+            },
             where: { isActive: true }
         })
         const validUserIds = new Set(users.map(u => u.id))
@@ -68,6 +79,8 @@ export async function GET(request: NextRequest) {
                 id: u.id,
                 name: u.realName || u.nickname || u.name || '',
                 mainPosition: u.preferredPosition || '',
+                image: u.image || '',
+                jerseyNumber: u.jerseyNumber || '',
                 goals: 0,
                 assists: 0,
                 mvpCount: 0,

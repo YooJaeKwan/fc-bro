@@ -11,9 +11,12 @@ import {
   Users,
   ClipboardList,
   Image as ImageIcon,
+  BarChart3,
+  Settings,
 } from "lucide-react"
 import { UserProfile } from "./components/user-profile"
 import { DashboardHome } from "./components/dashboard-home"
+import { PersonalRecord } from "./components/personal-record"
 import { Announcements } from "./components/announcements"
 import { TeamDashboard } from "./components/team-dashboard"
 import { BottomNav, type MainTab } from "./components/bottom-nav"
@@ -44,11 +47,11 @@ const defaultTeamInfo = {
 
 // 메인 탭 라벨
 const tabLabels: Record<MainTab, string> = {
-  home: "홈",
-  schedule: "경기일정",
-  team: "팀",
-  ranking: "랭킹",
-  profile: "내 정보",
+  home: "Home",
+  schedule: "Schedule",
+  team: "Team",
+  ranking: "Ranking",
+  profile: "My",
 }
 
 interface DashboardProps {
@@ -59,6 +62,7 @@ interface DashboardProps {
 
 // Team 탭 내부 서브탭
 type TeamSubTab = 'members' | 'attendance' | 'album'
+type ProfileSubTab = 'record' | 'info'
 
 export default function Dashboard({ userInfo, onUserUpdate, onLogout }: DashboardProps) {
   const [user, setUser] = useState(userInfo || {
@@ -79,44 +83,64 @@ export default function Dashboard({ userInfo, onUserUpdate, onLogout }: Dashboar
     setIsManagerMode(user?.role === 'ADMIN')
   }, [user?.role])
 
-  const [activeTab, setActiveTab] = useState<MainTab>("home")
+  const [activeTab, setActiveTab] = useState<MainTab>("schedule")
   const [teamSubTab, setTeamSubTab] = useState<TeamSubTab>("members")
+  const [profileSubTab, setProfileSubTab] = useState<ProfileSubTab>("record")
   const [isManagerMode, setIsManagerMode] = useState(user?.role === 'ADMIN')
 
   // Team 서브탭 아이템
   const teamSubTabs = [
     { value: "members" as TeamSubTab, label: "멤버", icon: Users },
-    ...(isManagerMode ? [{ value: "attendance" as TeamSubTab, label: "출석부", icon: ClipboardList }] : []),
+    { value: "attendance" as TeamSubTab, label: "출석부", icon: ClipboardList },
     { value: "album" as TeamSubTab, label: "앨범", icon: ImageIcon },
   ]
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
-      {/* Header - 간소화 */}
-      <header className="bg-white shadow-sm border-b sticky top-0 z-50">
+      {/* Header - Glassmorphism Design */}
+      <header className="sticky top-0 z-50 bg-white/70 backdrop-blur-md border-b border-white/20 shadow-sm transition-all duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-14">
+          <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-3">
-              <Avatar className="h-8 w-8">
+              <Avatar className="h-9 w-9 border-2 border-slate-100 shadow-sm">
                 <AvatarImage src={defaultTeamInfo.emblem || "/placeholder.svg"} alt="Team Logo" />
-                <AvatarFallback>FC</AvatarFallback>
+                <AvatarFallback className="bg-slate-100 text-slate-400 font-bold">FC</AvatarFallback>
               </Avatar>
-              <h1 className="text-lg font-bold text-gray-900">
-                {tabLabels[activeTab]}
+              <h1 className="text-lg font-bold text-slate-800 tracking-tight">
+                {activeTab === 'home' ? 'FC BRO' : (tabLabels[activeTab] || activeTab.toUpperCase())}
               </h1>
             </div>
 
-            <div className="flex items-center space-x-2">
-              <Badge
-                variant="outline"
-                className={`text-xs ${user?.role === 'ADMIN' ? "bg-green-50 text-green-700" : "bg-blue-50 text-blue-700"}`}
-              >
-                {user?.role === 'ADMIN' ? "총무" : "선수"}
-              </Badge>
-              <Announcements isManagerMode={isManagerMode} currentUser={user} />
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => onLogout ? onLogout() : window.location.reload()}>
-                <LogOut className="h-4 w-4" />
-              </Button>
+            <div className="flex items-center space-x-4">
+              {/* Layout Order: Announcements -> Profile -> Name */}
+              <div className="flex items-center gap-1">
+                <Announcements isManagerMode={isManagerMode} currentUser={user} />
+              </div>
+              
+              <div className="flex items-center gap-2 pl-2 border-l border-slate-200/60">
+                <div className="relative group cursor-pointer">
+                  <div className="absolute -inset-0.5 bg-gradient-to-tr from-slate-200 to-slate-100 rounded-full blur-[2px] opacity-70"></div>
+                  <Avatar className="h-9 w-9 border-2 border-white shadow-sm relative transition-transform duration-200 group-hover:scale-105">
+                    <AvatarImage src={user?.profileImage || "/placeholder.svg"} alt="User Profile" />
+                    <AvatarFallback className="bg-slate-50 text-slate-400 text-xs font-bold">
+                      {(user?.realName || user?.nickname)?.[0]}
+                    </AvatarFallback>
+                  </Avatar>
+                  {user?.jerseyNumber && (
+                    <div className="absolute -bottom-1 -right-1 bg-slate-900 text-white text-[9px] font-black h-4.5 w-4.5 rounded-full flex items-center justify-center border-2 border-white shadow-sm">
+                      {user.jerseyNumber}
+                    </div>
+                  )}
+                </div>
+                <div className="flex flex-col items-start min-w-0 pr-1">
+                  <span className="text-[13px] font-black text-slate-800 leading-tight truncate max-w-[80px]">
+                    {user?.realName || user?.nickname}
+                  </span>
+                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">
+                    {user?.role === 'ADMIN' ? "ADMIN" : "PLAYER"}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -163,7 +187,7 @@ export default function Dashboard({ userInfo, onUserUpdate, onLogout }: Dashboar
             {teamSubTab === 'members' && (
               <TeamManagement isManagerMode={isManagerMode} currentUser={user} />
             )}
-            {teamSubTab === 'attendance' && isManagerMode && (
+            {teamSubTab === 'attendance' && (
               <AttendanceStatsView />
             )}
             {teamSubTab === 'album' && (
@@ -177,9 +201,42 @@ export default function Dashboard({ userInfo, onUserUpdate, onLogout }: Dashboar
           <TeamDashboard currentUser={user} />
         )}
 
-        {/* Profile */}
+        {/* My */}
         {activeTab === 'profile' && (
-          <UserProfile userInfo={user} onUserUpdate={handleUserUpdate} />
+          <div className="space-y-4">
+            {/* My 서브탭 네비게이션 */}
+            <div className="flex gap-1 bg-slate-100 rounded-xl p-1">
+              {[
+                { value: 'record' as ProfileSubTab, label: 'Record', icon: BarChart3 },
+                { value: 'info' as ProfileSubTab, label: 'Info', icon: Settings },
+              ].map((tab) => {
+                const Icon = tab.icon
+                const isActive = profileSubTab === tab.value
+                return (
+                  <button
+                    key={tab.value}
+                    onClick={() => setProfileSubTab(tab.value)}
+                    className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-lg text-sm font-medium transition-all duration-200 ${
+                      isActive
+                        ? "bg-white text-slate-900 shadow-sm"
+                        : "text-slate-500 hover:text-slate-700"
+                    }`}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {tab.label}
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* My 서브탭 콘텐츠 */}
+            {profileSubTab === 'record' && (
+              <PersonalRecord currentUser={user} />
+            )}
+            {profileSubTab === 'info' && (
+              <UserProfile userInfo={user} onUserUpdate={handleUserUpdate} onLogout={onLogout} />
+            )}
+          </div>
         )}
       </div>
 

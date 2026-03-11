@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Separator } from "@/components/ui/separator"
-import { Users, AlertCircle, CheckCircle, Edit, Save, X, Target, MapPin, Activity, History, Plus } from "lucide-react"
+import { Users, AlertCircle, CheckCircle, Edit, Save, X, Target, MapPin, Activity, History, Plus, LogOut } from "lucide-react"
 import { useEffect } from "react"
 import { regionData, provinceOptions, footOptions } from "@/lib/region-data"
 
@@ -39,9 +39,10 @@ const SoccerBall = ({ className }: { className?: string }) => (
 interface UserProfileProps {
   userInfo: any
   onUserUpdate: (updatedUser: any) => void
+  onLogout?: () => void
 }
 
-export function UserProfile({ userInfo, onUserUpdate }: UserProfileProps) {
+export function UserProfile({ userInfo, onUserUpdate, onLogout }: UserProfileProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [formData, setFormData] = useState({
     realName: userInfo?.realName || "",

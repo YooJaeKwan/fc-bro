@@ -1,10 +1,10 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Shield, Crown, HelpingHand } from "lucide-react"
-import { Skeleton } from "@/components/ui/skeleton"
+import { Shield, Crown, HelpingHand, Trophy, Loader2 } from "lucide-react"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
 
 interface PlayerStat {
@@ -17,32 +17,19 @@ interface PlayerStat {
     winRate?: number
     gamesPlayed?: number
     wins?: number
+    position?: string
+    image?: string
+    jerseyNumber?: number | string
 }
-
-interface TeamStatsData {
-    topScorers: PlayerStat[]
-    topAssists: PlayerStat[]
-    topCleanSheets: PlayerStat[]
-    topAttendance: PlayerStat[]
-    topWinRate: PlayerStat[]
-    myStats: PlayerStat | null
-    totalMatches: number
-}
-
-interface TeamDashboardProps {
-    currentUser: any
-}
-
-type ThemeColor = 'red' | 'blue' | 'yellow' | 'green' | 'purple'
 
 interface RankingListProps {
     title: string
     subtitle: string
     icon: React.ReactNode
-    data: PlayerStat[]
-    valueKey: 'goals' | 'assists' | 'cleanSheets' | 'attendanceRate' | 'winRate'
+    data: any[]
+    valueKey: string
     unit: string
-    theme: ThemeColor
+    theme: 'red' | 'blue' | 'yellow' | 'green' | 'purple'
     isLoading: boolean
 }
 
@@ -57,187 +44,138 @@ const RankingList = ({
     isLoading
 }: RankingListProps) => {
     const themeStyles = {
-        red: {
-            accent: "text-rose-500",
-            bg: "bg-rose-50",
-            border: "border-rose-100",
-            rank1: "bg-rose-50/80 text-rose-700",
-            icon: "text-rose-500",
-            gradient: "from-rose-500 to-pink-600"
-        },
-        blue: {
-            accent: "text-blue-500",
-            bg: "bg-blue-50",
-            border: "border-blue-100",
-            rank1: "bg-blue-50/80 text-blue-700",
-            icon: "text-blue-500",
-            gradient: "from-blue-500 to-indigo-600"
-        },
-        yellow: {
-            accent: "text-amber-500",
-            bg: "bg-amber-50",
-            border: "border-amber-100",
-            rank1: "bg-amber-50/80 text-amber-700",
-            icon: "text-amber-500",
-            gradient: "from-amber-400 to-orange-500"
-        },
-        green: {
-            accent: "text-emerald-500",
-            bg: "bg-emerald-50",
-            border: "border-emerald-100",
-            rank1: "bg-emerald-50/80 text-emerald-700",
-            icon: "text-emerald-500",
-            gradient: "from-emerald-400 to-green-500"
-        },
-        purple: {
-            accent: "text-purple-500",
-            bg: "bg-purple-50",
-            border: "border-purple-100",
-            rank1: "bg-purple-50/80 text-purple-700",
-            icon: "text-purple-500",
-            gradient: "from-purple-400 to-fuchsia-500"
-        }
+        red: { text: "text-rose-600", bg: "bg-rose-50/70", border: "border-rose-100", accent: "text-rose-500", line: "bg-rose-200" },
+        blue: { text: "text-blue-600", bg: "bg-blue-50/70", border: "border-blue-100", accent: "text-blue-500", line: "bg-blue-200" },
+        yellow: { text: "text-amber-600", bg: "bg-amber-50/70", border: "border-amber-100", accent: "text-amber-500", line: "bg-amber-200" },
+        green: { text: "text-emerald-600", bg: "bg-emerald-50/70", border: "border-emerald-100", accent: "text-emerald-500", line: "bg-emerald-200" },
+        purple: { text: "text-purple-600", bg: "bg-purple-50/70", border: "border-purple-100", accent: "text-purple-500", line: "bg-purple-200" }
     }
 
     const styles = themeStyles[theme]
 
     return (
-        <div className="space-y-2">
-            {/* 타이틀 영역 (카드 밖) */}
-            <div className="flex items-center gap-3 px-1">
-                <div className={cn("p-2 rounded-lg bg-slate-50 shrink-0 border", styles.bg, styles.border)}>
-                    {icon}
-                </div>
-                <div>
-                    <h3 className="text-lg font-bold text-slate-800 whitespace-nowrap">
-                        {title}
-                    </h3>
-                    <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">
-                        {subtitle}
-                    </p>
-                </div>
-            </div>
-
-            {/* 리더보드 (카드 안) */}
-            <Card className="overflow-hidden border-slate-200 shadow-sm hover:shadow-md transition-shadow duration-300">
-                <CardContent className="p-0">
-                    <div className="grid grid-cols-12 gap-2 px-5 py-2 bg-slate-50/50 border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                        <div className="col-span-2 text-center">Rank</div>
-                        <div className="col-span-7">Player</div>
-                        <div className="col-span-3 text-right">Count</div>
+        <Card className="border-slate-200/50 shadow-sm overflow-hidden rounded-[24px]">
+            <CardContent className="p-0">
+                {/* 1. 내부 타이틀 영역 */}
+                <div className="px-5 pt-5 pb-1">
+                    <div className="flex items-center gap-4">
+                        <div className={cn("p-2.5 rounded-[16px] shrink-0 border-0 shadow-sm", styles.bg)}>
+                            {icon}
+                        </div>
+                        <div className="flex-1">
+                            <div className="flex items-center justify-between gap-3">
+                                <h1 className="text-[19px] font-bold text-[#1e293b] tracking-tight">{title}</h1>
+                                <div className={cn("h-[2px] w-[50px] rounded-full opacity-80", styles.line)} />
+                            </div>
+                            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wide mt-0.5">{subtitle}</p>
+                        </div>
                     </div>
+                </div>
 
-                    <div className="px-3 py-2">
-                        {isLoading ? (
-                            <div className="space-y-2 px-2">
-                                {[1, 2, 3, 4, 5].map(i => (
-                                    <Skeleton key={i} className="h-10 w-full rounded-md" />
-                                ))}
-                            </div>
-                        ) : data.length === 0 ? (
-                            <div className="text-center py-8 text-sm text-slate-400">
-                                아직 기록이 없습니다
-                            </div>
-                        ) : (
-                            <div className="space-y-1">
-                                {data.map((player, idx) => {
-                                    const currentValue = player[valueKey];
-                                    const rank = data.findIndex(p => p[valueKey] === currentValue) + 1;
+                {/* 2. 컬럼 헤더 */}
+                <div className="border-t border-slate-100 mt-1.5 px-5 py-3 flex items-center text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                    <div className="w-[50px] text-center">Rank</div>
+                    <div className="flex-1 px-2">Player</div>
+                    <div className="w-[70px] text-right pr-2">Count</div>
+                </div>
 
-                                    return (
-                                        <div
-                                            key={player.id}
-                                            className={cn(
-                                                "grid grid-cols-12 gap-2 items-center py-2.5 px-2 rounded-lg transition-all",
-                                                rank === 1 ? styles.rank1 : "hover:bg-slate-50",
-                                                rank !== 1 && "text-slate-600"
+                {/* 3. 선수 리스트 영역 */}
+                <div className="px-2 pb-5 space-y-1.5">
+                    {isLoading ? (
+                        <div className="py-12 text-center">
+                            <Loader2 className="h-6 w-6 animate-spin text-slate-300 mx-auto" />
+                        </div>
+                    ) : data.length === 0 ? (
+                        <div className="py-12 text-center text-slate-500 text-xs">
+                            기록이 없습니다
+                        </div>
+                    ) : (
+                        data.map((item, index) => {
+                            const val = item[valueKey]
+                            const maxVal = data[0][valueKey]
+                            const isTopScore = val !== null && val !== 0 && val === maxVal
+                            return (
+                                <div key={item.id} className={cn(
+                                    "flex items-center px-3 py-3.5 transition-all duration-200",
+                                    isTopScore ? cn(styles.bg, "rounded-[20px]") : "hover:bg-slate-50/50 rounded-[16px]"
+                                )}>
+                                    <div className="w-[50px] flex items-center justify-center shrink-0">
+                                        {isTopScore ? (
+                                            <Crown className={cn("h-5 w-5", styles.text)} fill="currentColor" fillOpacity={0.15} />
+                                        ) : (index === 1 || index === 2) ? (
+                                            <div className="h-6 w-6 rounded-full bg-slate-50 flex items-center justify-center border border-slate-200 shadow-sm">
+                                                <span className="text-[12px] font-bold text-slate-500">{index + 1}</span>
+                                            </div>
+                                        ) : (
+                                            <span className="text-[13px] font-bold text-slate-300">{index + 1}</span>
+                                        )}
+                                    </div>
+                                    <div className="flex-1 flex flex-col min-w-0 px-2">
+                                        <div className="flex items-center gap-2">
+                                            <span className={cn(
+                                                "font-bold truncate text-[15px] tracking-tight",
+                                                isTopScore ? styles.text : "text-slate-700"
+                                            )}>{item.name}</span>
+                                            {isTopScore && (
+                                                <Badge variant="secondary" className="px-1.5 py-0 text-[10px] bg-white/80 text-slate-500 border-slate-100 font-bold tracking-tighter shadow-sm">
+                                                    TOP
+                                                </Badge>
                                             )}
-                                        >
-                                            <div className="col-span-2 flex justify-center">
-                                                {rank === 1 ? (
-                                                    <Crown className={cn("h-5 w-5", styles.icon)} fill="currentColor" fillOpacity={0.2} />
-                                                ) : rank === 2 ? (
-                                                    <div className="relative flex items-center justify-center h-6 w-6 rounded-full bg-slate-100 text-slate-500 font-bold text-xs border border-slate-200">
-                                                        2
-                                                    </div>
-                                                ) : rank === 3 ? (
-                                                    <div className="relative flex items-center justify-center h-6 w-6 rounded-full bg-orange-50 text-orange-700 font-bold text-xs border border-orange-100">
-                                                        3
-                                                    </div>
-                                                ) : (
-                                                    <span className="text-sm font-medium text-slate-400 w-6 text-center">{rank}</span>
-                                                )}
-                                            </div>
-
-                                            <div className="col-span-7 flex items-center gap-2 overflow-hidden">
-                                                <div className="flex flex-col">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className={cn(
-                                                            "text-sm truncate",
-                                                            rank === 1 ? "font-bold" : "font-medium"
-                                                        )}>
-                                                            {player.name}
-                                                        </span>
-                                                        {rank === 1 && (
-                                                            <Badge variant="secondary" className="h-4 px-1 text-[9px] bg-white/50 text-slate-600 border-0">
-                                                                TOP
-                                                            </Badge>
-                                                        )}
-                                                    </div>
-                                                    {valueKey === 'winRate' && player.gamesPlayed !== undefined && player.wins !== undefined && (
-                                                        <span className="text-[10px] text-slate-400 mt-0.5">
-                                                            {player.wins}승 {player.gamesPlayed - player.wins}패
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </div>
-
-                                            <div className="col-span-3 text-right">
-                                                <span className={cn(
-                                                    "text-base font-black tabular-nums tracking-tight",
-                                                    rank === 1 ? styles.accent : "text-slate-700"
-                                                )}>
-                                                    {player[valueKey]}
-                                                </span>
-                                                <span className="text-[10px] text-slate-400 ml-1 font-medium">{unit}</span>
-                                            </div>
                                         </div>
-                                    )
-                                })}
-                            </div>
-                        )}
-                    </div>
-                </CardContent>
-            </Card>
-        </div>
+                                        {valueKey === 'winRate' && (
+                                            <span className={cn(
+                                                "text-[10px] font-bold opacity-70 mt-0.5",
+                                                isTopScore ? styles.text : "text-slate-400"
+                                            )}>
+                                                {item.wins}W {item.gamesPlayed - item.wins}L
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="w-[70px] text-right pr-2 shrink-0 flex items-center justify-end gap-1.5">
+                                        <span className={cn(
+                                            "font-black tabular-nums text-[16px] tracking-tighter",
+                                            isTopScore ? styles.text : "text-slate-900"
+                                        )}>
+                                            {valueKey === 'winRate' || valueKey === 'attendanceRate'
+                                                ? (typeof val === 'number' ? val.toFixed(0) : val)
+                                                : val
+                                            }
+                                        </span>
+                                        <span className="text-[10px] font-bold text-slate-500 uppercase">{unit}</span>
+                                    </div>
+                                </div>
+                            )
+                        })
+                    )}
+                </div>
+            </CardContent>
+        </Card>
     )
 }
 
-export function TeamDashboard({ currentUser }: TeamDashboardProps) {
-    const [stats, setStats] = useState<TeamStatsData | null>(null)
+export function TeamDashboard({ currentUser }: { currentUser: any }) {
+    const [stats, setStats] = useState<any>(null)
     const [isLoading, setIsLoading] = useState(true)
 
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                const response = await fetch(`/api/team/stats?userId=${currentUser?.id || ''}`)
+                const response = await fetch('/api/team/stats')
                 const result = await response.json()
-
                 if (result.success) {
                     setStats(result.data)
                 }
             } catch (error) {
-                console.error('팀 통계 조회 오류:', error)
+                console.error('Failed to fetch team stats:', error)
             } finally {
                 setIsLoading(false)
             }
         }
-
         fetchStats()
-    }, [currentUser?.id])
+    }, [])
 
     return (
-        <div className="space-y-5 p-4 max-w-7xl mx-auto">
+        <div className="space-y-8 pb-10 px-0.5">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <RankingList
                     title="Top Scorers"

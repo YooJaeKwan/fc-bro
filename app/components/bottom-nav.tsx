@@ -11,11 +11,10 @@ interface BottomNavProps {
 }
 
 const navItems: { value: MainTab; label: string; icon: typeof Home }[] = [
-    { value: "home", label: "Home", icon: Home },
     { value: "schedule", label: "Schedule", icon: CalendarDays },
     { value: "team", label: "Team", icon: Users },
     { value: "ranking", label: "Ranking", icon: Trophy },
-    { value: "profile", label: "Profile", icon: User },
+    { value: "profile", label: "My", icon: User },
 ]
 
 export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
@@ -35,10 +34,6 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
                                 isActive ? "text-blue-600" : "text-slate-400 hover:text-slate-600"
                             )}
                         >
-                            {/* Active indicator dot */}
-                            {isActive && (
-                                <div className="absolute top-1 w-1 h-1 rounded-full bg-blue-600" />
-                            )}
                             <Icon
                                 className={cn(
                                     "h-5 w-5 transition-all duration-200",

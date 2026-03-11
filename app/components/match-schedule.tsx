@@ -37,6 +37,7 @@ import {
     Share2,
 } from "lucide-react"
 import { AttendanceVoting } from "./attendance-voting"
+import { ScheduleComments } from "./schedule-comments"
 import { generateKakaoShareText } from "@/lib/utils"
 import { MatchResultDialog } from "./match-result-dialog"
 
@@ -59,11 +60,38 @@ const getTypeInfo = (type: string) => {
 }
 
 // 승/무/패 결과 판별
-const getMatchResult = (schedule: any): 'win' | 'draw' | 'loss' | null => {
+const getMatchResult = (schedule: any, currentUserId?: string): 'win' | 'draw' | 'loss' | null => {
     if (schedule.ourScore == null || schedule.opponentScore == null) return null
-    if (schedule.ourScore > schedule.opponentScore) return 'win'
     if (schedule.ourScore === schedule.opponentScore) return 'draw'
-    return 'loss'
+
+    // A매치이거나 사용자 ID가 없는 경우 기존 로직 (Score 기준)
+    if (schedule.type === 'match' || !currentUserId) {
+        return schedule.ourScore > schedule.opponentScore ? 'win' : 'loss'
+    }
+
+    // 일반 경기 (자체경기 등): 사용자가 속한 팀 찾기 (yellowTeam / blueTeam)
+    const formation = schedule.teamFormation
+    if (!formation) {
+        // 팀편성 정보가 없으면 기존 로직 유지 (Score 기준)
+        return schedule.ourScore > schedule.opponentScore ? 'win' : 'loss'
+    }
+
+    const yellowTeam = formation.yellowTeam || []
+    const blueTeam = formation.blueTeam || []
+
+    const isInYellow = yellowTeam.some((p: any) => p.userId === currentUserId)
+    const isInBlue = blueTeam.some((p: any) => p.userId === currentUserId)
+
+    if (isInYellow) {
+        // 노랑팀(our) 소속일 때
+        return schedule.ourScore > schedule.opponentScore ? 'win' : 'loss'
+    } else if (isInBlue) {
+        // 파랑팀(opponent) 소속일 때
+        return schedule.opponentScore > schedule.ourScore ? 'win' : 'loss'
+    }
+
+    // 어느 팀에도 속하지 않은 경우 기존 로직 유지
+    return schedule.ourScore > schedule.opponentScore ? 'win' : 'loss'
 }
 
 const getResultStyle = (result: 'win' | 'draw' | 'loss' | null) => {
@@ -274,17 +302,6 @@ export function MatchSchedule({ isManagerMode, currentUser, onEditSchedule, onAd
             {/* ═══════════════════════════════════════════ */}
             <section>
                 <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                        <div className="h-8 w-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                            <Calendar className="h-4 w-4 text-blue-600" />
-                        </div>
-                        예정 경기
-                        {upcomingSchedules.length > 0 && (
-                            <Badge variant="secondary" className="bg-blue-50 text-blue-600 border-blue-100 text-xs font-semibold">
-                                {upcomingSchedules.length}
-                            </Badge>
-                        )}
-                    </h2>
                     {isManagerMode && onAddSchedule && (
                         <Button size="sm" variant="outline" onClick={onAddSchedule} className="gap-1.5 text-xs border-blue-200 text-blue-600 hover:bg-blue-50">
                             <Plus className="h-3.5 w-3.5" />
@@ -323,12 +340,12 @@ export function MatchSchedule({ isManagerMode, currentUser, onEditSchedule, onAd
                                     <div className="space-y-3">
                                         <div className="flex items-start gap-3">
                                             <div className={`h-12 w-12 rounded-xl flex items-center justify-center flex-shrink-0 ${nextMatch.type === 'internal' ? 'bg-emerald-100' :
-                                                    nextMatch.type === 'match' ? 'bg-rose-100' :
-                                                        nextMatch.type === 'futsal' ? 'bg-amber-100' : 'bg-sky-100'
+                                                nextMatch.type === 'match' ? 'bg-rose-100' :
+                                                    nextMatch.type === 'futsal' ? 'bg-amber-100' : 'bg-sky-100'
                                                 }`}>
                                                 <Trophy className={`h-6 w-6 ${nextMatch.type === 'internal' ? 'text-emerald-600' :
-                                                        nextMatch.type === 'match' ? 'text-rose-600' :
-                                                            nextMatch.type === 'futsal' ? 'text-amber-600' : 'text-sky-600'
+                                                    nextMatch.type === 'match' ? 'text-rose-600' :
+                                                        nextMatch.type === 'futsal' ? 'text-amber-600' : 'text-sky-600'
                                                     }`} />
                                             </div>
                                             <div className="flex-1 min-w-0 pt-0.5">
@@ -555,6 +572,15 @@ export function MatchSchedule({ isManagerMode, currentUser, onEditSchedule, onAd
                                             </div>
                                         </div>
                                     )}
+
+                                    {/* 댓글 */}
+                                    {currentUser?.id && (
+                                        <ScheduleComments
+                                            scheduleId={nextMatch.id}
+                                            currentUserId={currentUser.id}
+                                            isManagerMode={isManagerMode}
+                                        />
+                                    )}
                                 </div>
                             </div>
                         )}
@@ -699,6 +725,15 @@ export function MatchSchedule({ isManagerMode, currentUser, onEditSchedule, onAd
                                                             </Button>
                                                         </div>
                                                     )}
+
+                                                    {/* 댓글 */}
+                                                    {currentUser?.id && (
+                                                        <ScheduleComments
+                                                            scheduleId={schedule.id}
+                                                            currentUserId={currentUser.id}
+                                                            isManagerMode={isManagerMode}
+                                                        />
+                                                    )}
                                                 </div>
                                             )}
                                         </div>
@@ -715,7 +750,7 @@ export function MatchSchedule({ isManagerMode, currentUser, onEditSchedule, onAd
             {/* ═══════════════════════════════════════════ */}
             <section>
                 <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2 mb-4">
-                    <div className="h-8 w-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                    <div className="h-8 w-8 rounded-lg bg-amber-500/10 flex items-center justify-center border border-amber-100">
                         <Trophy className="h-4 w-4 text-amber-600" />
                     </div>
                     지난 경기
@@ -742,23 +777,19 @@ export function MatchSchedule({ isManagerMode, currentUser, onEditSchedule, onAd
                             return (
                                 <div key={monthKey}>
                                     {/* 월 헤더 */}
-                                    <div className="flex items-center justify-between mb-3">
+                                    <div className="flex items-center justify-between mb-3 px-1">
                                         <h3 className="text-sm font-bold text-slate-600">
                                             {getMonthLabel(monthKey)}
                                         </h3>
                                         <div className="flex items-center gap-2 text-[11px] font-semibold">
-                                            <span className="text-emerald-600">{stats.wins}승</span>
-                                            <span className="text-slate-400">{stats.draws}무</span>
-                                            <span className="text-rose-500">{stats.losses}패</span>
-                                            <span className="text-slate-300">|</span>
-                                            <span className="text-slate-500">{stats.total}경기</span>
+                                            <span className="text-slate-500">{matches.length}경기</span>
                                         </div>
                                     </div>
 
                                     {/* 경기 목록 */}
                                     <div className="space-y-2">
                                         {matches.map((schedule: any) => {
-                                            const result = getMatchResult(schedule)
+                                            const result = getMatchResult(schedule, currentUser?.id)
                                             const style = getResultStyle(result)
                                             const typeInfo = getTypeInfo(schedule.type)
                                             const hasScore = schedule.ourScore != null && schedule.opponentScore != null
@@ -817,8 +848,8 @@ export function MatchSchedule({ isManagerMode, currentUser, onEditSchedule, onAd
                                                                         {schedule.type === 'internal' ? 'B' : 'A'}
                                                                     </span>
                                                                     <Badge className={`text-[10px] font-bold ml-1 ${result === 'win' ? 'bg-emerald-500 hover:bg-emerald-600' :
-                                                                            result === 'draw' ? 'bg-slate-400 hover:bg-slate-500' :
-                                                                                'bg-rose-500 hover:bg-rose-600'
+                                                                        result === 'draw' ? 'bg-slate-400 hover:bg-slate-500' :
+                                                                            'bg-rose-500 hover:bg-rose-600'
                                                                         } text-white border-0`}>
                                                                         {style.label}
                                                                     </Badge>
@@ -854,13 +885,13 @@ export function MatchSchedule({ isManagerMode, currentUser, onEditSchedule, onAd
                                                     {schedule.goalRecords && Array.isArray(schedule.goalRecords) && schedule.goalRecords.length > 0 && (() => {
                                                         // 쿼터별 그룹핑
                                                         const byQuarter: Record<number, any[]> = {}
-                                                        ;[...schedule.goalRecords]
-                                                            .sort((a: any, b: any) => (a.quarter || 1) - (b.quarter || 1))
-                                                            .forEach((g: any) => {
-                                                                const q = g.quarter || 1
-                                                                if (!byQuarter[q]) byQuarter[q] = []
-                                                                byQuarter[q].push(g)
-                                                            })
+                                                            ;[...schedule.goalRecords]
+                                                                .sort((a: any, b: any) => (a.quarter || 1) - (b.quarter || 1))
+                                                                .forEach((g: any) => {
+                                                                    const q = g.quarter || 1
+                                                                    if (!byQuarter[q]) byQuarter[q] = []
+                                                                    byQuarter[q].push(g)
+                                                                })
 
                                                         return (
                                                             <div className="ml-14 mr-2 -mt-1 mb-1">
@@ -879,13 +910,12 @@ export function MatchSchedule({ isManagerMode, currentUser, onEditSchedule, onAd
                                                                                 {/* 골 정보 */}
                                                                                 <span className="inline-flex items-center gap-1 text-[11px]">
                                                                                     <span className="text-[10px]">⚽</span>
-                                                                                    <span className={`font-semibold ${
-                                                                                        goal.scorerId === 'own_goal'
+                                                                                    <span className={`font-semibold ${goal.scorerId === 'own_goal'
                                                                                             ? 'text-rose-500 line-through'
                                                                                             : goal.team === 'yellow'
                                                                                                 ? 'text-amber-700'
                                                                                                 : 'text-blue-700'
-                                                                                    }`}>
+                                                                                        }`}>
                                                                                         {goal.scorerName}
                                                                                     </span>
                                                                                     {goal.assistName && (
