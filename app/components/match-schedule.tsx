@@ -357,21 +357,21 @@ export function MatchSchedule({ isManagerMode, currentUser, onEditSchedule, onAd
                                                         <span className="text-sm font-semibold text-slate-700">vs {nextMatch.opponentTeam}</span>
                                                     )}
                                                 </div>
-                                                <h3 className="text-lg font-bold text-slate-900">
-                                                    {formatDate(nextMatch.date)}
+                                                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2 flex-wrap">
+                                                    <span>{formatDate(nextMatch.date)}</span>
+                                                    <span className="text-blue-600 font-black">{nextMatch.time}</span>
                                                 </h3>
                                             </div>
                                         </div>
 
                                         {/* 시간/장소 정보 바 */}
                                         <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-sm text-slate-600">
-                                            <div className="flex items-center gap-1.5">
-                                                <Clock className="h-3.5 w-3.5 text-blue-500" />
-                                                <span className="font-medium">{nextMatch.time}</span>
-                                                {nextMatch.gatherTime && (
-                                                    <span className="text-xs text-slate-400">(집합 {nextMatch.gatherTime})</span>
-                                                )}
-                                            </div>
+                                            {nextMatch.gatherTime && (
+                                                <div className="flex items-center gap-1.5">
+                                                    <Clock className="h-3.5 w-3.5 text-blue-500" />
+                                                    <span>집합 {nextMatch.gatherTime}</span>
+                                                </div>
+                                            )}
                                             {nextMatch.location && (
                                                 <div className="flex items-center gap-1.5">
                                                     <MapPin className="h-3.5 w-3.5 text-rose-500" />
@@ -911,10 +911,10 @@ export function MatchSchedule({ isManagerMode, currentUser, onEditSchedule, onAd
                                                                                 <span className="inline-flex items-center gap-1 text-[11px]">
                                                                                     <span className="text-[10px]">⚽</span>
                                                                                     <span className={`font-semibold ${goal.scorerId === 'own_goal'
-                                                                                            ? 'text-rose-500 line-through'
-                                                                                            : goal.team === 'yellow'
-                                                                                                ? 'text-amber-700'
-                                                                                                : 'text-blue-700'
+                                                                                        ? 'text-rose-500 line-through'
+                                                                                        : goal.team === 'yellow'
+                                                                                            ? 'text-amber-700'
+                                                                                            : 'text-blue-700'
                                                                                         }`}>
                                                                                         {goal.scorerName}
                                                                                     </span>
