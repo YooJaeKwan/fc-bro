@@ -17,6 +17,7 @@ import {
   Trophy,
   Image as ImageIcon,
   ClipboardList,
+  CalendarCheck,
 } from "lucide-react"
 import { UserProfile } from "./components/user-profile"
 import { AttendanceStats } from "./components/attendance-stats"
@@ -36,6 +37,10 @@ const ScheduleManagement = dynamic(
 )
 const AttendanceStatsView = dynamic(
   () => import("./components/attendance-stats-view").then(mod => ({ default: mod.AttendanceStatsView })),
+  { loading: () => <div className="animate-pulse p-8 text-center text-muted-foreground">로딩 중...</div> }
+)
+const MatchSchedulePage = dynamic(
+  () => import("./components/match-schedule").then(mod => ({ default: mod.MatchSchedule })),
   { loading: () => <div className="animate-pulse p-8 text-center text-muted-foreground">로딩 중...</div> }
 )
 const AlbumView = dynamic(
@@ -91,6 +96,7 @@ export default function Dashboard({ userInfo, onUserUpdate, onLogout }: Dashboar
     { value: "team", label: "팀 멤버", icon: Users },
     { value: "schedule", label: "경기예정", icon: Calendar },
     { value: "results", label: "경기결과", icon: ClipboardList },
+    { value: "match-schedule", label: "경기일정", icon: CalendarCheck },
     ...(isManagerMode ? [
       { value: "attendance", label: "출석부", icon: Users }
     ] : []),
@@ -257,6 +263,10 @@ export default function Dashboard({ userInfo, onUserUpdate, onLogout }: Dashboar
 
           <TabsContent value="results">
             <ScheduleManagement isManagerMode={isManagerMode} currentUser={user} viewMode="past" />
+          </TabsContent>
+
+          <TabsContent value="match-schedule" className="mt-6">
+            <MatchSchedulePage isManagerMode={isManagerMode} currentUser={user} />
           </TabsContent>
 
           <TabsContent value="attendance" className="mt-6">

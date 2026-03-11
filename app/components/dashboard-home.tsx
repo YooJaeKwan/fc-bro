@@ -177,17 +177,10 @@ export function DashboardHome({ currentUser, isManagerMode }: DashboardHomeProps
             {/* Next Schedule */}
             {!isLoading && nextSchedule && (
                 <Card className="border-l-4 border-l-blue-500">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-xl">
-                            <CalendarIcon className="h-5 w-5" />
+                    <CardHeader className="pb-3">
+                        <CardTitle className="flex items-center gap-2 text-xl font-bold">
                             다음 일정
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        {/* D-Day Display */}
-                        <div className="flex items-center justify-center gap-3">
-                            <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-full font-semibold">
-                                <CalendarIcon className="h-4 w-4" />
+                            <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-blue-100 font-bold px-2 py-0.5 h-6">
                                 {(() => {
                                     const daysLeft = calculateDaysLeft(nextSchedule.date)
                                     if (daysLeft === 0) return "오늘 경기!"
@@ -195,8 +188,10 @@ export function DashboardHome({ currentUser, isManagerMode }: DashboardHomeProps
                                     if (daysLeft > 0) return `D-${daysLeft}`
                                     return "지난 경기"
                                 })()}
-                            </div>
-                        </div>
+                            </Badge>
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4 pt-0">
 
                         {/* Schedule Info */}
                         <div className="text-center space-y-2">
