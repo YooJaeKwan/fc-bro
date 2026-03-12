@@ -40,6 +40,7 @@ import { AttendanceVoting } from "./attendance-voting"
 import { ScheduleComments } from "./schedule-comments"
 import { generateKakaoShareText } from "@/lib/utils"
 import { MatchResultDialog } from "./match-result-dialog"
+import { TeamFormation } from "./team-formation"
 
 interface MatchScheduleProps {
     isManagerMode: boolean
@@ -451,6 +452,23 @@ export function MatchSchedule({ isManagerMode, currentUser, onEditSchedule, onAd
                                         </div>
                                     )}
 
+                                    {/* 팀편성 영역 */}
+                                    {nextMatch.teamFormation && currentUser?.id && (
+                                        <div className="pt-2 border-t border-slate-100">
+                                            <TeamFormation
+                                                scheduleId={nextMatch.id}
+                                                teamFormation={nextMatch.teamFormation}
+                                                formationDate={nextMatch.formationDate}
+                                                formationConfirmed={nextMatch.formationConfirmed}
+                                                isManagerMode={isManagerMode}
+                                                currentUserId={currentUser.id}
+                                                onFormationUpdate={() => fetchSchedules()}
+                                                onFormationDelete={() => fetchSchedules()}
+                                                onFormationConfirm={() => fetchSchedules()}
+                                            />
+                                        </div>
+                                    )}
+
                                     {/* 관리자 액션 버튼들 */}
                                     {isManagerMode && (
                                         <div className="space-y-2 pt-2 border-t border-slate-100">
@@ -708,6 +726,23 @@ export function MatchSchedule({ isManagerMode, currentUser, onEditSchedule, onAd
                                                             }))}
                                                             onVoteUpdate={() => fetchSchedules()}
                                                         />
+                                                    )}
+
+                                                    {/* 팀편성 영역 */}
+                                                    {schedule.teamFormation && currentUser?.id && (
+                                                        <div className="pt-2 border-t border-slate-100">
+                                                            <TeamFormation
+                                                                scheduleId={schedule.id}
+                                                                teamFormation={schedule.teamFormation}
+                                                                formationDate={schedule.formationDate}
+                                                                formationConfirmed={schedule.formationConfirmed}
+                                                                isManagerMode={isManagerMode}
+                                                                currentUserId={currentUser.id}
+                                                                onFormationUpdate={() => fetchSchedules()}
+                                                                onFormationDelete={() => fetchSchedules()}
+                                                                onFormationConfirm={() => fetchSchedules()}
+                                                            />
+                                                        </div>
                                                     )}
 
                                                     {schedule.description && (
