@@ -1,6 +1,6 @@
 "use client"
 
-import { Home, CalendarDays, Users, Trophy, User } from "lucide-react"
+import { Home, CalendarDays, Users, Trophy, User, Presentation } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 export type MainTab = 'home' | 'schedule' | 'team' | 'formation' | 'ranking' | 'profile'
@@ -14,7 +14,7 @@ interface BottomNavProps {
 const navItems: { value: MainTab; label: string; icon: typeof Home }[] = [
     { value: "schedule", label: "일정", icon: CalendarDays },
     { value: "team", label: "팀", icon: Users },
-    { value: "formation", label: "포메이션", icon: Trophy }, 
+    { value: "formation", label: "전술판", icon: Presentation }, 
     { value: "ranking", label: "랭킹", icon: Trophy },
     { value: "profile", label: "내정보", icon: User },
 ]

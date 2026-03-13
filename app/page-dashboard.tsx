@@ -54,7 +54,7 @@ const tabLabels: Record<MainTab, string> = {
   home: "Home",
   schedule: "일정",
   team: "팀 메뉴",
-  formation: "포메이션",
+  formation: "전술판",
   ranking: "랭킹",
   profile: "내정보",
 }

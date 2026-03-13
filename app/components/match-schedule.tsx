@@ -916,11 +916,11 @@ export function MatchSchedule({ isManagerMode, currentUser, onEditSchedule, onAd
                                                                 )
                                                             )}
                                                             
-                                                            <div className="ml-1 text-slate-400">
-                                                                {expandedPast === schedule.id ? (
-                                                                    <ChevronUp className="h-4 w-4" />
+                                                            <div className={`ml-1 transition-colors ${expandedPast === schedule.id ? 'text-blue-500' : 'text-slate-400'}`}>
+                                                                {schedule.teamFormation ? (
+                                                                    <Users className={`h-4 w-4 transition-transform ${expandedPast === schedule.id ? 'scale-110' : ''}`} />
                                                                 ) : (
-                                                                    <ChevronDown className="h-4 w-4" />
+                                                                    expandedPast === schedule.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
                                                                 )}
                                                             </div>
                                                         </div>
