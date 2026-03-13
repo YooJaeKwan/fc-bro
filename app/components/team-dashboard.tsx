@@ -90,25 +90,41 @@ const RankingList = ({
                             기록이 없습니다
                         </div>
                     ) : (
-                        data.map((item, index) => {
-                            const val = item[valueKey]
-                            const maxVal = data[0][valueKey]
-                            const isTopScore = val !== null && val !== 0 && val === maxVal
-                            return (
-                                <div key={item.id} className={cn(
-                                    "flex items-center px-3 py-3.5 transition-all duration-200",
-                                    isTopScore ? cn(styles.bg, "rounded-[20px]") : "hover:bg-slate-50/50 rounded-[16px]"
-                                )}>
-                                    <div className="w-[50px] flex items-center justify-center shrink-0">
-                                        {isTopScore ? (
-                                            <Crown className={cn("h-5 w-5", styles.text)} fill="currentColor" fillOpacity={0.15} />
-                                        ) : (index === 1 || index === 2) ? (
-                                            <div className="h-6 w-6 rounded-full bg-slate-50 flex items-center justify-center border border-slate-200 shadow-sm">
-                                                <span className="text-[12px] font-bold text-slate-500">{index + 1}</span>
-                                            </div>
-                                        ) : (
-                                            <span className="text-[13px] font-bold text-slate-300">{index + 1}</span>
-                                        )}
+                        (() => {
+                            // 미리 각 아이템의 실제 공동 순위를 계산합니다 (e.g., 1, 1, 3, 4...)
+                            let currentRank = 1
+                            let currentVal = data[0][valueKey]
+                            
+                            const rankedData = data.map((item, i) => {
+                                const val = item[valueKey]
+                                if (i > 0 && val !== currentVal) {
+                                    currentRank = i + 1
+                                    currentVal = val
+                                }
+                                return { ...item, _displayRank: currentRank, _originalIndex: i }
+                            })
+
+                            return rankedData.map((item) => {
+                                const val = item[valueKey]
+                                const maxVal = data[0][valueKey]
+                                const isTopScore = val !== null && val !== 0 && val === maxVal
+                                const rankStr = item._displayRank
+                                
+                                return (
+                                    <div key={item.id} className={cn(
+                                        "flex items-center px-3 py-3.5 transition-all duration-200",
+                                        isTopScore ? cn(styles.bg, "rounded-[20px]") : "hover:bg-slate-50/50 rounded-[16px]"
+                                    )}>
+                                        <div className="w-[50px] flex items-center justify-center shrink-0">
+                                            {isTopScore ? (
+                                                <Crown className={cn("h-5 w-5", styles.text)} fill="currentColor" fillOpacity={0.15} />
+                                            ) : (rankStr === 2 || rankStr === 3) ? (
+                                                <div className="h-6 w-6 rounded-full bg-slate-50 flex items-center justify-center border border-slate-200 shadow-sm">
+                                                    <span className="text-[12px] font-bold text-slate-500">{rankStr}</span>
+                                                </div>
+                                            ) : (
+                                                <span className="text-[13px] font-bold text-slate-300">{rankStr}</span>
+                                            )}
                                     </div>
                                     <div className="flex-1 flex flex-col min-w-0 px-2">
                                         <div className="flex items-center gap-2">
@@ -146,6 +162,7 @@ const RankingList = ({
                                 </div>
                             )
                         })
+                        })()
                     )}
                 </div>
             </CardContent>
