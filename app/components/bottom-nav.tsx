@@ -3,25 +3,32 @@
 import { Home, CalendarDays, Users, Trophy, User } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-export type MainTab = 'home' | 'schedule' | 'team' | 'ranking' | 'profile'
+export type MainTab = 'home' | 'schedule' | 'team' | 'formation' | 'ranking' | 'profile'
 
 interface BottomNavProps {
     activeTab: MainTab
     onTabChange: (tab: MainTab) => void
+    isManagerMode?: boolean
 }
 
 const navItems: { value: MainTab; label: string; icon: typeof Home }[] = [
-    { value: "schedule", label: "Schedule", icon: CalendarDays },
-    { value: "team", label: "Team", icon: Users },
-    { value: "ranking", label: "Ranking", icon: Trophy },
-    { value: "profile", label: "My", icon: User },
+    { value: "schedule", label: "일정", icon: CalendarDays },
+    { value: "team", label: "팀", icon: Users },
+    { value: "formation", label: "포메이션", icon: Trophy }, 
+    { value: "ranking", label: "랭킹", icon: Trophy },
+    { value: "profile", label: "내정보", icon: User },
 ]
 
-export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
+export function BottomNav({ activeTab, onTabChange, isManagerMode }: BottomNavProps) {
+    const visibleNavItems = navItems.filter(item => {
+        if (item.value === 'formation' && !isManagerMode) return false;
+        return true;
+    });
+
     return (
         <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-lg border-t border-slate-200 shadow-[0_-2px_10px_rgba(0,0,0,0.06)]">
             <div className="max-w-7xl mx-auto flex items-center justify-around h-16 px-1">
-                {navItems.map((item) => {
+                {visibleNavItems.map((item) => {
                     const Icon = item.icon
                     const isActive = activeTab === item.value
                     return (

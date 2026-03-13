@@ -138,6 +138,7 @@ export function MatchSchedule({ isManagerMode, currentUser, onEditSchedule, onAd
     const [schedules, setSchedules] = useState<any[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [expandedUpcoming, setExpandedUpcoming] = useState<string | null>(null)
+    const [expandedPast, setExpandedPast] = useState<string | null>(null)
     const [isResultDialogOpen, setIsResultDialogOpen] = useState(false)
     const [resultEditingSchedule, setResultEditingSchedule] = useState<any>(null)
 
@@ -830,9 +831,10 @@ export function MatchSchedule({ isManagerMode, currentUser, onEditSchedule, onAd
                                             const hasScore = schedule.ourScore != null && schedule.opponentScore != null
 
                                             return (
-                                                <div key={schedule.id} className="space-y-0">
+                                                <div key={schedule.id} className="space-y-0 relative">
                                                     <div
-                                                        className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-all ${style.bg} ${style.border} hover:shadow-sm`}
+                                                        className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-all ${style.bg} ${style.border} hover:shadow-sm cursor-pointer`}
+                                                        onClick={() => setExpandedPast(expandedPast === schedule.id ? null : schedule.id)}
                                                     >
                                                         {/* 결과 인디케이터 */}
                                                         <div className={`w-1 h-10 rounded-full flex-shrink-0 ${style.accent}`} />
@@ -913,6 +915,14 @@ export function MatchSchedule({ isManagerMode, currentUser, onEditSchedule, onAd
                                                                     <span className="text-xs text-slate-400">결과 미입력</span>
                                                                 )
                                                             )}
+                                                            
+                                                            <div className="ml-1 text-slate-400">
+                                                                {expandedPast === schedule.id ? (
+                                                                    <ChevronUp className="h-4 w-4" />
+                                                                ) : (
+                                                                    <ChevronDown className="h-4 w-4" />
+                                                                )}
+                                                            </div>
                                                         </div>
                                                     </div>
 
@@ -966,6 +976,26 @@ export function MatchSchedule({ isManagerMode, currentUser, onEditSchedule, onAd
                                                             </div>
                                                         )
                                                     })()}
+
+                                                    {/* 확장된 상세 (팀편성) */}
+                                                    {expandedPast === schedule.id && schedule.teamFormation && (
+                                                        <div className="mt-2 mb-4 ml-4 mr-2 p-4 rounded-xl bg-white border border-slate-100 shadow-sm animate-in slide-in-from-top-1 duration-200">
+                                                            <TeamFormation
+                                                                scheduleId={schedule.id}
+                                                                teamFormation={schedule.teamFormation}
+                                                                formationDate={schedule.formationDate}
+                                                                formationConfirmed={schedule.formationConfirmed}
+                                                                isManagerMode={false} // 지난 경기는 읽기 전용으로 표시 (총무라도)
+                                                                currentUserId={currentUser?.id || ''}
+                                                                onFormationUpdate={() => {}}
+                                                                onFormationDelete={() => {}}
+                                                                onFormationConfirm={() => {}}
+                                                            />
+                                                            {schedule.description && (
+                                                                <p className="mt-3 text-xs text-slate-500 bg-slate-50 rounded-lg px-3 py-2">{schedule.description}</p>
+                                                            )}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )
                                         })}

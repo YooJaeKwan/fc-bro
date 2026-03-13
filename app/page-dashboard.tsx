@@ -38,6 +38,10 @@ const AlbumView = dynamic(
   () => import("./components/album-view").then(mod => ({ default: mod.AlbumView })),
   { loading: () => <div className="animate-pulse p-8 text-center text-muted-foreground">로딩 중...</div> }
 )
+const FormationPage = dynamic(
+  () => import("./components/formation-page").then(mod => ({ default: mod.FormationPage })),
+  { loading: () => <div className="animate-pulse p-8 text-center text-muted-foreground">로딩 중...</div> }
+)
 
 // 기본 팀 정보 (고정값)
 const defaultTeamInfo = {
@@ -48,10 +52,11 @@ const defaultTeamInfo = {
 // 메인 탭 라벨
 const tabLabels: Record<MainTab, string> = {
   home: "Home",
-  schedule: "Schedule",
-  team: "Team",
-  ranking: "Ranking",
-  profile: "My",
+  schedule: "일정",
+  team: "팀 메뉴",
+  formation: "포메이션",
+  ranking: "랭킹",
+  profile: "내정보",
 }
 
 interface DashboardProps {
@@ -201,6 +206,11 @@ export default function Dashboard({ userInfo, onUserUpdate, onLogout }: Dashboar
           <TeamDashboard currentUser={user} />
         )}
 
+        {/* Formation */}
+        {activeTab === 'formation' && (
+          <FormationPage currentUser={user} />
+        )}
+
         {/* My */}
         {activeTab === 'profile' && (
           <div className="space-y-4">
@@ -241,7 +251,7 @@ export default function Dashboard({ userInfo, onUserUpdate, onLogout }: Dashboar
       </div>
 
       {/* Bottom Navigation */}
-      <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
+      <BottomNav activeTab={activeTab} onTabChange={setActiveTab} isManagerMode={isManagerMode} />
     </div>
   )
 }
