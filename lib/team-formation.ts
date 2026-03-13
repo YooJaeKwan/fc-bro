@@ -237,11 +237,41 @@ export function formTeams(players: any[], teamCount: number = 2): { yellowTeam: 
       const currentBlue: any[] = []
       const currentGreen: any[] = []
       
-      // 순차 배분
-      reShuffled.forEach((p, idx) => {
-        if (idx % 3 === 0) currentYellow.push(p)
-        else if (idx % 3 === 1) currentBlue.push(p)
-        else currentGreen.push(p)
+      // 3팀 모드에서도 게스트-초대자 동반 제약조건을 고려하도록 개선
+      const inviterTeamMap: { [key: string]: 'yellow' | 'blue' | 'green' } = {}
+      
+      // 먼저 일반 분배 (게스트 제외)
+      const regularPlayers = reShuffled.filter(p => !p.isGuest)
+      const guests = reShuffled.filter(p => p.isGuest)
+      
+      let teamIndex = 0
+      const teams = [currentYellow, currentBlue, currentGreen]
+      const teamNames: ('yellow' | 'blue' | 'green')[] = ['yellow', 'blue', 'green']
+      
+      regularPlayers.forEach(p => {
+        teams[teamIndex].push(p)
+        inviterTeamMap[p.userId] = teamNames[teamIndex]
+        teamIndex = (teamIndex + 1) % 3
+      })
+      
+      // 게스트 분배
+      guests.forEach(guest => {
+        const wantsSameTeam = guest.sameTeamAsInviter !== undefined ? guest.sameTeamAsInviter : false
+        if (wantsSameTeam && guest.invitedByUserId && inviterTeamMap[guest.invitedByUserId]) {
+           const inviterTeamName = inviterTeamMap[guest.invitedByUserId]
+           const targetTeamIndex = teamNames.indexOf(inviterTeamName)
+           teams[targetTeamIndex].push(guest)
+        } else {
+           // 조건이 없으면 현재 가장 인원수가 적은 팀에 배정
+           const minSize = Math.min(currentYellow.length, currentBlue.length, currentGreen.length)
+           if (currentYellow.length === minSize) {
+               currentYellow.push(guest)
+           } else if (currentBlue.length === minSize) {
+               currentBlue.push(guest)
+           } else {
+               currentGreen.push(guest)
+           }
+        }
       })
       
       // 레벨 평균 계산
@@ -567,6 +597,33 @@ export function formTeams(players: any[], teamCount: number = 2): { yellowTeam: 
     }
   }
 
+  // 동반 제약조건 검사 함수
+  // 특정 선수를 sourceTeam에서 추출해 targetTeam으로 옮길 때, "동반 규칙"이 깨지는지 검사
+  const canMovePlayer = (player: any, sourceTeam: any[], targetTeam: any[]): boolean => {
+      // 1. 옮기려는 사람이 게스트인 경우
+      if (player.isGuest) {
+          const wantsSameTeam = player.sameTeamAsInviter !== undefined ? player.sameTeamAsInviter : false
+          if (wantsSameTeam && player.invitedByUserId) {
+             // 초대자가 출발팀(sourceTeam)에 남아있다면 옮길 수 없음 (헤어지게 됨)
+             // (초대자가 도착팀(targetTeam)에 있다면 옮기는 게 오히려 맞지만, 최초 로직에서 이미 붙여놨으므로 현재는 떨어져있을 리 없음)
+             const inviterInSource = sourceTeam.some(p => p.userId === player.invitedByUserId)
+             if (inviterInSource) return false
+          }
+      }
+      // 2. 옮기려는 사람이 누군가의 초대자인 경우
+      const dependentGuests = sourceTeam.filter(p => 
+          p.isGuest && 
+          p.invitedByUserId === player.userId && 
+          (p.sameTeamAsInviter !== undefined ? p.sameTeamAsInviter : false)
+      )
+      if (dependentGuests.length > 0) {
+          // 이 사람을 옮기면 이 사람을 따라온 게스트들과 찢어지게 됨
+          return false
+      }
+      
+      return true
+  }
+
   // 최종 인원수 균형 맞추기 (강제 조정) - 포지션 균형 고려
   const finalCountDiff = Math.abs(bestFormation.yellowTeam.length - bestFormation.blueTeam.length)
   if (finalCountDiff > 1) {
@@ -606,8 +663,16 @@ export function formTeams(players: any[], teamCount: number = 2): { yellowTeam: 
         const diff = largerCount - smallerCount
 
         if (diff > maxDiff && largerCount > 0) {
-          maxDiff = diff
-          bestCategoryToMove = category
+          // 해당 카테고리에 이동 가능한 선수가 있는지 확인
+          const hasMovablePlayer = largerTeam.some(p => {
+             const cat = p.positionCategory || getPositionCategory(p.position) || '미정'
+             return cat === category && canMovePlayer(p, largerTeam, smallerTeam)
+          })
+          
+          if (hasMovablePlayer) {
+              maxDiff = diff
+              bestCategoryToMove = category
+          }
         }
       })
 
@@ -616,16 +681,21 @@ export function formTeams(players: any[], teamCount: number = 2): { yellowTeam: 
       if (bestCategoryToMove) {
         const index = largerTeam.findIndex(player => {
           const category = player.positionCategory || getPositionCategory(player.position) || '미정'
-          return category === bestCategoryToMove
+          return category === bestCategoryToMove && canMovePlayer(player, largerTeam, smallerTeam)
         })
         if (index !== -1) {
           playerToMove = largerTeam.splice(index, 1)[0]
         }
       }
 
-      // 카테고리별로 찾지 못했으면 마지막 선수 이동
+      // 카테고리별로 찾지 못했으면 제약조건 없는 마지막 선수 이동
       if (!playerToMove) {
-        playerToMove = largerTeam.pop()
+        for (let j = largerTeam.length - 1; j >= 0; j--) {
+            if (canMovePlayer(largerTeam[j], largerTeam, smallerTeam)) {
+                playerToMove = largerTeam.splice(j, 1)[0]
+                break
+            }
+        }
       }
 
       if (playerToMove) {
@@ -670,9 +740,20 @@ export function formTeams(players: any[], teamCount: number = 2): { yellowTeam: 
       const diff = Math.abs(yellowCount - blueCount)
 
       if (diff > 1 && diff > worstDiff) {
-        needsAdjustment = true
-        worstCategory = category
-        worstDiff = diff
+        // 이동 가능한 선수가 있는지 확인
+        const sourceTeam = yellowCount > blueCount ? bestFormation.yellowTeam : bestFormation.blueTeam
+        const targetTeam = yellowCount > blueCount ? bestFormation.blueTeam : bestFormation.yellowTeam
+        
+        const hasMovablePlayer = sourceTeam.some(p => {
+             const cat = p.positionCategory || getPositionCategory(p.position) || '미정'
+             return cat === category && canMovePlayer(p, sourceTeam, targetTeam)
+        })
+        
+        if (hasMovablePlayer) {
+            needsAdjustment = true
+            worstCategory = category
+            worstDiff = diff
+        }
       }
     })
 
@@ -686,7 +767,7 @@ export function formTeams(players: any[], teamCount: number = 2): { yellowTeam: 
       // 노랑팀에서 파랑팀으로 이동
       const index = bestFormation.yellowTeam.findIndex(player => {
         const category = player.positionCategory || getPositionCategory(player.position) || '미정'
-        return category === worstCategory
+        return category === worstCategory && canMovePlayer(player, bestFormation.yellowTeam, bestFormation.blueTeam)
       })
       if (index !== -1) {
         const playerToMove = bestFormation.yellowTeam.splice(index, 1)[0]
@@ -696,7 +777,7 @@ export function formTeams(players: any[], teamCount: number = 2): { yellowTeam: 
       // 파랑팀에서 노랑팀으로 이동
       const index = bestFormation.blueTeam.findIndex(player => {
         const category = player.positionCategory || getPositionCategory(player.position) || '미정'
-        return category === worstCategory
+        return category === worstCategory && canMovePlayer(player, bestFormation.blueTeam, bestFormation.yellowTeam)
       })
       if (index !== -1) {
         const playerToMove = bestFormation.blueTeam.splice(index, 1)[0]
