@@ -453,7 +453,7 @@ export function MatchSchedule({ isManagerMode, currentUser, onEditSchedule, onAd
                                     )}
 
                                     {/* 팀편성 영역 */}
-                                    {nextMatch.teamFormation && currentUser?.id && (
+                                    {nextMatch.teamFormation && currentUser?.id && (isManagerMode || nextMatch.formationConfirmed) && (
                                         <div className="pt-2 border-t border-slate-100">
                                             <TeamFormation
                                                 scheduleId={nextMatch.id}
@@ -729,7 +729,7 @@ export function MatchSchedule({ isManagerMode, currentUser, onEditSchedule, onAd
                                                     )}
 
                                                     {/* 팀편성 영역 */}
-                                                    {schedule.teamFormation && currentUser?.id && (
+                                                    {schedule.teamFormation && currentUser?.id && (isManagerMode || schedule.formationConfirmed) && (
                                                         <div className="pt-2 border-t border-slate-100">
                                                             <TeamFormation
                                                                 scheduleId={schedule.id}
