@@ -213,7 +213,7 @@ export function FormationPage({ currentUser }: FormationPageProps) {
   }
 
   return (
-    <div className="space-y-4 max-w-lg mx-auto pb-6">
+    <div className="space-y-4 max-w-lg mx-auto pb-24 md:pb-32">
       <Card className="border-none shadow-sm bg-white overflow-hidden">
         {/* <div className="bg-gradient-to-r from-emerald-600 to-teal-600 p-4 text-white">
           <div className="flex items-center gap-2 mb-1">
