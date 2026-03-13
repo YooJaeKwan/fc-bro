@@ -209,7 +209,7 @@ export function FormationPage({ currentUser }: FormationPageProps) {
   }
 
   if (isLoading) {
-    return <div className="p-8 text-center text-slate-500 animate-pulse">일정 목록을 불러오는 중...</div>
+    return <div className="p-8 text-center text-slate-500 animate-pulse">전술판을 불러오는 중...</div>
   }
 
   return (
