@@ -15,8 +15,10 @@ interface PlayerStat {
     cleanSheets?: number
     attendanceRate?: number
     winRate?: number
+    points?: number
     gamesPlayed?: number
     wins?: number
+    draws?: number
     position?: string
     image?: string
     jerseyNumber?: number | string
@@ -94,7 +96,7 @@ const RankingList = ({
                             // 미리 각 아이템의 실제 공동 순위를 계산합니다 (e.g., 1, 1, 3, 4...)
                             let currentRank = 1
                             let currentVal = data[0][valueKey]
-                            
+
                             const rankedData = data.map((item, i) => {
                                 const val = item[valueKey]
                                 if (i > 0 && val !== currentVal) {
@@ -109,7 +111,7 @@ const RankingList = ({
                                 const maxVal = data[0][valueKey]
                                 const isTopScore = val !== null && val !== 0 && val === maxVal
                                 const rankStr = item._displayRank
-                                
+
                                 return (
                                     <div key={item.id} className={cn(
                                         "flex items-center px-3 py-3.5 transition-all duration-200",
@@ -125,43 +127,43 @@ const RankingList = ({
                                             ) : (
                                                 <span className="text-[13px] font-bold text-slate-300">{rankStr}</span>
                                             )}
-                                    </div>
-                                    <div className="flex-1 flex flex-col min-w-0 px-2">
-                                        <div className="flex items-center gap-2">
-                                            <span className={cn(
-                                                "font-bold truncate text-[15px] tracking-tight",
-                                                isTopScore ? styles.text : "text-slate-700"
-                                            )}>{item.name}</span>
-                                            {isTopScore && (
-                                                <Badge variant="secondary" className="px-1.5 py-0 text-[10px] bg-white/80 text-slate-500 border-slate-100 font-bold tracking-tighter shadow-sm">
-                                                    TOP
-                                                </Badge>
+                                        </div>
+                                        <div className="flex-1 flex flex-col min-w-0 px-2">
+                                            <div className="flex items-center gap-2">
+                                                <span className={cn(
+                                                    "font-bold truncate text-[15px] tracking-tight",
+                                                    isTopScore ? styles.text : "text-slate-700"
+                                                )}>{item.name}</span>
+                                                {isTopScore && (
+                                                    <Badge variant="secondary" className="px-1.5 py-0 text-[10px] bg-white/80 text-slate-500 border-slate-100 font-bold tracking-tighter shadow-sm">
+                                                        TOP
+                                                    </Badge>
+                                                )}
+                                            </div>
+                                            {(valueKey === 'winRate' || valueKey === 'points') && (
+                                                <span className={cn(
+                                                    "text-[10px] font-bold opacity-70 mt-0.5",
+                                                    isTopScore ? styles.text : "text-slate-400"
+                                                )}>
+                                                    {item.wins}승 {item.draws > 0 ? `${item.draws}무 ` : '0무 '}{item.gamesPlayed - item.wins - (item.draws || 0)}패
+                                                </span>
                                             )}
                                         </div>
-                                        {valueKey === 'winRate' && (
+                                        <div className="w-[70px] text-right pr-2 shrink-0 flex items-center justify-end gap-1.5">
                                             <span className={cn(
-                                                "text-[10px] font-bold opacity-70 mt-0.5",
-                                                isTopScore ? styles.text : "text-slate-400"
+                                                "font-black tabular-nums text-[16px] tracking-tighter",
+                                                isTopScore ? styles.text : "text-slate-900"
                                             )}>
-                                                {item.wins}W {item.gamesPlayed - item.wins}L
+                                                {valueKey === 'winRate' || valueKey === 'attendanceRate'
+                                                    ? (typeof val === 'number' ? val.toFixed(0) : val)
+                                                    : val
+                                                }
                                             </span>
-                                        )}
+                                            <span className="text-[10px] font-bold text-slate-500 uppercase">{unit}</span>
+                                        </div>
                                     </div>
-                                    <div className="w-[70px] text-right pr-2 shrink-0 flex items-center justify-end gap-1.5">
-                                        <span className={cn(
-                                            "font-black tabular-nums text-[16px] tracking-tighter",
-                                            isTopScore ? styles.text : "text-slate-900"
-                                        )}>
-                                            {valueKey === 'winRate' || valueKey === 'attendanceRate'
-                                                ? (typeof val === 'number' ? val.toFixed(0) : val)
-                                                : val
-                                            }
-                                        </span>
-                                        <span className="text-[10px] font-bold text-slate-500 uppercase">{unit}</span>
-                                    </div>
-                                </div>
-                            )
-                        })
+                                )
+                            })
                         })()
                     )}
                 </div>
@@ -192,7 +194,7 @@ export function TeamDashboard({ currentUser }: { currentUser: any }) {
     }, [])
 
     return (
-        <div className="space-y-8 pb-10 px-0.5">
+        <div className="space-y-8 pb-6 px-0.5">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <RankingList
                     title="Top Scorers"
@@ -226,7 +228,7 @@ export function TeamDashboard({ currentUser }: { currentUser: any }) {
                 />
                 <RankingList
                     title="Top Attendance"
-                    subtitle="최우수 출석률"
+                    subtitle="최우수 출석률 (올해 전체 경기의 50% 이상)"
                     icon={<span className="text-xl leading-none">🔥</span>}
                     data={stats?.topAttendance || []}
                     valueKey="attendanceRate"
@@ -242,6 +244,16 @@ export function TeamDashboard({ currentUser }: { currentUser: any }) {
                     valueKey="winRate"
                     unit="%"
                     theme="purple"
+                    isLoading={isLoading}
+                />
+                <RankingList
+                    title="Top Points"
+                    subtitle="최다 승점 (승리 3점, 무승부 1점)"
+                    icon={<span className="text-xl leading-none">📈</span>}
+                    data={stats?.topPoints || []}
+                    valueKey="points"
+                    unit="점"
+                    theme="red"
                     isLoading={isLoading}
                 />
             </div>

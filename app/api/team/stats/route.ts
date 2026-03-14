@@ -12,9 +12,11 @@ interface PlayerStat {
     attendanceCount: number // 추가: 출석 수
     gamesPlayed: number     // 추가: 승률 계산용 경기 수
     wins: number            // 추가: 승수
+    draws: number           // 추가: 무승부 수
     cleanSheets: number     // 추가: 무실점 방어 (수비수, 골키퍼)
     attendanceRate?: number // 파생: 출석율
     winRate?: number        // 파생: 승률
+    points?: number         // 파생: 승점 (승=3, 무=1)
     mainPosition?: string   // 추가: 클린시트 판별용 주 포지션
     image?: string          // 추가: 프로필 사진
     jerseyNumber?: number | string // 추가: 등번호
@@ -87,6 +89,7 @@ export async function GET(request: NextRequest) {
                 attendanceCount: 0,
                 gamesPlayed: 0,
                 wins: 0,
+                draws: 0,
                 cleanSheets: 0
             }
         })
@@ -127,38 +130,42 @@ export async function GET(request: NextRequest) {
                 }
             }
 
+            // 클린시트 대상 수비/골키퍼 포지션 목록 (DB에 저장된 형태 기준)
+            const defensivePositions = ['DC', 'DR', 'DL', 'DRL', 'DRLC', 'CB', 'LB', 'RB', 'LWB', 'RWB', 'SW', 'GK', 'LRB', 'SB', 'LCB', 'RCB', 'DF', 'LRCB']
+
+            // 해당 팀 구성원 중 수비수의 클린시트를 올려주는 함수
+            const rewardCleanSheets = (teamPlayers: any[], count: number = 1) => {
+                teamPlayers.forEach(p => {
+                    if (p.userId && validUserIds.has(p.userId)) {
+                        const playerPos = playerStats[p.userId].mainPosition?.toUpperCase() || ''
+                        if (defensivePositions.includes(playerPos)) {
+                            playerStats[p.userId].cleanSheets += count
+                        }
+                    }
+                })
+            }
+
+            const processMatchResult = (teamPlayers: any[], isWin: boolean, isDraw: boolean = false) => {
+                teamPlayers.forEach(p => {
+                    if (p.userId && validUserIds.has(p.userId)) {
+                        playerStats[p.userId].gamesPlayed += 1
+                        if (isWin) {
+                            playerStats[p.userId].wins += 1
+                        } else if (isDraw) {
+                            playerStats[p.userId].draws += 1
+                        }
+                    }
+                })
+            }
+
             // 전적 계산 (자체 경기)
             const isInternalMatch = schedule.type === 'internal' && schedule.teamFormation && schedule.ourScore !== null && schedule.opponentScore !== null
+            const isExternalMatch = (schedule.type === 'match' || schedule.type === 'futsal') && schedule.ourScore !== null && schedule.opponentScore !== null
+
             if (isInternalMatch) {
                 const formation: any = schedule.teamFormation
                 const yellowTeam: any[] = formation.yellowTeam || []
                 const blueTeam: any[] = formation.blueTeam || []
-
-                // 클린시트 대상 수비/골키퍼 포지션 목록 (DB에 저장된 형태 기준)
-                const defensivePositions = ['DC', 'DR', 'DL', 'DRL', 'DRLC', 'CB', 'LB', 'RB', 'LWB', 'RWB', 'SW', 'GK', 'LRB', 'SB', 'LCB', 'RCB', 'DF', 'LRCB']
-
-                // 해당 팀 구성원 중 수비수의 클린시트를 올려주는 함수
-                const rewardCleanSheets = (teamPlayers: any[], count: number = 1) => {
-                    teamPlayers.forEach(p => {
-                        if (p.userId && validUserIds.has(p.userId)) {
-                            const playerPos = playerStats[p.userId].mainPosition?.toUpperCase() || ''
-                            if (defensivePositions.includes(playerPos)) {
-                                playerStats[p.userId].cleanSheets += count
-                            }
-                        }
-                    })
-                }
-
-                const processMatchResult = (teamPlayers: any[], isWin: boolean) => {
-                    teamPlayers.forEach(p => {
-                        if (p.userId && validUserIds.has(p.userId)) {
-                            playerStats[p.userId].gamesPlayed += 1
-                            if (isWin) {
-                                playerStats[p.userId].wins += 1
-                            }
-                        }
-                    })
-                }
 
                 // 승패 계산
                 if (schedule.ourScore! > schedule.opponentScore!) {
@@ -168,8 +175,8 @@ export async function GET(request: NextRequest) {
                     processMatchResult(yellowTeam, false)
                     processMatchResult(blueTeam, true)
                 } else {
-                    processMatchResult(yellowTeam, false)
-                    processMatchResult(blueTeam, false)
+                    processMatchResult(yellowTeam, false, true)
+                    processMatchResult(blueTeam, false, true)
                 }
 
                 // 쿼터별 무실점 계산 (내전인 경우)
@@ -197,6 +204,16 @@ export async function GET(request: NextRequest) {
                         }
                     }
                 }
+            } else if (isExternalMatch) {
+                // A매치/교류전 등 외부 경기 전적 계산
+                // 최다 승률과 최다 승점은 명백하게 '자체경기' 한정 지표로 
+                // 외부경기에서는 승,무,패 전적을 가산하지 않음 (출근 및 수비 클린시트만 적용)
+                const attendingUsers = schedule.attendances?.filter(a => a.status === 'ATTENDING').map(a => ({ userId: a.userId })) || []
+
+                // 외부 경기 클린시트: 우리 팀이 실점하지 않았을 경우 전체 참석 수비수에게 1회 부여
+                if (schedule.opponentScore === 0) {
+                    rewardCleanSheets(attendingUsers, 1)
+                }
             }
         }
 
@@ -211,6 +228,7 @@ export async function GET(request: NextRequest) {
 
             const attendanceRate = userTotalCompletedSchedules > 0 ? Math.round((stat.attendanceCount / userTotalCompletedSchedules) * 100) : 0
             const winRate = stat.gamesPlayed > 0 ? Math.round((stat.wins / stat.gamesPlayed) * 100) : 0
+            const points = (stat.wins * 3) + (stat.draws * 1)
 
             // 전체 경기 대비 출석 비율 (랭킹 진입 조건용)
             // (stat.attendanceCount / totalCompletedSchedules) >= 0.5
@@ -218,7 +236,8 @@ export async function GET(request: NextRequest) {
             return {
                 ...stat,
                 attendanceRate,
-                winRate
+                winRate,
+                points
             }
         })
 
@@ -251,6 +270,7 @@ export async function GET(request: NextRequest) {
 
         const topAttendance = getTopWithTies(statsArray, 'attendanceRate', 5, eligibilityFilter);
         const topWinRate = getTopWithTies(statsArray, 'winRate', 5, eligibilityFilter);
+        const topPoints = getTopWithTies(statsArray, 'points', 5, eligibilityFilter);
 
         // 개인 통계 (userId가 있는 경우)
         let myStats = null
@@ -266,9 +286,11 @@ export async function GET(request: NextRequest) {
                 attendanceCount: 0,
                 gamesPlayed: 0,
                 wins: 0,
+                draws: 0,
                 cleanSheets: 0,
                 attendanceRate: 0,
-                winRate: 0
+                winRate: 0,
+                points: 0
             }
         }
 
@@ -280,6 +302,7 @@ export async function GET(request: NextRequest) {
                 topCleanSheets,
                 topAttendance,
                 topWinRate,
+                topPoints,
                 myStats,
                 totalMatches: schedules.length
             }

@@ -38,7 +38,7 @@ const AlbumView = dynamic(
   () => import("./components/album-view").then(mod => ({ default: mod.AlbumView })),
   { loading: () => <div className="animate-pulse p-8 text-center text-muted-foreground">로딩 중...</div> }
 )
-const FormationPage = dynamic(
+const FormationPage = dynamic<{ currentUser: any }>(
   () => import("./components/formation-page").then(mod => ({ default: mod.FormationPage })),
   { loading: () => <div className="animate-pulse p-8 text-center text-muted-foreground">로딩 중...</div> }
 )
@@ -152,7 +152,7 @@ export default function Dashboard({ userInfo, onUserUpdate, onLogout }: Dashboar
       </header>
 
       {/* Content Area */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pb-32 md:pb-40">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pb-24 md:pb-28">
         {/* Home */}
         {activeTab === 'home' && (
           <DashboardHome currentUser={user} onUserUpdate={handleUserUpdate} isManagerMode={isManagerMode} />

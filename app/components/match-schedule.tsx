@@ -175,22 +175,20 @@ export function MatchSchedule({ isManagerMode, currentUser, onEditSchedule, onAd
         return Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
     }
 
-    // 예정/지난 경기 분리
-    const now = new Date()
+    // KST 기준으로 예정/지난 경기 분리
+    const nowMs = Date.now()
     const upcomingSchedules = schedules
         .filter(s => {
-            const dt = parseScheduleDate(s.date, s.time || '23:59')
-            const endTime = new Date(dt.getTime() + 3 * 60 * 60 * 1000)
-            return endTime > now && s.status !== 'COMPLETED'
+            const matchStartKST = new Date(`${s.date}T${s.time || '23:59'}:00+09:00`).getTime()
+            return matchStartKST > nowMs && s.status !== 'COMPLETED'
         })
         .sort((a, b) => parseScheduleDate(a.date, a.time).getTime() - parseScheduleDate(b.date, b.time).getTime())
 
     const pastSchedules = schedules
         .filter(s => {
             if (s.status === 'COMPLETED') return true
-            const dt = parseScheduleDate(s.date, s.time || '23:59')
-            const endTime = new Date(dt.getTime() + 3 * 60 * 60 * 1000)
-            return endTime <= now
+            const matchStartKST = new Date(`${s.date}T${s.time || '23:59'}:00+09:00`).getTime()
+            return matchStartKST <= nowMs
         })
         .sort((a, b) => parseScheduleDate(b.date, b.time).getTime() - parseScheduleDate(a.date, a.time).getTime())
 

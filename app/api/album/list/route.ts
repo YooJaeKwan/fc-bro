@@ -33,9 +33,12 @@ export async function GET() {
                 }
             }
 
+            // 한국시간(UTC+9)으로 변환 후 날짜 추출
+            const kstDate = new Date(schedule.matchDate.getTime() + (9 * 60 * 60 * 1000))
+
             return {
                 ...schedule,
-                date: schedule.matchDate.toISOString().split('T')[0],
+                date: kstDate.toISOString().split('T')[0],
                 startTime: schedule.startTime,
                 mvpUser
             }
