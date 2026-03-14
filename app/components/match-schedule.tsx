@@ -46,7 +46,6 @@ interface MatchScheduleProps {
     isManagerMode: boolean
     currentUser?: any
     onEditSchedule?: (schedule: any) => void
-    onAddSchedule?: () => void
 }
 
 // 경기 타입 라벨 & 색상
@@ -134,7 +133,7 @@ const getMonthLabel = (monthKey: string) => {
     return `${year}년 ${Number(month)}월`
 }
 
-export function MatchSchedule({ isManagerMode, currentUser, onEditSchedule, onAddSchedule }: MatchScheduleProps) {
+export function MatchSchedule({ isManagerMode, currentUser, onEditSchedule }: MatchScheduleProps) {
     const [schedules, setSchedules] = useState<any[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [expandedUpcoming, setExpandedUpcoming] = useState<string | null>(null)
@@ -146,6 +145,8 @@ export function MatchSchedule({ isManagerMode, currentUser, onEditSchedule, onAd
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
     const [editForm, setEditForm] = useState<any>(null)
     const [isEditSubmitting, setIsEditSubmitting] = useState(false)
+    const [availableLocations, setAvailableLocations] = useState<any[]>([])
+    const [isLoadingLocations, setIsLoadingLocations] = useState(false)
 
     const fetchSchedules = async () => {
         try {
@@ -161,9 +162,24 @@ export function MatchSchedule({ isManagerMode, currentUser, onEditSchedule, onAd
             setIsLoading(false)
         }
     }
+    const fetchAvailableLocations = async () => {
+        try {
+            setIsLoadingLocations(true)
+            const response = await fetch('/api/schedule/locations')
+            if (response.ok) {
+                const result = await response.json()
+                setAvailableLocations(result.locations || [])
+            }
+        } catch (error) {
+            console.error('장소 목록 조회 오류:', error)
+        } finally {
+            setIsLoadingLocations(false)
+        }
+    }
 
     useEffect(() => {
         fetchSchedules()
+        fetchAvailableLocations()
     }, [])
 
     // D-day 계산
@@ -241,23 +257,44 @@ export function MatchSchedule({ isManagerMode, currentUser, onEditSchedule, onAd
     }
 
     // 일정 수정 핸들러
-    const handleEditSchedule = (schedule: any) => {
-        if (onEditSchedule) {
+    const handleEditSchedule = (schedule?: any) => {
+        if (schedule && onEditSchedule) {
             onEditSchedule(schedule)
             return
         }
-        setEditForm({
-            scheduleId: schedule.id,
-            type: schedule.type || 'internal',
-            date: schedule.date || '',
-            time: schedule.time || '',
-            gatherTime: schedule.gatherTime || '',
-            location: schedule.location || '',
-            quarterTime: schedule.quarterTime || 15,
-            restTime: schedule.restTime || 3,
-            description: schedule.description || '',
-            opponentTeam: schedule.opponentTeam || '',
-        })
+        
+        if (schedule) {
+            // 기존 일정 수정
+            setEditForm({
+                scheduleId: schedule.id,
+                type: schedule.type || 'internal',
+                date: schedule.date || '',
+                time: schedule.time || '',
+                gatherTime: schedule.gatherTime || '',
+                location: schedule.location || '',
+                quarterTime: schedule.quarterTime || 15,
+                restTime: schedule.restTime || 3,
+                description: schedule.description || '',
+                opponentTeam: schedule.opponentTeam || '',
+            })
+        } else {
+            // 새 일정 추가
+            const today = new Date()
+            const dateStr = today.toISOString().split('T')[0]
+            
+            setEditForm({
+                scheduleId: null, // null 이면 생성으로 간주
+                type: 'internal',
+                date: dateStr,
+                time: '08:00',
+                gatherTime: '07:30',
+                location: '',
+                quarterTime: 25,
+                restTime: 5,
+                description: '',
+                opponentTeam: '',
+            })
+        }
         setIsEditDialogOpen(true)
     }
 
@@ -265,18 +302,28 @@ export function MatchSchedule({ isManagerMode, currentUser, onEditSchedule, onAd
         if (!editForm || !currentUser?.id) return
         setIsEditSubmitting(true)
         try {
-            const response = await fetch('/api/schedule/update', {
-                method: 'PUT',
+            const isCreate = !editForm.scheduleId
+            const url = isCreate ? '/api/schedule/create' : '/api/schedule/update'
+            const method = isCreate ? 'POST' : 'PUT'
+            
+            // 등록(POST) 시에는 createdBy 가 필요하고, 수정(PUT) 시에는 userId와 scheduleId 가 필요함
+            const payload = isCreate 
+                ? { ...editForm, createdBy: currentUser.id }
+                : { ...editForm, userId: currentUser.id }
+
+            const response = await fetch(url, {
+                method,
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...editForm, userId: currentUser.id })
+                body: JSON.stringify(payload)
             })
             const result = await response.json()
-            if (!response.ok) throw new Error(result.error || '수정 중 오류')
+            if (!response.ok) throw new Error(result.error || (isCreate ? '등록 중 오류' : '수정 중 오류'))
             setIsEditDialogOpen(false)
             setEditForm(null)
             fetchSchedules()
+            if (isCreate) fetchAvailableLocations() // 새로운 장소가 생겼을 수 있으므로 갱신
         } catch (error) {
-            alert(error instanceof Error ? error.message : '일정 수정 중 오류가 발생했습니다.')
+            alert(error instanceof Error ? error.message : '일정 처리 중 오류가 발생했습니다.')
         } finally {
             setIsEditSubmitting(false)
         }
@@ -298,17 +345,22 @@ export function MatchSchedule({ isManagerMode, currentUser, onEditSchedule, onAd
     return (
         <div className="space-y-8 max-w-3xl mx-auto">
             {/* ═══════════════════════════════════════════ */}
+            {/* ═══════════════════════════════════════════ */}
+            {/* 상단 액션 버튼 (관리자용)                   */}
+            {/* ═══════════════════════════════════════════ */}
+            {isManagerMode && (
+                <div className="flex justify-end">
+                    <Button onClick={() => handleEditSchedule()} className="w-full sm:w-auto gap-1.5 font-bold shadow-sm bg-blue-600 hover:bg-blue-700 text-white">
+                        <Plus className="h-4 w-4" />
+                        새 경기 일정 등록
+                    </Button>
+                </div>
+            )}
+
+            {/* ═══════════════════════════════════════════ */}
             {/* 섹션: 예정 경기                               */}
             {/* ═══════════════════════════════════════════ */}
             <section>
-                <div className="flex items-center justify-between mb-4">
-                    {isManagerMode && onAddSchedule && (
-                        <Button size="sm" variant="outline" onClick={onAddSchedule} className="gap-1.5 text-xs border-blue-200 text-blue-600 hover:bg-blue-50">
-                            <Plus className="h-3.5 w-3.5" />
-                            일정 추가
-                        </Button>
-                    )}
-                </div>
 
                 {upcomingSchedules.length === 0 ? (
                     <Card className="border-dashed">
@@ -1009,7 +1061,7 @@ export function MatchSchedule({ isManagerMode, currentUser, onEditSchedule, onAd
             <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
                 <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
                     <DialogHeader>
-                        <DialogTitle>일정 수정</DialogTitle>
+                        <DialogTitle>{editForm?.scheduleId ? '일정 수정' : '새 일정 등록'}</DialogTitle>
                     </DialogHeader>
                     {editForm && (
                         <div className="space-y-4 pt-2">
@@ -1047,7 +1099,37 @@ export function MatchSchedule({ isManagerMode, currentUser, onEditSchedule, onAd
                             </div>
                             <div className="space-y-2">
                                 <Label>장소</Label>
-                                <Input value={editForm.location} onChange={(e) => setEditForm({ ...editForm, location: e.target.value })} placeholder="경기 장소" />
+                                <div className="space-y-2">
+                                    <Select 
+                                        value={availableLocations.some(loc => loc.name === editForm.location) ? editForm.location : ""} 
+                                        onValueChange={(v) => setEditForm({ ...editForm, location: v })}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="이전 사용 장소에서 선택" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {isLoadingLocations ? (
+                                                <div className="p-2 text-xs text-center text-slate-400">로딩 중...</div>
+                                            ) : availableLocations.length === 0 ? (
+                                                <div className="p-2 text-xs text-center text-slate-400">장소 기록이 없습니다.</div>
+                                            ) : (
+                                                availableLocations.map((loc) => (
+                                                    <SelectItem key={loc.name} value={loc.name}>
+                                                        <div className="flex items-center justify-between w-full gap-2">
+                                                            <span>{loc.name}</span>
+                                                            <Badge variant="secondary" className="text-[10px] items-center">{loc.count}회</Badge>
+                                                        </div>
+                                                    </SelectItem>
+                                                ))
+                                            )}
+                                        </SelectContent>
+                                    </Select>
+                                    <Input 
+                                        value={editForm.location} 
+                                        onChange={(e) => setEditForm({ ...editForm, location: e.target.value })} 
+                                        placeholder="직접 입력 또는 위에서 선택" 
+                                    />
+                                </div>
                             </div>
                             <div className="grid grid-cols-2 gap-3">
                                 <div className="space-y-2">
