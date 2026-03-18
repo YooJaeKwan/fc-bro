@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 
 // 게스트 목록 조회
@@ -122,7 +123,7 @@ export async function POST(request: NextRequest) {
         await prisma.schedule.update({
           where: { id: scheduleId },
           data: {
-            teamFormation: null,
+            teamFormation: Prisma.DbNull,
             formationDate: null,
             formationConfirmed: false
           }
@@ -189,7 +190,7 @@ export async function DELETE(request: NextRequest) {
         await prisma.schedule.update({
           where: { id: scheduleId },
           data: {
-            teamFormation: null,
+            teamFormation: Prisma.DbNull,
             formationDate: null,
             formationConfirmed: false
           }

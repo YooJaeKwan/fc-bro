@@ -24,9 +24,15 @@ export async function GET() {
       "수암꿈나무 체육공원",
     ]
 
+    interface LocationItem {
+      name: string
+      count: number
+      type: 'used' | 'popular'
+    }
+
     // 사용했던 장소들과 기본 장소들을 합쳐서 중복 제거
-    const allLocations = []
-    const locationSet = new Set()
+    const allLocations: LocationItem[] = []
+    const locationSet = new Set<string>()
 
     // 1. 실제 사용했던 장소들 (빈도 순)
     usedLocations.forEach(item => {

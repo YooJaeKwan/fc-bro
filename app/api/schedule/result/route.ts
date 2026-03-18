@@ -1,5 +1,6 @@
 
 import { NextResponse } from "next/server"
+import { Prisma } from "@prisma/client"
 import { prisma } from "@/lib/prisma"
 
 interface GoalRecord {
@@ -53,7 +54,7 @@ export async function POST(request: Request) {
           matchSummary: matchSummary || null,
           mvpUserId: mvpUserId || null,
           matchPhotoUrl: matchPhotoUrl || null,
-          goalRecords: goals && Array.isArray(goals) ? goals.filter((g: GoalRecord) => g.scorerId) : null,
+          goalRecords: goals && Array.isArray(goals) ? goals.filter((g: GoalRecord) => g.scorerId) : Prisma.DbNull,
           status: "COMPLETED",
         },
       })
