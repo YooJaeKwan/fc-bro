@@ -11,6 +11,7 @@ import {
   Trash2,
   Whistle,
   HeartPulse,
+  TrendingUp,
   ScrollText,
 } from "lucide-react"
 
@@ -89,7 +90,7 @@ const ruleSections: RuleSection[] = [
       {
         label: "지각",
         content:
-          "집합 시간까지 도착하지 못한 경우, 1쿼터 선발 명단에서 제외될 수 있다. (선착순 11명이 팀선발)",
+          "집합 시간까지 도착하지 못한 경우, 1쿼터 선발 명단에서 제외될 수 있다. (선착순 11명이 팀선발) 지각을 반복할 경우 페널티를 부여할 수 있다.(검토중)",
       },
       {
         label: "노쇼(No-Show)",
@@ -125,6 +126,16 @@ const ruleSections: RuleSection[] = [
         label: "쓰레기 수거",
         content:
           "본인이 발생시킨 쓰레기는 전량 직접 수거한다.",
+      },
+      {
+        label: "절대 금연",
+        content:
+          "운동장 내 절대 금연한다.",
+      },
+      {
+        label: "소음 자제",
+        content:
+          "아파트 인근이니 과도한 샤우팅, 환호성 및 소음을 자제한다. (퇴출 사례 많음)",
       },
     ],
   },
@@ -181,6 +192,51 @@ const ruleSections: RuleSection[] = [
         label: "상태 기록",
         content:
           "부상 발생 시 즉시 운영진에게 알리고, 어플 내 '부상 상황' 칸에 부위와 정도를 기록하여 복귀 시점을 관리받는다.",
+      },
+    ],
+  },
+  {
+    id: "article-6",
+    title: "제6조",
+    subtitle: "선수 레벨 관리",
+    icon: <TrendingUp className="h-5 w-5" />,
+    theme: {
+      border: "border-l-indigo-500",
+      iconBg: "bg-indigo-50",
+      iconText: "text-indigo-600",
+      badge: "bg-indigo-100 text-indigo-700",
+    },
+    principle: "",
+    items: [
+      {
+        label: "레벨 체계",
+        content:
+          "루키, 아마1~5, 세미프로1~3, 프로의 총 10단계의 레벨로 관리된다.",
+      },
+      {
+        label: "자동 팀편성",
+        content:
+          "레벨당 점수를 고려하여 밸런스 있게 자동팀편성을 한다.",
+      },
+      {
+        label: "수동 조정",
+        content:
+          "자동팀편성 후 부득이한 상황에 따라 수동으로 팀편성을 조정한다.",
+      },
+      {
+        label: "분기별 레벨 상향",
+        content:
+          "레벨은 분기별로 평가단에 의해 저평가된 팀원의 레벨을 상향한다. (하향 없음)",
+      },
+      {
+        label: "신규 회원 평가",
+        content:
+          "신규 회원의 경우 몇 경기를 보고 난 이후에 평가단이 레벨을 투표한다.",
+      },
+      {
+        label: "특별 상향",
+        content:
+          "필요에 따라 평가단 내부 발의를 통해 특정 인원의 레벨을 상향한다.",
       },
     ],
   },
