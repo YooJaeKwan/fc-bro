@@ -13,6 +13,7 @@ import {
   Image as ImageIcon,
   BarChart3,
   Settings,
+  ScrollText,
 } from "lucide-react"
 import { UserProfile } from "./components/user-profile"
 import { DashboardHome } from "./components/dashboard-home"
@@ -36,6 +37,10 @@ const MatchSchedulePage = dynamic(
 )
 const AlbumView = dynamic(
   () => import("./components/album-view").then(mod => ({ default: mod.AlbumView })),
+  { loading: () => <div className="animate-pulse p-8 text-center text-muted-foreground">로딩 중...</div> }
+)
+const TeamRules = dynamic(
+  () => import("./components/team-rules").then(mod => ({ default: mod.TeamRules })),
   { loading: () => <div className="animate-pulse p-8 text-center text-muted-foreground">로딩 중...</div> }
 )
 const FormationPage = dynamic<{ currentUser: any }>(
@@ -66,7 +71,7 @@ interface DashboardProps {
 }
 
 // Team 탭 내부 서브탭
-type TeamSubTab = 'members' | 'attendance' | 'album'
+type TeamSubTab = 'members' | 'attendance' | 'album' | 'rules'
 type ProfileSubTab = 'record' | 'info'
 
 export default function Dashboard({ userInfo, onUserUpdate, onLogout }: DashboardProps) {
@@ -98,6 +103,7 @@ export default function Dashboard({ userInfo, onUserUpdate, onLogout }: Dashboar
     { value: "members" as TeamSubTab, label: "멤버", icon: Users },
     { value: "attendance" as TeamSubTab, label: "출석부", icon: ClipboardList },
     { value: "album" as TeamSubTab, label: "앨범", icon: ImageIcon },
+    { value: "rules" as TeamSubTab, label: "회칙", icon: ScrollText },
   ]
 
   return (
@@ -197,6 +203,9 @@ export default function Dashboard({ userInfo, onUserUpdate, onLogout }: Dashboar
             )}
             {teamSubTab === 'album' && (
               <AlbumView />
+            )}
+            {teamSubTab === 'rules' && (
+              <TeamRules />
             )}
           </div>
         )}

@@ -1,0 +1,271 @@
+"use client"
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Separator } from "@/components/ui/separator"
+import {
+  Vote,
+  Clock,
+  AlertTriangle,
+  ShieldAlert,
+  Trash2,
+  Whistle,
+  HeartPulse,
+  ScrollText,
+} from "lucide-react"
+
+interface RuleSection {
+  id: string
+  title: string
+  subtitle: string
+  icon: React.ReactNode
+  theme: { border: string; iconBg: string; iconText: string; badge: string }
+  principle: string
+  items: { label: string; content: string; tag?: string }[]
+}
+
+const ruleSections: RuleSection[] = [
+  {
+    id: "article-1",
+    title: "제1조",
+    subtitle: "참석 투표 및 마감",
+    icon: <Vote className="h-5 w-5" />,
+    theme: {
+      border: "border-l-blue-500",
+      iconBg: "bg-blue-50",
+      iconText: "text-blue-600",
+      badge: "bg-blue-100 text-blue-700",
+    },
+    principle:
+      "원활한 경기 준비와 팀 배분을 위해 모든 회원은 정해진 기한 내에 참석 여부를 확정해야 한다.",
+    items: [
+      {
+        label: "투표 마감",
+        content:
+          "시합전 화요일 밤 12시까지 어플을 통해 투표를 완료한다.",
+      },
+      {
+        label: "미확정 시 투표 방법",
+        content:
+          "일정이 확실치 않은 경우에는 [불참]으로 우선 투표한다. 이후 일정이 확정되어 참여가 가능해질 경우 즉시 [참석]으로 상태를 변경한다.",
+      },
+      {
+        label: "변경 요청",
+        content:
+          "경기 앞두고 급하게 참석 여부를 변경하고 싶은 경우, 운영진에게 즉시 알린다.",
+      },
+      {
+        label: "미투표 페널티",
+        content:
+          "마감 시한까지 상습적으로 투표를 누락하는 인원에 대해서는 페널티를 부여할 수 있다. (확정 시 재공지)",
+        tag: "검토 중",
+      },
+    ],
+  },
+  {
+    id: "article-2",
+    title: "제2조",
+    subtitle: "지각 및 노쇼",
+    icon: <Clock className="h-5 w-5" />,
+    theme: {
+      border: "border-l-amber-500",
+      iconBg: "bg-amber-50",
+      iconText: "text-amber-600",
+      badge: "bg-amber-100 text-amber-700",
+    },
+    principle:
+      "정해진 경기 시간을 존중하고 팀원들의 대기 시간을 최소화한다.",
+    items: [
+      {
+        label: "집합 시간",
+        content:
+          "경기 시작 20분 전까지 구장에 도착하여 개인 웜업 및 팀 배정을 확인한다.",
+      },
+      {
+        label: "지각",
+        content:
+          "경기 시작 시점까지 도착하지 못한 경우, 해당 쿼터 선발 명단에서 제외될 수 있다.",
+      },
+      {
+        label: "노쇼(No-Show)",
+        content:
+          "[참석] 투표 후 사전 연락 없이 불참하거나 경기 직전 취소하는 행위는 팀 운영에 큰 차질을 주므로 운영진의 별도 관리를 받는다.",
+      },
+    ],
+  },
+  {
+    id: "article-3",
+    title: "제3조",
+    subtitle: "구장 매너 및 뒷정리",
+    icon: <Trash2 className="h-5 w-5" />,
+    theme: {
+      border: "border-l-purple-500",
+      iconBg: "bg-purple-50",
+      iconText: "text-purple-600",
+      badge: "bg-purple-100 text-purple-700",
+    },
+    principle: "",
+    items: [
+      {
+        label: "정시 퇴장",
+        content:
+          "다음 타임 대관 팀을 위해 경기 종료 5분 전(08:55)까지 모든 정리를 마치고 퇴장하는 것을 원칙으로 한다.",
+      },
+      {
+        label: "장비 사전 정리",
+        content:
+          "마지막 쿼터 시작 전 공 가방 및 공용 장비를 사전 정리하여 퇴장 시간을 단축한다.",
+      },
+      {
+        label: "쓰레기 수거",
+        content:
+          "본인이 발생시킨 쓰레기는 전량 직접 수거한다.",
+      },
+    ],
+  },
+  {
+    id: "article-4",
+    title: "제4조",
+    subtitle: "심판 및 경기 진행",
+    icon: <ShieldAlert className="h-5 w-5" />,
+    theme: {
+      border: "border-l-green-500",
+      iconBg: "bg-green-50",
+      iconText: "text-green-600",
+      badge: "bg-green-100 text-green-700",
+    },
+    principle:
+      "자체 경기 시 모두가 즐거운 경기를 위해 아래 규칙을 준수한다.",
+    items: [
+      {
+        label: "심판 수행",
+        content:
+          "쿼터별로 쉬는 인원이나 부상자, 혹은 사전에 정해진 순번에 따라 교대로 심판을 맡는다.",
+      },
+      {
+        label: "판정 존중",
+        content:
+          "심판의 판정은 절대적이며, 경기 중 과도한 항의나 독설로 분위기를 저해하는 행위는 엄금한다.",
+      },
+      {
+        label: "셀프 콜 금지",
+        content:
+          "심판의 휘슬이 울리기 전까지는 경기를 멈추지 않는 것을 원칙으로 한다.",
+      },
+    ],
+  },
+  {
+    id: "article-5",
+    title: "제5조",
+    subtitle: "부상 및 안전 관리",
+    icon: <HeartPulse className="h-5 w-5" />,
+    theme: {
+      border: "border-l-red-500",
+      iconBg: "bg-red-50",
+      iconText: "text-red-600",
+      badge: "bg-red-100 text-red-700",
+    },
+    principle: "",
+    items: [
+      {
+        label: "안전 제일",
+        content:
+          "자체 경기인만큼 무리한 태클이나 거친 몸싸움은 지양하며, 동료의 안전을 최우선으로 한다.",
+      },
+      {
+        label: "상태 기록",
+        content:
+          "부상 발생 시 즉시 운영진에게 알리고, 어플 내 '부상 상황' 칸에 부위와 정도를 기록하여 복귀 시점을 관리받는다.",
+      },
+    ],
+  },
+]
+
+export function TeamRules() {
+  return (
+    <div className="space-y-5 pb-6">
+      {/* 상단 헤더 */}
+      <div className="flex items-center gap-3 px-1">
+        <div className="p-2.5 rounded-2xl bg-slate-900 shadow-md">
+          <ScrollText className="h-5 w-5 text-white" />
+        </div>
+        <div>
+          <h2 className="text-lg font-black text-slate-900 tracking-tight">
+            FC 브로 운영 회칙
+          </h2>
+        </div>
+      </div>
+
+      {/* 규칙 섹션들 */}
+      {ruleSections.map((section) => (
+        <Card
+          key={section.id}
+          className={`overflow-hidden border-l-4 ${section.theme.border} shadow-sm`}
+        >
+          <CardHeader className="pb-2 pt-4 px-4">
+            <div className="flex items-center gap-3">
+              <div
+                className={`p-2 rounded-xl ${section.theme.iconBg} ${section.theme.iconText}`}
+              >
+                {section.icon}
+              </div>
+              <div className="flex-1 min-w-0">
+                <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
+                  {section.title}
+                  <Badge
+                    variant="secondary"
+                    className={`text-[11px] font-bold px-2 py-0.5 ${section.theme.badge} border-0`}
+                  >
+                    {section.subtitle}
+                  </Badge>
+                </CardTitle>
+              </div>
+            </div>
+            {section.principle && (
+              <p className="text-[13px] text-slate-600 leading-relaxed mt-2 pl-[52px]">
+                {section.principle}
+              </p>
+            )}
+          </CardHeader>
+
+          <CardContent className="px-4 pb-4 pt-1">
+            <div className="space-y-3">
+              {section.items.map((item, idx) => (
+                <div key={idx}>
+                  {idx > 0 && <Separator className="mb-3 bg-slate-100" />}
+                  <div className="flex gap-3">
+                    {/* 번호 */}
+                    <div className="flex-shrink-0 mt-0.5">
+                      <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-slate-100 text-[11px] font-bold text-slate-500">
+                        {idx + 1}
+                      </span>
+                    </div>
+                    {/* 내용 */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span className="text-[13px] font-bold text-slate-800">
+                          {item.label}
+                        </span>
+                        {item.tag && (
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] px-1.5 py-0 border-amber-300 text-amber-600 bg-amber-50"
+                          >
+                            {item.tag}
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-[12.5px] text-slate-600 leading-relaxed">
+                        {item.content}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  )
+}
