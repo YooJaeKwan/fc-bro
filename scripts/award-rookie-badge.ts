@@ -4,7 +4,6 @@ const prisma = new PrismaClient()
 
 async function main() {
     try {
-        // 유재관 사용자 찾기
         const user = await prisma.user.findFirst({
             where: {
                 realName: '유재관'
@@ -18,12 +17,24 @@ async function main() {
 
         console.log('사용자 발견:', user.realName, user.id)
 
-        // 이미 신입 선수 뱃지가 있는지 확인
+        const badge = await prisma.badge.findUnique({
+            where: {
+                code: 'ROOKIE_MEMBER'
+            }
+        })
+
+        if (!badge) {
+            console.log('신입 선수 뱃지를 찾을 수 없습니다.')
+            return
+        }
+
+        console.log('뱃지 발견:', badge.name, badge.id)
+
         const existingBadge = await prisma.userBadge.findUnique({
             where: {
-                userId_badgeType: {
+                userId_badgeId: {
                     userId: user.id,
-                    badgeType: 'ROOKIE_MEMBER'
+                    badgeId: badge.id
                 }
             }
         })
@@ -33,17 +44,16 @@ async function main() {
             return
         }
 
-        // 신입 선수 뱃지 부여
-        const badge = await prisma.userBadge.create({
+        const userBadge = await prisma.userBadge.create({
             data: {
                 userId: user.id,
-                badgeType: 'ROOKIE_MEMBER'
+                badgeId: badge.id
             }
         })
 
         console.log('✅ 신입 선수 뱃지 부여 완료!')
-        console.log('뱃지 ID:', badge.id)
-        console.log('부여 시간:', badge.earnedAt)
+        console.log('뱃지 ID:', userBadge.id)
+        console.log('부여 시간:', userBadge.earnedAt)
     } catch (error) {
         console.error('오류 발생:', error)
     } finally {

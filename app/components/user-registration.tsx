@@ -387,20 +387,20 @@ export function UserRegistration({ kakaoUserInfo, onRegistrationComplete }: User
   // 각 Select에서 사용할 포지션 리스트를 필터링하는 함수들 추가
   const getAvailablePositionsForSub1 = () => {
     return Object.entries(positions).reduce(
-      (acc, [group, positionList]) => {
+      (acc: any, [group, positionList]) => {
         const filteredPositions = positionList.filter((position) => position.code !== formData.mainPositionCode)
         if (filteredPositions.length > 0) {
           acc[group] = filteredPositions
         }
         return acc
       },
-      {} as typeof positions,
+      {},
     )
   }
 
   const getAvailablePositionsForSub2 = () => {
     return Object.entries(positions).reduce(
-      (acc, [group, positionList]) => {
+      (acc: any, [group, positionList]) => {
         const filteredPositions = positionList.filter(
           (position) => position.code !== formData.mainPositionCode && position.code !== formData.subPositions[0],
         )
@@ -409,7 +409,7 @@ export function UserRegistration({ kakaoUserInfo, onRegistrationComplete }: User
         }
         return acc
       },
-      {} as typeof positions,
+      {},
     )
   }
 
@@ -615,7 +615,7 @@ export function UserRegistration({ kakaoUserInfo, onRegistrationComplete }: User
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="선택 안함">선택 안함</SelectItem>
-                  {Object.entries(getAvailablePositionsForSub1()).map(([group, positionList]) => (
+                  {Object.entries(getAvailablePositionsForSub1() as typeof positions).map(([group, positionList]) => (
                     <div key={group}>
                       <div className="px-2 py-1 text-sm font-medium text-muted-foreground bg-muted">{group}</div>
                       {positionList.map((position) => (
@@ -651,7 +651,7 @@ export function UserRegistration({ kakaoUserInfo, onRegistrationComplete }: User
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="선택 안함">선택 안함</SelectItem>
-                  {Object.entries(getAvailablePositionsForSub2()).map(([group, positionList]) => (
+                  {Object.entries(getAvailablePositionsForSub2() as typeof positions).map(([group, positionList]) => (
                     <div key={group}>
                       <div className="px-2 py-1 text-sm font-medium text-muted-foreground bg-muted">{group}</div>
                       {positionList.map((position) => (

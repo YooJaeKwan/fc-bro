@@ -30,7 +30,7 @@ export function TeamSettings() {
   ])
   const [newSkill, setNewSkill] = useState("")
   const [positions, setPositions] = useState(defaultPositions)
-  const [editingPosition, setEditingPosition] = useState(null)
+  const [editingPosition, setEditingPosition] = useState<string | null>(null)
   const [newSubPosition, setNewSubPosition] = useState("")
   const [autoFormation, setAutoFormation] = useState(true)
   const [balanceByPosition, setBalanceByPosition] = useState(true)
@@ -52,7 +52,7 @@ export function TeamSettings() {
     setSkillCategories([...defaultSkills])
   }
 
-  const addSubPosition = (mainPosition: string) => {
+  const addSubPosition = (mainPosition: keyof typeof defaultPositions) => {
     if (newSubPosition.trim() && !positions[mainPosition].includes(newSubPosition.trim())) {
       setPositions({
         ...positions,
@@ -62,7 +62,7 @@ export function TeamSettings() {
     }
   }
 
-  const removeSubPosition = (mainPosition: string, subPosition: string) => {
+  const removeSubPosition = (mainPosition: keyof typeof defaultPositions, subPosition: string) => {
     // 기본 포지션은 최소 1개 유지
     if (positions[mainPosition].length <= 1) return
     
@@ -167,7 +167,6 @@ export function TeamSettings() {
                     checked={balanceByPosition} 
                     onCheckedChange={setBalanceByPosition}
                     disabled={!autoFormation}
-                    size="sm"
                   />
                 </div>
                 <div className="flex items-center gap-2">
@@ -177,7 +176,6 @@ export function TeamSettings() {
                     checked={balanceByRating} 
                     onCheckedChange={setBalanceByRating}
                     disabled={!autoFormation}
-                    size="sm"
                   />
                 </div>
               </div>
@@ -206,7 +204,7 @@ export function TeamSettings() {
           </div>
           
           <div className="space-y-4">
-            {Object.entries(positions).map(([mainPos, subPositions]) => (
+            {(Object.entries(positions) as [keyof typeof defaultPositions, string[]][]).map(([mainPos, subPositions]) => (
               <div key={mainPos} className="border rounded-lg p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <h4 className="font-medium text-lg">{mainPos}</h4>

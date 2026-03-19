@@ -70,19 +70,20 @@ export async function DELETE(request: NextRequest) {
 
       // 5. 댓글 삭제
       await tx.comment.deleteMany({
-        where: { userId: targetUserId }
+        where: { authorId: targetUserId }
       })
 
       // 6. 게시글 삭제
       await tx.post.deleteMany({
-        where: { userId: targetUserId }
+        where: { authorId: targetUserId }
       })
 
       // 7. 생성한 일정 삭제 (다른 사람이 참석한 경우 문제가 될 수 있으므로 주의)
-      // 일정은 삭제하지 않고 creatorId만 null로 설정
+      // 일정은 삭제하지 않고 createdBy만 null로 설정
+      // TODO: createdBy가 필수 필드인 경우 null 설정이 실패할 수 있음
       await tx.schedule.updateMany({
-        where: { creatorId: targetUserId },
-        data: { creatorId: null }
+        where: { createdBy: targetUserId },
+        data: { createdBy: adminUserId } // 또는 다른 유효한 운영진 ID로 위임
       })
 
       // 8. 사용자 삭제

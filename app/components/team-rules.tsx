@@ -9,7 +9,7 @@ import {
   AlertTriangle,
   ShieldAlert,
   Trash2,
-  Whistle,
+  Megaphone,
   HeartPulse,
   TrendingUp,
   ScrollText,
@@ -58,7 +58,7 @@ const ruleSections: RuleSection[] = [
       {
         label: "미투표 페널티",
         content:
-          "마감 시한까지 상습적으로 투표를 누락하는 인원에 대해서는 페널티를 부여할 수 있다. (확정 시 재공지)",
+          "마감 시한까지 상습적으로 투표를 누락하는 인원에 대해서는 페널티를 부여할 수 있다. (확정시 재공지)",
         tag: "검토 중",
       },
       {
@@ -90,7 +90,8 @@ const ruleSections: RuleSection[] = [
       {
         label: "지각",
         content:
-          "집합 시간까지 도착하지 못한 경우, 1쿼터 선발 명단에서 제외될 수 있다. (선착순 11명이 팀선발) 지각을 반복할 경우 페널티를 부여할 수 있다.(검토중)",
+          "집합 시간까지 도착하지 못한 경우, 쿼터 명단에서 제외될 수 있다. (선착순 11명이 선발) 지각을 반복할 경우 페널티를 부여할 수 있다. (확정시 재공지)",
+        tag: "검토 중",
       },
       {
         label: "노쇼(No-Show)",
@@ -143,7 +144,7 @@ const ruleSections: RuleSection[] = [
     id: "article-4",
     title: "제4조",
     subtitle: "심판 및 경기 진행",
-    icon: <ShieldAlert className="h-5 w-5" />,
+    icon: <Megaphone className="h-5 w-5" />,
     theme: {
       border: "border-l-green-500",
       iconBg: "bg-green-50",
