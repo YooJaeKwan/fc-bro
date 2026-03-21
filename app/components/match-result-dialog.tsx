@@ -50,6 +50,14 @@ export function MatchResultDialog({ isOpen, onClose, schedule, onSuccess }: Matc
     const [players, setPlayers] = useState<Player[]>([])
     const [noShowUserIds, setNoShowUserIds] = useState<string[]>([])
     const [allAttendees, setAllAttendees] = useState<any[]>([])
+    
+    // 골 입력용 임시 상태
+    const [pendingGoal, setPendingGoal] = useState({
+        quarter: 1,
+        team: 'yellow' as 'yellow' | 'blue',
+        scorerId: '',
+        assistId: 'none'
+    })
 
     // 상세 데이터 로드 상태
     const [matchDetail, setMatchDetail] = useState<any>(null)
@@ -179,16 +187,32 @@ export function MatchResultDialog({ isOpen, onClose, schedule, onSuccess }: Matc
 
     // 골 기록 추가
     const addGoal = () => {
+        if (!pendingGoal.scorerId) {
+            alert('득점자를 선택해주세요.')
+            return
+        }
+
+        const scorer = players.find(p => p.id === pendingGoal.scorerId)
+        const assist = players.find(p => p.id === pendingGoal.assistId)
+
         const newGoal: GoalRecord = {
             id: Date.now().toString(),
-            scorerId: '',
-            scorerName: '',
-            assistId: '',
-            assistName: '',
-            team: 'yellow',
-            quarter: 1
+            scorerId: pendingGoal.scorerId,
+            scorerName: pendingGoal.scorerId === 'own_goal' ? '자책골' : (scorer?.name || ''),
+            assistId: pendingGoal.assistId === 'none' ? '' : pendingGoal.assistId,
+            assistName: (pendingGoal.assistId !== 'none' && pendingGoal.assistId !== 'own_goal') ? (assist?.name || '') : '',
+            team: pendingGoal.team,
+            quarter: pendingGoal.quarter
         }
+        
         setGoals([...goals, newGoal])
+        
+        // 입력 칸 초기화 (쿼터와 팀은 유지하여 연속 입력 편의성 제공)
+        setPendingGoal(prev => ({
+            ...prev,
+            scorerId: '',
+            assistId: 'none'
+        }))
     }
 
     // 골 기록 삭제
@@ -418,49 +442,75 @@ export function MatchResultDialog({ isOpen, onClose, schedule, onSuccess }: Matc
                                 {/* 골 기록 섹션 */}
                                 {isInternal && players.length > 0 && (
                                     <div className="space-y-3">
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-2 text-sm font-medium">
-                                                <Goal className="h-4 w-4" /> 골 기록
-                                            </div>
-                                            <Button type="button" size="sm" variant="outline" className="h-7 px-3 text-xs" onClick={addGoal}>
-                                                <Plus className="h-3 w-3 mr-1" /> 골 추가
-                                            </Button>
+                                        <div className="flex items-center gap-2 text-sm font-medium">
+                                            <Goal className="h-4 w-4" /> 골 기록
                                         </div>
+                                        
+                                        {/* 골 입력 가이드/폼 */}
+                                        <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-3">
+                                            <div className="flex items-center gap-2">
+                                                <Select value={pendingGoal.quarter.toString()} onValueChange={(v) => setPendingGoal(prev => ({ ...prev, quarter: Number(v) }))}>
+                                                    <SelectTrigger className="h-9 w-20 text-xs font-bold bg-white"><SelectValue /></SelectTrigger>
+                                                    <SelectContent>{quarterOptions.map(q => <SelectItem key={q} value={q.toString()}>{q}쿼터</SelectItem>)}</SelectContent>
+                                                </Select>
+                                                <Select value={pendingGoal.team} onValueChange={(v) => setPendingGoal(prev => ({ ...prev, team: v as 'yellow' | 'blue', scorerId: '', assistId: 'none' }))}>
+                                                    <SelectTrigger className={cn("h-9 flex-1 text-xs font-bold bg-white", pendingGoal.team === 'yellow' ? "text-yellow-600 border-yellow-200" : "text-blue-600 border-blue-200")}>
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="yellow">Yellow Team</SelectItem>
+                                                        <SelectItem value="blue">Blue Team</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <Select value={pendingGoal.scorerId} onValueChange={(v) => setPendingGoal(prev => ({ ...prev, scorerId: v, assistId: v === 'own_goal' ? 'none' : prev.assistId }))}>
+                                                    <SelectTrigger className="h-9 flex-[1.5] text-xs bg-white"><SelectValue placeholder="⚽ 득점자" /></SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="own_goal" className="text-red-500 font-bold">⚠️ 자책골</SelectItem>
+                                                        {getTeamPlayers(pendingGoal.team).map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                                                    </SelectContent>
+                                                </Select>
+                                                <Select value={pendingGoal.assistId} onValueChange={(v) => setPendingGoal(prev => ({ ...prev, assistId: v }))} disabled={pendingGoal.scorerId === 'own_goal'}>
+                                                    <SelectTrigger className="h-9 flex-1 text-xs bg-white"><SelectValue placeholder="👟 도움" /></SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="none">도움 없음</SelectItem>
+                                                        {getTeamPlayers(pendingGoal.team).filter(p => p.id !== pendingGoal.scorerId).map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                                                    </SelectContent>
+                                                </Select>
+                                                <Button type="button" size="sm" className="h-9 px-4 bg-slate-800 text-white font-bold shrink-0" onClick={addGoal}>
+                                                    추가
+                                                </Button>
+                                            </div>
+                                        </div>
+
+                                        {/* 기록된 리스트 (요약형태) */}
                                         {goals.length > 0 && (
-                                            <div className="space-y-2">
+                                            <div className="space-y-1.5 max-h-[200px] overflow-y-auto pr-1 pt-1">
                                                 {goals.map((goal) => (
-                                                    <div key={goal.id} className={`border rounded-lg p-3 space-y-2 ${goal.team === 'yellow' ? 'bg-yellow-50 border-yellow-200' : 'bg-blue-50 border-blue-200'}`}>
-                                                        <div className="flex items-center gap-2">
-                                                            <Select value={goal.quarter.toString()} onValueChange={(v) => updateQuarter(goal.id, Number(v))}>
-                                                                <SelectTrigger className="h-8 w-16 text-xs"><SelectValue /></SelectTrigger>
-                                                                <SelectContent>{quarterOptions.map(q => <SelectItem key={q} value={q.toString()}>{q}Q</SelectItem>)}</SelectContent>
-                                                            </Select>
-                                                            <Select value={goal.team} onValueChange={(v) => updateTeam(goal.id, v as 'yellow' | 'blue')}>
-                                                                <SelectTrigger className="h-8 w-24 text-xs"><SelectValue /></SelectTrigger>
-                                                                <SelectContent>
-                                                                    <SelectItem value="yellow">Yellow</SelectItem>
-                                                                    <SelectItem value="blue">Blue</SelectItem>
-                                                                </SelectContent>
-                                                            </Select>
-                                                            <div className="flex-1" />
-                                                            <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-red-500" onClick={() => removeGoal(goal.id)}><X className="h-4 w-4" /></Button>
+                                                    <div key={goal.id} className={cn(
+                                                        "flex items-center gap-2 px-3 py-2 rounded-lg border text-[11px] font-medium transition-all",
+                                                        goal.team === 'yellow' ? "bg-yellow-50/50 border-yellow-100" : "bg-blue-50/50 border-blue-100"
+                                                    )}>
+                                                        <span className="shrink-0 font-bold text-slate-400 w-5">{goal.quarter}Q</span>
+                                                        <Badge variant="outline" className={cn(
+                                                            "px-1.5 h-4.5 text-[9px] border-none",
+                                                            goal.team === 'yellow' ? "bg-yellow-400 text-yellow-900" : "bg-blue-500 text-white"
+                                                        )}>
+                                                            {goal.team === 'yellow' ? 'Y' : 'B'}
+                                                        </Badge>
+                                                        <div className="flex-1 truncate flex items-center gap-1.5">
+                                                            <span className="font-bold text-slate-700">{goal.scorerName}</span>
+                                                            {goal.assistName && (
+                                                                <>
+                                                                    <span className="text-slate-300">|</span>
+                                                                    <span className="text-slate-500">도움: {goal.assistName}</span>
+                                                                </>
+                                                            )}
                                                         </div>
-                                                        <div className="flex items-center gap-2">
-                                                            <Select value={goal.scorerId} onValueChange={(v) => updateScorer(goal.id, v)}>
-                                                                <SelectTrigger className="h-8 flex-1 text-xs"><SelectValue placeholder="⚽ 득점자" /></SelectTrigger>
-                                                                <SelectContent>
-                                                                    <SelectItem value="own_goal" className="text-red-500 font-bold">⚠️ 자책골</SelectItem>
-                                                                    {getTeamPlayers(goal.team).map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-                                                                </SelectContent>
-                                                            </Select>
-                                                            <Select value={goal.assistId || 'none'} onValueChange={(v) => updateAssist(goal.id, v)} disabled={goal.scorerId === 'own_goal'}>
-                                                                <SelectTrigger className="h-8 flex-1 text-xs"><SelectValue placeholder="👟 도움" /></SelectTrigger>
-                                                                <SelectContent>
-                                                                    <SelectItem value="none">도움 없음</SelectItem>
-                                                                    {getTeamPlayers(goal.team).filter(p => p.id !== goal.scorerId).map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-                                                                </SelectContent>
-                                                            </Select>
-                                                        </div>
+                                                        <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-slate-400 hover:text-red-500" onClick={() => removeGoal(goal.id)}>
+                                                            <X className="h-3.5 w-3.5" />
+                                                        </Button>
                                                     </div>
                                                 ))}
                                                 <div ref={goalsEndRef} />
