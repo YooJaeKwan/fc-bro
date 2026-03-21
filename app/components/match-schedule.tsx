@@ -35,6 +35,7 @@ import {
     ChevronDown,
     ChevronUp,
     Share2,
+    AlertTriangle,
 } from "lucide-react"
 import { AttendanceVoting } from "./attendance-voting"
 import { ScheduleComments } from "./schedule-comments"
@@ -268,7 +269,7 @@ export function MatchSchedule({ isManagerMode, currentUser, onEditSchedule }: Ma
             onEditSchedule(schedule)
             return
         }
-        
+
         if (schedule) {
             // 기존 일정 수정
             setEditForm({
@@ -287,7 +288,7 @@ export function MatchSchedule({ isManagerMode, currentUser, onEditSchedule }: Ma
             // 새 일정 추가
             const today = new Date()
             const dateStr = today.toISOString().split('T')[0]
-            
+
             setEditForm({
                 scheduleId: null, // null 이면 생성으로 간주
                 type: 'internal',
@@ -311,9 +312,9 @@ export function MatchSchedule({ isManagerMode, currentUser, onEditSchedule }: Ma
             const isCreate = !editForm.scheduleId
             const url = isCreate ? '/api/schedule/create' : '/api/schedule/update'
             const method = isCreate ? 'POST' : 'PUT'
-            
+
             // 등록(POST) 시에는 createdBy 가 필요하고, 수정(PUT) 시에는 userId와 scheduleId 가 필요함
-            const payload = isCreate 
+            const payload = isCreate
                 ? { ...editForm, createdBy: currentUser.id }
                 : { ...editForm, userId: currentUser.id }
 
@@ -971,7 +972,7 @@ export function MatchSchedule({ isManagerMode, currentUser, onEditSchedule }: Ma
                                                                     <span className="text-xs text-slate-400">결과 미입력</span>
                                                                 )
                                                             )}
-                                                            
+
                                                             <div className={`ml-1 transition-colors ${expandedPast === schedule.id ? 'text-blue-500' : 'text-slate-400'}`}>
                                                                 {schedule.teamFormation ? (
                                                                     <Users className={`h-4 w-4 transition-transform ${expandedPast === schedule.id ? 'scale-110' : ''}`} />
@@ -1033,6 +1034,23 @@ export function MatchSchedule({ isManagerMode, currentUser, onEditSchedule }: Ma
                                                         )
                                                     })()}
 
+                                                    {/* 노쇼 명단 — 골/도움 기록 하단에 표시 */}
+                                                    {(() => {
+                                                        const noShows = schedule.attendees?.filter((a: any) =>
+                                                            a.status === 'NO_SHOW' || a.status === 'no_show'
+                                                        ) || [];
+                                                        if (noShows.length === 0) return null;
+
+                                                        return (
+                                                            <div className="ml-14 mr-2 -mt-1 mb-2 animate-in fade-in slide-in-from-top-1 duration-300">
+                                                                <div className="border-l-2 border-red-200 pl-3 py-1 flex items-center gap-1.5 text-[11px] text-red-500 font-bold italic">
+                                                                    <AlertTriangle className="h-3 w-3" />
+                                                                    <span>No-Show : {noShows.map((a: any) => a.name || a.guestName || a.user?.realName || a.user?.nickname).join(', ')}</span>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })()}
+
                                                     {/* 확장된 상세 (팀편성) */}
                                                     {expandedPast === schedule.id && schedule.teamFormation && (
                                                         <div className="mt-2 mb-4 ml-4 mr-2 p-4 rounded-xl bg-white border border-slate-100 shadow-sm animate-in slide-in-from-top-1 duration-200">
@@ -1043,9 +1061,9 @@ export function MatchSchedule({ isManagerMode, currentUser, onEditSchedule }: Ma
                                                                 formationConfirmed={schedule.formationConfirmed}
                                                                 isManagerMode={false} // 지난 경기는 읽기 전용으로 표시 (총무라도)
                                                                 currentUserId={currentUser?.id || ''}
-                                                                onFormationUpdate={() => {}}
-                                                                onFormationDelete={() => {}}
-                                                                onFormationConfirm={() => {}}
+                                                                onFormationUpdate={() => { }}
+                                                                onFormationDelete={() => { }}
+                                                                onFormationConfirm={() => { }}
                                                             />
                                                             {schedule.description && (
                                                                 <p className="mt-3 text-xs text-slate-500 bg-slate-50 rounded-lg px-3 py-2">{schedule.description}</p>
@@ -1106,8 +1124,8 @@ export function MatchSchedule({ isManagerMode, currentUser, onEditSchedule }: Ma
                             <div className="space-y-2">
                                 <Label>장소</Label>
                                 <div className="space-y-2">
-                                    <Select 
-                                        value={availableLocations.some(loc => loc.name === editForm.location) ? editForm.location : ""} 
+                                    <Select
+                                        value={availableLocations.some(loc => loc.name === editForm.location) ? editForm.location : ""}
                                         onValueChange={(v) => setEditForm({ ...editForm, location: v })}
                                     >
                                         <SelectTrigger>
@@ -1130,10 +1148,10 @@ export function MatchSchedule({ isManagerMode, currentUser, onEditSchedule }: Ma
                                             )}
                                         </SelectContent>
                                     </Select>
-                                    <Input 
-                                        value={editForm.location} 
-                                        onChange={(e) => setEditForm({ ...editForm, location: e.target.value })} 
-                                        placeholder="직접 입력 또는 위에서 선택" 
+                                    <Input
+                                        value={editForm.location}
+                                        onChange={(e) => setEditForm({ ...editForm, location: e.target.value })}
+                                        placeholder="직접 입력 또는 위에서 선택"
                                     />
                                 </div>
                             </div>

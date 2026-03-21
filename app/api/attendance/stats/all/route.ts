@@ -35,16 +35,15 @@ export async function GET(request: NextRequest) {
                 title: true,
                 type: true,
                 attendances: {
-                    where: { status: 'ATTENDING' },
-                    select: { userId: true }
+                    select: { userId: true, status: true }
                 }
             },
             orderBy: { matchDate: 'asc' }
         })
 
         // 3. 출석 매트릭스 생성
-        // 각 유저별로, 각 일정에 참석했는지 여부를 O/X/-로 기록
-        const attendanceMatrix: Record<string, Record<string, 'O' | 'X' | '-'>> = {}
+        // 각 유저별로, 각 일정에 참석했는지 여부를 O(참석)/X(불참)/N(노쇼)/-(가입전)로 기록
+        const attendanceMatrix: Record<string, Record<string, 'O' | 'X' | 'N' | '-'>> = {}
 
         users.forEach(user => {
             attendanceMatrix[user.id] = {}
@@ -56,8 +55,14 @@ export async function GET(request: NextRequest) {
                     return
                 }
 
-                const attended = schedule.attendances.some(a => a.userId === user.id)
-                attendanceMatrix[user.id][schedule.id] = attended ? 'O' : 'X'
+                const att = schedule.attendances.find(a => a.userId === user.id)
+                if (att?.status === 'ATTENDING') {
+                    attendanceMatrix[user.id][schedule.id] = 'O'
+                } else if (att?.status === 'NO_SHOW') {
+                    attendanceMatrix[user.id][schedule.id] = 'N'
+                } else {
+                    attendanceMatrix[user.id][schedule.id] = 'X'
+                }
             })
         })
 
@@ -68,7 +73,7 @@ export async function GET(request: NextRequest) {
             const totalSchedules = validSchedules.length
 
             const attendedCount = validSchedules.filter(s =>
-                s.attendances.some(a => a.userId === user.id)
+                s.attendances.some(a => a.userId === user.id && a.status === 'ATTENDING')
             ).length
 
             const rate = totalSchedules > 0 ? (attendedCount / totalSchedules) * 100 : 0

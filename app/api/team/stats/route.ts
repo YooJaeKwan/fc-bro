@@ -11,15 +11,17 @@ interface PlayerStat {
     mvpCount: number
     attendanceCount: number // 추가: 출석 수
     gamesPlayed: number     // 추가: 승률 계산용 경기 수
-    wins: number            // 추가: 승수
-    draws: number           // 추가: 무승부 수
-    cleanSheets: number     // 추가: 무실점 방어 (수비수, 골키퍼)
+    wins: number            // 승수
+    draws: number           // 무승부 수
+    losses: number          // 패수
+    cleanSheets: number     // 무실점 방어 (수비수, 골키퍼)
     attendanceRate?: number // 파생: 출석율
     winRate?: number        // 파생: 승률
     points?: number         // 파생: 승점 (승=3, 무=1)
-    mainPosition?: string   // 추가: 클린시트 판별용 주 포지션
-    image?: string          // 추가: 프로필 사진
-    jerseyNumber?: number | string // 추가: 등번호
+    mainPosition?: string   // 클린시트 판별용 주 포지션
+    image?: string          // 프로필 사진
+    jerseyNumber?: number | string // 등번호
+    noShowCount: number     // 노쇼 횟수
 }
 
 export async function GET(request: NextRequest) {
@@ -91,7 +93,9 @@ export async function GET(request: NextRequest) {
                 gamesPlayed: 0,
                 wins: 0,
                 draws: 0,
-                cleanSheets: 0
+                losses: 0,
+                cleanSheets: 0,
+                noShowCount: 0
             }
         })
 
@@ -122,11 +126,15 @@ export async function GET(request: NextRequest) {
                 }
             }
 
-            // 출석 처리
+            // 출석 처리 (노쇼 포함)
             if (schedule.attendances && Array.isArray(schedule.attendances)) {
                 for (const attendance of schedule.attendances) {
-                    if (attendance.status === 'ATTENDING' && attendance.userId && validUserIds.has(attendance.userId)) {
-                        playerStats[attendance.userId].attendanceCount += 1
+                    if (attendance.userId && validUserIds.has(attendance.userId)) {
+                        if (attendance.status === 'ATTENDING') {
+                            playerStats[attendance.userId].attendanceCount += 1
+                        } else if (attendance.status === 'NO_SHOW') {
+                            playerStats[attendance.userId].noShowCount += 1
+                        }
                     }
                 }
             }
@@ -137,10 +145,17 @@ export async function GET(request: NextRequest) {
             // 해당 팀 구성원 중 수비수의 클린시트를 올려주는 함수
             const rewardCleanSheets = (teamPlayers: any[], count: number = 1) => {
                 teamPlayers.forEach(p => {
-                    if (p.userId && validUserIds.has(p.userId)) {
-                        const playerPos = playerStats[p.userId].mainPosition?.toUpperCase() || ''
+                    const uId = p.userId
+                    if (uId && validUserIds.has(uId)) {
+                        // 현재 경기에 노쇼한 인원인지 확인
+                        const isNoShowInThisMatch = (schedule.attendances as any[] || []).some(
+                            a => a.userId === uId && a.status === 'NO_SHOW'
+                        )
+                        if (isNoShowInThisMatch) return;
+
+                        const playerPos = playerStats[uId].mainPosition?.toUpperCase() || ''
                         if (defensivePositions.includes(playerPos)) {
-                            playerStats[p.userId].cleanSheets += count
+                            playerStats[uId].cleanSheets += count
                         }
                     }
                 })
@@ -148,12 +163,21 @@ export async function GET(request: NextRequest) {
 
             const processMatchResult = (teamPlayers: any[], isWin: boolean, isDraw: boolean = false) => {
                 teamPlayers.forEach(p => {
-                    if (p.userId && validUserIds.has(p.userId)) {
-                        playerStats[p.userId].gamesPlayed += 1
+                    const uId = p.userId
+                    if (uId && validUserIds.has(uId)) {
+                        // 현재 경기에 노쇼한 인원인지 확인
+                        const isNoShowInThisMatch = (schedule.attendances as any[] || []).some(
+                            a => a.userId === uId && a.status === 'NO_SHOW'
+                        )
+                        if (isNoShowInThisMatch) return;
+
+                        playerStats[uId].gamesPlayed += 1
                         if (isWin) {
-                            playerStats[p.userId].wins += 1
+                            playerStats[uId].wins += 1
                         } else if (isDraw) {
-                            playerStats[p.userId].draws += 1
+                            playerStats[uId].draws += 1
+                        } else {
+                            playerStats[uId].losses += 1
                         }
                     }
                 })
@@ -289,11 +313,17 @@ export async function GET(request: NextRequest) {
                 wins: 0,
                 draws: 0,
                 cleanSheets: 0,
+                noShowCount: 0,
                 attendanceRate: 0,
                 winRate: 0,
                 points: 0
             }
         }
+
+        // 전체 선수 통계 (1경기 이상 참석한 선수만, 이름순)
+        const allPlayerStats = statsArray
+            .filter(s => s.gamesPlayed > 0 || s.goals > 0 || s.assists > 0 || s.cleanSheets > 0)
+            .sort((a, b) => a.name.localeCompare(b.name, 'ko'))
 
         return NextResponse.json({
             success: true,
@@ -304,6 +334,7 @@ export async function GET(request: NextRequest) {
                 topAttendance,
                 topWinRate,
                 topPoints,
+                allPlayerStats,
                 myStats,
                 totalMatches: schedules.length
             }

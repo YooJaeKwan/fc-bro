@@ -100,7 +100,7 @@ export async function GET(request: NextRequest) {
         attendances: {
           where: {
             userId,
-            status: 'ATTENDING'
+            status: { in: ['ATTENDING', 'NO_SHOW'] }
           }
         }
       }
@@ -153,14 +153,18 @@ export async function GET(request: NextRequest) {
     let attendedCount = 0
     let wins = 0, draws = 0, losses = 0
 
-    // 4. 개인 상세 통계 (골, 도움, 클린시트)
-    let goals = 0, assists = 0, cleanSheets = 0
+    // 4. 개인 상세 통계 (골, 도움, 클린시트, 노쇼)
+    let goals = 0, assists = 0, cleanSheets = 0, noShowCount = 0
     const defensivePositions = ['DC', 'DR', 'DL', 'DRL', 'DRLC', 'CB', 'LB', 'RB', 'LWB', 'RWB', 'SW', 'GK']
     const isDefender = defensivePositions.includes(user?.preferredPosition?.toUpperCase() || '')
 
     yearSchedules.forEach((schedule: any) => {
-      const isAttended = schedule.attendances.length > 0
+      const myAttendance = schedule.attendances.find((a: any) => a.userId === userId)
+      const isAttended = myAttendance?.status === 'ATTENDING'
+      const isNoShow = myAttendance?.status === 'NO_SHOW'
+      
       if (isAttended) attendedCount++
+      if (isNoShow) noShowCount++
 
       // 골/도움 계산
       if (schedule.goalRecords && Array.isArray(schedule.goalRecords)) {

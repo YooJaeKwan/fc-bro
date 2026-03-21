@@ -14,7 +14,7 @@ interface GoalRecord {
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { scheduleId, ourScore, opponentScore, matchSummary, mvpUserId, matchPhotoUrl, goals } = body
+    const { scheduleId, ourScore, opponentScore, matchSummary, mvpUserId, matchPhotoUrl, goals, noShowUserIds } = body
 
     if (!scheduleId) {
       return NextResponse.json(
@@ -62,7 +62,28 @@ export async function POST(request: Request) {
         },
       })
 
-      // 2. SchedulePlayerStat에 개인 골/도움 기록 반영
+      // 2. 노쇼 처리 (ScheduleAttendance 업데이트 - 팀원 및 게스트 모두 대응)
+      if (noShowUserIds && Array.isArray(noShowUserIds) && noShowUserIds.length > 0) {
+        // 팀원(userId) 노쇼 처리
+        await tx.scheduleAttendance.updateMany({
+          where: {
+            scheduleId,
+            userId: { in: noShowUserIds.filter(id => id && !id.startsWith('guest_')) }
+          },
+          data: { status: 'NO_SHOW' }
+        })
+
+        // 게스트(guestId) 노쇼 처리
+        await tx.scheduleAttendance.updateMany({
+          where: {
+            scheduleId,
+            guestId: { in: noShowUserIds.filter(id => id && id.startsWith('guest_')) }
+          },
+          data: { status: 'NO_SHOW' }
+        })
+      }
+
+      // 3. SchedulePlayerStat에 개인 골/도움 기록 반영
       // 먼저 기존 기록 삭제 (결과 수정 시 중복 방지)
       await tx.schedulePlayerStat.deleteMany({
         where: { scheduleId }
@@ -130,16 +151,40 @@ export async function GET(request: Request) {
     const schedule = await prisma.schedule.findUnique({
       where: { id: scheduleId },
       select: {
+        title: true,
+        matchDate: true,
+        startTime: true,
+        type: true,
+        status: true,
         ourScore: true,
         opponentScore: true,
         mvpUserId: true,
         matchSummary: true,
         matchPhotoUrl: true,
+        goalRecords: true,
+        teamFormation: true,
         playerStats: {
           select: {
             userId: true,
             goals: true,
             assists: true,
+            user: {
+              select: {
+                realName: true,
+                nickname: true,
+              }
+            }
+          }
+        },
+        attendances: {
+          where: {
+            status: { in: ['ATTENDING', 'NO_SHOW', 'PENDING'] }
+          },
+          select: {
+            userId: true,
+            guestId: true,
+            status: true,
+            guestName: true,
             user: {
               select: {
                 realName: true,
@@ -157,7 +202,12 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       success: true,
-      result: schedule,
+      schedule: {
+        ...schedule,
+        date: schedule.matchDate.toISOString().split('T')[0],
+        time: schedule.startTime,
+        attendees: schedule.attendances // 필드명 동기화
+      },
     })
   } catch (error) {
     console.error("경기 결과 조회 중 오류 발생:", error)

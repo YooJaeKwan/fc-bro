@@ -54,14 +54,15 @@ export async function updateScheduleAttendanceStatsWithPending(scheduleId: strin
 
         const attendingCount = counts.find(c => c.status === 'ATTENDING')?._count ?? 0
         const notAttendingCount = counts.find(c => c.status === 'NOT_ATTENDING')?._count ?? 0
+        const noShowCount = counts.find(c => c.status === 'NO_SHOW')?._count ?? 0
 
         // 게스트 수 (게스트는 pending에서 제외)
         const guestCount = await prisma.scheduleAttendance.count({
             where: { scheduleId, isGuest: true }
         })
 
-        // 투표하지 않은 인원 = 전체 사용자 - (참석 + 불참 - 게스트 중 참석/불참)
-        const votedRegularUsers = attendingCount + notAttendingCount - guestCount
+        // 투표하지 않은 인원 = 전체 사용자 - (참석 + 불참 + 노쇼 - 게스트 중 참석/불참/노쇼)
+        const votedRegularUsers = attendingCount + notAttendingCount + noShowCount - guestCount
         const pendingCount = Math.max(0, totalActiveUsers - votedRegularUsers)
 
         await prisma.schedule.update({

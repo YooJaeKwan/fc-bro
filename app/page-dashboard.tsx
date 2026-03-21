@@ -17,9 +17,10 @@ import {
 } from "lucide-react"
 import { UserProfile } from "./components/user-profile"
 import { DashboardHome } from "./components/dashboard-home"
-import { PersonalRecord } from "./components/personal-record"
+import PersonalRecord from "./components/personal-record"
 import { Announcements } from "./components/announcements"
 import { TeamDashboard } from "./components/team-dashboard"
+import { TotalStatistics } from "./components/total-statistics"
 import { BottomNav, type MainTab } from "./components/bottom-nav"
 
 // 무거운 컴포넌트 동적 로딩
@@ -73,6 +74,7 @@ interface DashboardProps {
 // Team 탭 내부 서브탭
 type TeamSubTab = 'members' | 'attendance' | 'album' | 'rules'
 type ProfileSubTab = 'record' | 'info'
+type RankingSubTab = 'leaderboard' | 'total'
 
 export default function Dashboard({ userInfo, onUserUpdate, onLogout }: DashboardProps) {
   const [user, setUser] = useState(userInfo || {
@@ -96,6 +98,7 @@ export default function Dashboard({ userInfo, onUserUpdate, onLogout }: Dashboar
   const [activeTab, setActiveTab] = useState<MainTab>("schedule")
   const [teamSubTab, setTeamSubTab] = useState<TeamSubTab>("members")
   const [profileSubTab, setProfileSubTab] = useState<ProfileSubTab>("record")
+  const [rankingSubTab, setRankingSubTab] = useState<RankingSubTab>("leaderboard")
   const [isManagerMode, setIsManagerMode] = useState(user?.role === 'ADMIN')
 
   // Team 서브탭 아이템
@@ -127,7 +130,7 @@ export default function Dashboard({ userInfo, onUserUpdate, onLogout }: Dashboar
               <div className="flex items-center gap-1">
                 <Announcements isManagerMode={isManagerMode} currentUser={user} />
               </div>
-              
+
               <div className="flex items-center gap-2 pl-2 border-l border-slate-200/60">
                 <div className="relative group cursor-pointer">
                   <div className="absolute -inset-0.5 bg-gradient-to-tr from-slate-200 to-slate-100 rounded-full blur-[2px] opacity-70"></div>
@@ -181,11 +184,10 @@ export default function Dashboard({ userInfo, onUserUpdate, onLogout }: Dashboar
                   <button
                     key={tab.value}
                     onClick={() => setTeamSubTab(tab.value)}
-                    className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-lg text-sm font-medium transition-all duration-200 ${
-                      isActive
+                    className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-lg text-sm font-medium transition-all duration-200 ${isActive
                         ? "bg-white text-slate-900 shadow-sm"
                         : "text-slate-500 hover:text-slate-700"
-                    }`}
+                      }`}
                   >
                     <Icon className="h-4 w-4" />
                     {tab.label}
@@ -212,7 +214,39 @@ export default function Dashboard({ userInfo, onUserUpdate, onLogout }: Dashboar
 
         {/* Ranking */}
         {activeTab === 'ranking' && (
-          <TeamDashboard key={`ranking-${Date.now()}`} currentUser={user} />
+          <div className="space-y-4">
+            {/* Ranking 서브탭 네비게이션 */}
+            <div className="flex gap-1 bg-slate-100 rounded-xl p-1">
+              {[
+                { value: 'leaderboard' as RankingSubTab, label: 'Top 5', icon: BarChart3 },
+                { value: 'total' as RankingSubTab, label: 'Total Statistics', icon: ClipboardList },
+              ].map((tab) => {
+                const Icon = tab.icon
+                const isActive = rankingSubTab === tab.value
+                return (
+                  <button
+                    key={tab.value}
+                    onClick={() => setRankingSubTab(tab.value)}
+                    className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-lg text-sm font-medium transition-all duration-200 ${isActive
+                        ? "bg-white text-slate-900 shadow-sm"
+                        : "text-slate-500 hover:text-slate-700"
+                      }`}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {tab.label}
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* Ranking 서브탭 콘텐츠 */}
+            {rankingSubTab === 'leaderboard' && (
+              <TeamDashboard key={`ranking-${Date.now()}`} currentUser={user} />
+            )}
+            {rankingSubTab === 'total' && (
+              <TotalStatistics key={`total-${Date.now()}`} currentUser={user} />
+            )}
+          </div>
         )}
 
         {/* Formation */}
@@ -235,11 +269,10 @@ export default function Dashboard({ userInfo, onUserUpdate, onLogout }: Dashboar
                   <button
                     key={tab.value}
                     onClick={() => setProfileSubTab(tab.value)}
-                    className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-lg text-sm font-medium transition-all duration-200 ${
-                      isActive
+                    className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-lg text-sm font-medium transition-all duration-200 ${isActive
                         ? "bg-white text-slate-900 shadow-sm"
                         : "text-slate-500 hover:text-slate-700"
-                    }`}
+                      }`}
                   >
                     <Icon className="h-4 w-4" />
                     {tab.label}
@@ -250,7 +283,7 @@ export default function Dashboard({ userInfo, onUserUpdate, onLogout }: Dashboar
 
             {/* My 서브탭 콘텐츠 */}
             {profileSubTab === 'record' && (
-              <PersonalRecord key={`record-${Date.now()}`} currentUser={user} />
+              <PersonalRecord key={`record-${Date.now()}`} userId={user.id} />
             )}
             {profileSubTab === 'info' && (
               <UserProfile userInfo={user} onUserUpdate={handleUserUpdate} onLogout={onLogout} />
