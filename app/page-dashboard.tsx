@@ -21,6 +21,7 @@ import PersonalRecord from "./components/personal-record"
 import { Announcements } from "./components/announcements"
 import { TeamDashboard } from "./components/team-dashboard"
 import { TotalStatistics } from "./components/total-statistics"
+import BadgeNotifier from './components/badge-notifier'
 import { BottomNav, type MainTab } from "./components/bottom-nav"
 
 // 무거운 컴포넌트 동적 로딩
@@ -294,6 +295,9 @@ export default function Dashboard({ userInfo, onUserUpdate, onLogout }: Dashboar
 
       {/* Bottom Navigation */}
       <BottomNav activeTab={activeTab} onTabChange={setActiveTab} isManagerMode={isManagerMode} />
+      
+      {/* Badge Notification Global */}
+      <BadgeNotifier userId={user.id} />
     </div>
   )
 }
