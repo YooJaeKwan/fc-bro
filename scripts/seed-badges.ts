@@ -73,7 +73,7 @@ const badges = [
         icon: '👑',
         category: 'attendance',
         tier: 'platinum',
-        color: '#E5E7EB',
+        color: '#475569',
         sortOrder: 12
     },
     {
@@ -207,7 +207,7 @@ const badges = [
         icon: '💎',
         category: 'veteran',
         tier: 'platinum',
-        color: '#E5E7EB',
+        color: '#475569',
         sortOrder: 52
     }
 ]
