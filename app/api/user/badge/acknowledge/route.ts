@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 export async function POST(request: NextRequest) {
   try {
     const { userId } = await request.json()
+    console.log('📢 뱃지 확인 요청 수신! (userId:)', userId)
 
     if (!userId) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 })

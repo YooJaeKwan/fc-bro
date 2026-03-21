@@ -283,7 +283,7 @@ export default function Dashboard({ userInfo, onUserUpdate, onLogout }: Dashboar
 
             {/* My 서브탭 콘텐츠 */}
             {profileSubTab === 'record' && (
-              <PersonalRecord key={`record-${Date.now()}`} userId={user.id} />
+              <PersonalRecord userId={user.id} />
             )}
             {profileSubTab === 'info' && (
               <UserProfile userInfo={user} onUserUpdate={handleUserUpdate} onLogout={onLogout} />

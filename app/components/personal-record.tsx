@@ -60,6 +60,22 @@ export default function PersonalRecord({ userId }: { userId: string }) {
     const [newBadges, setNewBadges] = useState<any[]>([])
     const [showNewBadgeDialog, setShowNewBadgeDialog] = useState(false)
 
+    const handleAcknowledge = async () => {
+        if (!userId || newBadges.length === 0) return
+        
+        try {
+            await fetch('/api/user/badge/acknowledge', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId })
+            })
+            // 로컬 상태에서도 즉시 반영
+            setNewBadges([])
+        } catch (err) {
+            console.error('뱃지 확인 요청 실패:', err)
+        }
+    }
+
     useEffect(() => {
         if (!userId) return
 
@@ -334,12 +350,7 @@ export default function PersonalRecord({ userId }: { userId: string }) {
             {/* NEW BADGE CONGRATS DIALOG */}
             <Dialog open={showNewBadgeDialog} onOpenChange={(open) => {
                 if (!open) {
-                    // API 호출하여 미확인 뱃지들을 확인 완료로 업데이트
-                    fetch('/api/user/badge/acknowledge', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ userId })
-                    }).catch(err => console.error('뱃지 확인 요청 실패:', err))
+                    handleAcknowledge()
                     setShowNewBadgeDialog(false)
                 }
             }}>
@@ -376,7 +387,10 @@ export default function PersonalRecord({ userId }: { userId: string }) {
                         <div className="mt-6">
                             <Button 
                                 className="w-full h-12 bg-slate-900 hover:bg-slate-800 text-white font-black rounded-xl border-none shadow-lg shadow-slate-200"
-                                onClick={() => setShowNewBadgeDialog(false)}
+                                onClick={() => {
+                                    handleAcknowledge()
+                                    setShowNewBadgeDialog(false)
+                                }}
                             >
                                 대단하네요!
                             </Button>
