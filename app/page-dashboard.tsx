@@ -16,11 +16,11 @@ import {
   ScrollText,
 } from "lucide-react"
 import { UserProfile } from "./components/user-profile"
-import { DashboardHome } from "./components/dashboard-home"
 import PersonalRecord from "./components/personal-record"
 import { Announcements } from "./components/announcements"
 import { TeamDashboard } from "./components/team-dashboard"
 import { TotalStatistics } from "./components/total-statistics"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import BadgeNotifier from './components/badge-notifier'
 import { BottomNav, type MainTab } from "./components/bottom-nav"
 
@@ -58,7 +58,6 @@ const defaultTeamInfo = {
 
 // 메인 탭 라벨
 const tabLabels: Record<MainTab, string> = {
-  home: "Home",
   schedule: "Schedule",
   team: "Team",
   formation: "Tactics",
@@ -122,7 +121,7 @@ export default function Dashboard({ userInfo, onUserUpdate, onLogout }: Dashboar
                 <AvatarFallback className="bg-slate-100 text-slate-400 font-bold">FC</AvatarFallback>
               </Avatar>
               <h1 className="text-lg font-bold text-slate-800 tracking-tight">
-                {activeTab === 'home' ? 'FC BRO' : (tabLabels[activeTab] || activeTab.toUpperCase())}
+                {tabLabels[activeTab] || activeTab.toUpperCase()}
               </h1>
             </div>
 
@@ -163,11 +162,6 @@ export default function Dashboard({ userInfo, onUserUpdate, onLogout }: Dashboar
 
       {/* Content Area */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pb-24 md:pb-28">
-        {/* Home */}
-        {activeTab === 'home' && (
-          <DashboardHome currentUser={user} onUserUpdate={handleUserUpdate} isManagerMode={isManagerMode} />
-        )}
-
         {/* Schedule */}
         {activeTab === 'schedule' && (
           <MatchSchedulePage isManagerMode={isManagerMode} currentUser={user} />

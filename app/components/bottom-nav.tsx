@@ -3,7 +3,7 @@
 import { Home, CalendarDays, Users, Trophy, User, Presentation } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-export type MainTab = 'home' | 'schedule' | 'team' | 'formation' | 'ranking' | 'profile'
+export type MainTab = 'schedule' | 'team' | 'formation' | 'ranking' | 'profile'
 
 interface BottomNavProps {
     activeTab: MainTab

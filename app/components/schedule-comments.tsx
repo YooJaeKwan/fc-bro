@@ -24,18 +24,20 @@ interface ScheduleCommentsProps {
     scheduleId: string
     currentUserId: string
     isManagerMode?: boolean
+    defaultExpanded?: boolean
 }
 
 export function ScheduleComments({
     scheduleId,
     currentUserId,
-    isManagerMode = false
+    isManagerMode = false,
+    defaultExpanded = false
 }: ScheduleCommentsProps) {
     const [comments, setComments] = useState<Comment[]>([])
     const [newComment, setNewComment] = useState('')
     const [isLoading, setIsLoading] = useState(false)
     const [isSubmitting, setIsSubmitting] = useState(false)
-    const [isExpanded, setIsExpanded] = useState(false)
+    const [isExpanded, setIsExpanded] = useState(defaultExpanded)
     const [deletingId, setDeletingId] = useState<string | null>(null)
     const scrollRef = useRef<HTMLDivElement>(null)
 
@@ -134,7 +136,7 @@ export function ScheduleComments({
                 className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground"
             >
                 <MessageCircle className="h-4 w-4" />
-                <span>댓글 {comments.length > 0 ? `(${comments.length})` : ''}</span>
+                <span>Match Talk {comments.length > 0 ? `(${comments.length})` : ''}</span>
             </Button>
 
             {/* 확장된 댓글 섹션 */}

@@ -655,6 +655,7 @@ export function MatchSchedule({ isManagerMode, currentUser, onEditSchedule }: Ma
                                             scheduleId={nextMatch.id}
                                             currentUserId={currentUser.id}
                                             isManagerMode={isManagerMode}
+                                            defaultExpanded={true}
                                         />
                                     )}
                                 </div>
@@ -818,8 +819,7 @@ export function MatchSchedule({ isManagerMode, currentUser, onEditSchedule }: Ma
                                                             </Button>
                                                         </div>
                                                     )}
-
-                                                    {/* 댓글 */}
+                                                    {/* 댓글 (확장 시에만 노출) */}
                                                     {currentUser?.id && (
                                                         <ScheduleComments
                                                             scheduleId={schedule.id}
@@ -1068,6 +1068,17 @@ export function MatchSchedule({ isManagerMode, currentUser, onEditSchedule }: Ma
                                                             {schedule.description && (
                                                                 <p className="mt-3 text-xs text-slate-500 bg-slate-50 rounded-lg px-3 py-2">{schedule.description}</p>
                                                             )}
+                                                        </div>
+                                                    )}
+
+                                                    {/* 댓글 섹션 (이제 상세 펼침 여부와 상관없이 항상 노출하며 왼쪽 여백 최소화) */}
+                                                    {currentUser?.id && (
+                                                        <div className="ml-2 mr-2">
+                                                            <ScheduleComments
+                                                                scheduleId={schedule.id}
+                                                                currentUserId={currentUser.id}
+                                                                isManagerMode={isManagerMode}
+                                                            />
                                                         </div>
                                                     )}
                                                 </div>
