@@ -43,6 +43,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "경기 시작 이후에만 결과를 입력할 수 있습니다." }, { status: 400 })
     }
 
+    // 유효한 골 기록만 필터링
+    const validGoals = goals && Array.isArray(goals) ? goals.filter((g: GoalRecord) => g.scorerId) : []
+
     // 트랜잭션으로 경기 결과와 골 기록 저장
     const result = await prisma.$transaction(async (tx) => {
       // 1. 경기 결과 저장 (골 기록은 JSON으로 저장)
@@ -54,10 +57,49 @@ export async function POST(request: Request) {
           matchSummary: matchSummary || null,
           mvpUserId: mvpUserId || null,
           matchPhotoUrl: matchPhotoUrl || null,
-          goalRecords: goals && Array.isArray(goals) ? goals.filter((g: GoalRecord) => g.scorerId) : Prisma.DbNull,
+          goalRecords: validGoals.length > 0 ? validGoals : Prisma.DbNull,
           status: "COMPLETED",
         },
       })
+
+      // 2. SchedulePlayerStat에 개인 골/도움 기록 반영
+      // 먼저 기존 기록 삭제 (결과 수정 시 중복 방지)
+      await tx.schedulePlayerStat.deleteMany({
+        where: { scheduleId }
+      })
+
+      // 골/도움 집계
+      const playerStatsMap: Record<string, { goals: number; assists: number }> = {}
+      
+      for (const goal of validGoals) {
+        // 득점자 (자책골 제외)
+        if (goal.scorerId && goal.scorerId !== 'own_goal') {
+          if (!playerStatsMap[goal.scorerId]) {
+            playerStatsMap[goal.scorerId] = { goals: 0, assists: 0 }
+          }
+          playerStatsMap[goal.scorerId].goals += 1
+        }
+        // 어시스트
+        if (goal.assistId && goal.assistId !== 'none' && goal.assistId !== '') {
+          if (!playerStatsMap[goal.assistId]) {
+            playerStatsMap[goal.assistId] = { goals: 0, assists: 0 }
+          }
+          playerStatsMap[goal.assistId].assists += 1
+        }
+      }
+
+      // SchedulePlayerStat 레코드 생성
+      const statEntries = Object.entries(playerStatsMap)
+      if (statEntries.length > 0) {
+        await tx.schedulePlayerStat.createMany({
+          data: statEntries.map(([usrId, stat]) => ({
+            scheduleId,
+            userId: usrId,
+            goals: stat.goals,
+            assists: stat.assists,
+          }))
+        })
+      }
 
       return updatedSchedule
     })

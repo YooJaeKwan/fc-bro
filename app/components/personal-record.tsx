@@ -198,6 +198,32 @@ export function PersonalRecord({ currentUser }: PersonalRecordProps) {
                                     <div className="text-xs text-red-600">패</div>
                                 </div>
                             </div>
+                            {/* 승률 표시 */}
+                            <div className="mt-3 flex items-center gap-3">
+                                <div className="flex-1">
+                                    <div className="flex items-center justify-between mb-1">
+                                        <span className="text-xs font-medium text-gray-500">승률</span>
+                                        <span className="text-sm font-bold text-amber-600">
+                                            {matchStats.total > 0
+                                                ? Math.round((matchStats.wins / matchStats.total) * 100)
+                                                : 0}%
+                                        </span>
+                                    </div>
+                                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                                        <div
+                                            className="h-full rounded-full transition-all duration-500"
+                                            style={{
+                                                width: `${matchStats.total > 0 ? (matchStats.wins / matchStats.total) * 100 : 0}%`,
+                                                background: 'linear-gradient(90deg, #f59e0b, #d97706)',
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-1 text-xs text-gray-400">
+                                    <TrendingUp className="h-3 w-3" />
+                                    <span>{matchStats.wins}W {matchStats.draws}D {matchStats.losses}L</span>
+                                </div>
+                            </div>
                         </div>
                     )}
 

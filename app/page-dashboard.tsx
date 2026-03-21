@@ -212,7 +212,7 @@ export default function Dashboard({ userInfo, onUserUpdate, onLogout }: Dashboar
 
         {/* Ranking */}
         {activeTab === 'ranking' && (
-          <TeamDashboard currentUser={user} />
+          <TeamDashboard key={`ranking-${Date.now()}`} currentUser={user} />
         )}
 
         {/* Formation */}
@@ -250,7 +250,7 @@ export default function Dashboard({ userInfo, onUserUpdate, onLogout }: Dashboar
 
             {/* My 서브탭 콘텐츠 */}
             {profileSubTab === 'record' && (
-              <PersonalRecord currentUser={user} />
+              <PersonalRecord key={`record-${Date.now()}`} currentUser={user} />
             )}
             {profileSubTab === 'info' && (
               <UserProfile userInfo={user} onUserUpdate={handleUserUpdate} onLogout={onLogout} />

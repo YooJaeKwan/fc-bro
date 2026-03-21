@@ -191,8 +191,14 @@ export function MatchSchedule({ isManagerMode, currentUser, onEditSchedule }: Ma
         return Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
     }
 
+    // 현재 시간을 1분마다 갱신하여 경기 시작 시간 경과 시 자동 반영
+    const [nowMs, setNowMs] = useState(Date.now())
+    useEffect(() => {
+        const timer = setInterval(() => setNowMs(Date.now()), 60 * 1000)
+        return () => clearInterval(timer)
+    }, [])
+
     // KST 기준으로 예정/지난 경기 분리
-    const nowMs = Date.now()
     const upcomingSchedules = schedules
         .filter(s => {
             const matchStartKST = new Date(`${s.date}T${s.time || '23:59'}:00+09:00`).getTime()
