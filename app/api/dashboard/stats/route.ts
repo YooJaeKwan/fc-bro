@@ -277,6 +277,11 @@ export async function GET(request: NextRequest) {
       orderBy: { earnedAt: 'desc' }
     })
 
+    // 미확인(unacknowledged) 뱃지 목록 (방금 지급된 것 포함)
+    const unacknowledgedBadges = updatedUserBadges
+      .filter(ub => !ub.acknowledged)
+      .map(ub => ub.badge)
+
     // 다음 일정 가공
     let formattedNextSchedule = null
     if (nextSchedule) {
@@ -361,7 +366,7 @@ export async function GET(request: NextRequest) {
         },
         recentMatches: formattedRecentMatches,
         badges: updatedUserBadges,
-        newBadges: newlyAwardedBadges
+        newBadges: unacknowledgedBadges
       }
     })
 

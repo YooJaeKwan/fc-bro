@@ -332,8 +332,22 @@ export default function PersonalRecord({ userId }: { userId: string }) {
             </Dialog>
 
             {/* NEW BADGE CONGRATS DIALOG */}
-            <Dialog open={showNewBadgeDialog} onOpenChange={setShowNewBadgeDialog}>
+            <Dialog open={showNewBadgeDialog} onOpenChange={(open) => {
+                if (!open) {
+                    // API 호출하여 미확인 뱃지들을 확인 완료로 업데이트
+                    fetch('/api/user/badge/acknowledge', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ userId })
+                    }).catch(err => console.error('뱃지 확인 요청 실패:', err))
+                    setShowNewBadgeDialog(false)
+                }
+            }}>
                 <DialogContent className="w-[85vw] max-w-sm sm:max-w-[400px] p-0 rounded-2xl mx-auto border-none shadow-2xl overflow-hidden bg-white">
+                    <DialogHeader className="hidden">
+                        <DialogTitle>새로운 업적 달성 축하</DialogTitle>
+                    </DialogHeader>
+                    
                     <div className="bg-gradient-to-br from-blue-600 to-indigo-700 p-6 text-center text-white relative">
                         {/* Decorative circles */}
                         <div className="absolute top-0 left-0 w-20 h-20 bg-white/10 rounded-full -translate-x-10 -translate-y-10 blur-xl"></div>
