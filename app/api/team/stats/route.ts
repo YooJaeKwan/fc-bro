@@ -32,12 +32,13 @@ export async function GET(request: NextRequest) {
         const yearStart = new Date(currentYear, 0, 1)
 
         // 모든 일정의 기록과 MVP 정보, 참석자 정보 조회
+        // status: 'COMPLETED'로 이미 완료된 경기만 필터하므로 lte 조건 불필요
+        // (lte: now는 UTC/KST 시간대 차이로 오늘 경기가 누락되는 버그 유발)
         const schedules = await prisma.schedule.findMany({
             where: {
                 status: 'COMPLETED',
                 matchDate: {
-                    gte: yearStart,
-                    lte: now
+                    gte: yearStart
                 }
             },
             select: {
