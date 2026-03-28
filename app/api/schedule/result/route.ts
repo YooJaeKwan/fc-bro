@@ -33,13 +33,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "일정을 찾을 수 없습니다." }, { status: 404 })
     }
 
-    // 경기 시작 시간 체크 (경기 시작 이후에만 입력 가능)
+    // 경기 시작 시간 체크 (한국 시간 기준)
     const now = new Date()
-    const matchDate = new Date(schedule.matchDate)
-    const [hours, minutes] = (schedule.startTime || "19:00").split(':')
-    matchDate.setHours(Number(hours), Number(minutes), 0, 0)
+    
+    // DB에 저장된 날짜(matchDate)에서 날짜 문자열(YYYY-MM-DD) 추출
+    // Asia/Seoul 시간대 기준의 날짜를 가져와서 합침
+    const dateStr = new Intl.DateTimeFormat('en-CA', { 
+        timeZone: 'Asia/Seoul', 
+        year: 'numeric', 
+        month: '2-digit', 
+        day: '2-digit' 
+    }).format(schedule.matchDate)
+    
+    const startTimeStr = schedule.startTime || "19:00"
+    const matchTimeKst = new Date(`${dateStr}T${startTimeStr}:00.000+09:00`)
 
-    if (matchDate > now) {
+    if (matchTimeKst > now) {
       return NextResponse.json({ error: "경기 시작 이후에만 결과를 입력할 수 있습니다." }, { status: 400 })
     }
 

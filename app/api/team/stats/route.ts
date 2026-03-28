@@ -29,13 +29,14 @@ export async function GET(request: NextRequest) {
         const { searchParams } = new URL(request.url)
         const userId = searchParams.get('userId')
 
-        const now = new Date()
-        const currentYear = now.getFullYear()
-        const yearStart = new Date(currentYear, 0, 1)
+        // 한국 시간(KST) 기준 현재 연도 및 연 초 구하기
+        const nowKst = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Seoul"}));
+        const currentYear = nowKst.getFullYear();
+        // 2026-01-01 00:00:00 KST
+        const yearStart = new Date(`${currentYear}-01-01T00:00:00+09:00`);
 
         // 모든 일정의 기록과 MVP 정보, 참석자 정보 조회
-        // status: 'COMPLETED'로 이미 완료된 경기만 필터하므로 lte 조건 불필요
-        // (lte: now는 UTC/KST 시간대 차이로 오늘 경기가 누락되는 버그 유발)
+        // (gte: yearStart는 KST 기준 1월 1일 00:00를 UTC로 변환한 값임)
         const schedules = await prisma.schedule.findMany({
             where: {
                 status: 'COMPLETED',

@@ -54,11 +54,10 @@ export async function POST(request: NextRequest) {
     }
 
     // 과거 날짜 검증 (한국시간 기준)
-    const [year, month, day] = date.split('-')
-    const [hour, minute] = time.split(':')
-    const inputDateTime = new Date(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute))
+    const inputDateTime = new Date(`${date}T${time}:00.000+09:00`)
+    const now = new Date()
 
-    if (inputDateTime < new Date()) {
+    if (inputDateTime < now) {
       return NextResponse.json(
         { error: '과거 날짜로는 일정을 등록할 수 없습니다.' },
         { status: 400 }

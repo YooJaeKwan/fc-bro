@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { getKSTTodayAtMidnight, formatToKSTDate } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,16 +14,12 @@ export async function GET(request: NextRequest) {
     }
 
     const now = new Date()
-    const kstOffset = 9 * 60 * 60 * 1000
 
-    // KST 기준 오늘 00:00를 UTC로 변환하여 DB 쿼리에 사용
-    const today = new Date(now.getTime() + kstOffset)
-    today.setUTCHours(0, 0, 0, 0)
-    today.setTime(today.getTime() - kstOffset)
+    // KST 기준 오늘 00:00 (UTC)
+    const today = getKSTTodayAtMidnight()
 
-    // KST 기준 내일 00:00
-    const tomorrow = new Date(today)
-    tomorrow.setDate(tomorrow.getDate() + 1)
+    // KST 기준 내일 00:00 (UTC)
+    const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000)
 
     // 1. 활성 회원 수 조회 (미응답 계산용)
     const activeUserCountRequest = prisma.user.count({
@@ -294,7 +291,7 @@ export async function GET(request: NextRequest) {
 
       formattedNextSchedule = {
         ...nextSchedule,
-        date: new Date(nextSchedule.matchDate.getTime() + 9 * 60 * 60 * 1000).toISOString().split('T')[0],
+        date: formatToKSTDate(nextSchedule.matchDate),
         time: nextSchedule.startTime,
         myAttendance: myAttendance?.status || 'PENDING',
         attendanceStats: {
@@ -338,7 +335,7 @@ export async function GET(request: NextRequest) {
 
         return {
           id: match.id,
-          date: match.matchDate.toISOString().split('T')[0],
+          date: formatToKSTDate(match.matchDate),
           location: match.location,
           type: match.type,
           result: matchResult

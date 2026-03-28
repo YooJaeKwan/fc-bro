@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { getKSTTodayAtMidnight, formatToKSTDate } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic' // API 캐싱 방지
 
@@ -12,9 +13,8 @@ export async function GET(request: NextRequest) {
 
         console.log(`다가오는 일정 조회 요청 (limit: ${limit})`)
 
-        // 현재 날짜 이후의 일정만 조회
-        const today = new Date()
-        today.setHours(0, 0, 0, 0)
+        // 현재 한국 시간(KST) 기준 오늘 00:00 이후의 일정만 조회
+        const today = getKSTTodayAtMidnight()
 
         const schedules = await prisma.schedule.findMany({
             where: {
@@ -45,11 +45,7 @@ export async function GET(request: NextRequest) {
                 id: schedule.id,
                 title: schedule.title,
                 type: schedule.type,
-                date: (() => {
-                    // 한국시간으로 저장된 DateTime을 한국시간 기준 날짜 문자열로 변환
-                    const kstDate = new Date(schedule.matchDate.getTime() + (9 * 60 * 60 * 1000))
-                    return kstDate.toISOString().split('T')[0]
-                })(),
+                date: formatToKSTDate(schedule.matchDate),
                 time: schedule.startTime,
                 gatherTime: schedule.gatherTime,
                 location: schedule.location,

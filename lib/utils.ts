@@ -5,6 +5,30 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+/**
+ * 한국 시간(KST, UTC+9) 기준으로 현재 날짜의 00:00:00에 해당하는 UTC Date 객체를 반환합니다.
+ * DB 쿼리(gte: today) 등에 사용하기 적합합니다.
+ */
+export function getKSTTodayAtMidnight(): Date {
+  const now = new Date();
+  const kstOffset = 9 * 60 * 60 * 1000;
+  const todayKst = new Date(now.getTime() + kstOffset);
+  todayKst.setUTCHours(0, 0, 0, 0);
+  return new Date(todayKst.getTime() - kstOffset);
+}
+
+/**
+ * 임의의 Date 객체를 한국 시간(KST) 기준의 'YYYY-MM-DD' 문자열로 변환합니다.
+ */
+export function formatToKSTDate(date: Date): string {
+  return new Intl.DateTimeFormat('en-CA', { 
+    timeZone: 'Asia/Seoul', 
+    year: 'numeric', 
+    month: '2-digit', 
+    day: '2-digit' 
+  }).format(date);
+}
+
 export function calculateDaysLeft(dateString: string): number {
   const today = new Date()
   const targetDate = new Date(dateString)
