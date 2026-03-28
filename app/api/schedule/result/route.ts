@@ -93,15 +93,15 @@ export async function POST(request: Request) {
       const playerStatsMap: Record<string, { goals: number; assists: number }> = {}
       
       for (const goal of validGoals) {
-        // 득점자 (자책골 제외)
-        if (goal.scorerId && goal.scorerId !== 'own_goal') {
+        // 득점자 (자책골 및 게스트 제외)
+        if (goal.scorerId && goal.scorerId !== 'own_goal' && !goal.scorerId.startsWith('guest_')) {
           if (!playerStatsMap[goal.scorerId]) {
             playerStatsMap[goal.scorerId] = { goals: 0, assists: 0 }
           }
           playerStatsMap[goal.scorerId].goals += 1
         }
-        // 어시스트
-        if (goal.assistId && goal.assistId !== 'none' && goal.assistId !== '') {
+        // 어시스트 (없음 및 게스트 제외)
+        if (goal.assistId && goal.assistId !== 'none' && goal.assistId !== '' && !goal.assistId.startsWith('guest_')) {
           if (!playerStatsMap[goal.assistId]) {
             playerStatsMap[goal.assistId] = { goals: 0, assists: 0 }
           }

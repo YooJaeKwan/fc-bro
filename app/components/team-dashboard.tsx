@@ -228,7 +228,7 @@ export function TeamDashboard({ currentUser }: { currentUser: any }) {
                 />
                 <RankingList
                     title="Top Attendance"
-                    subtitle="최우수 출석률 (올해 전체 경기의 50% 이상)"
+                    subtitle="최우수 출석률 (자체경기, A매치등 모두 포함)"
                     icon={<span className="text-xl leading-none">🔥</span>}
                     data={stats?.topAttendance || []}
                     valueKey="attendanceRate"

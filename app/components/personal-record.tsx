@@ -141,7 +141,7 @@ export default function PersonalRecord({ userId }: { userId: string }) {
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2 text-sm font-bold text-slate-700">
                                 <Trophy className="h-4 w-4 text-amber-500" />
-                                <span>시즌 전적</span>
+                                <span>자체경기 시즌 전적</span>
                             </div>
                             <div className="text-[11px] font-bold text-slate-400 uppercase">{matchStats.total} 경기</div>
                         </div>
@@ -180,7 +180,7 @@ export default function PersonalRecord({ userId }: { userId: string }) {
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2 text-sm font-bold text-slate-700">
                                 <CalendarDays className="h-4 w-4 text-blue-500" />
-                                <span>시즌 출석</span>
+                                <span>시즌 총 출석</span>
                             </div>
                             <div className="text-[11px] font-bold text-slate-400">{attendanceStats.attended} / {attendanceStats.total} 참석</div>
                         </div>
@@ -246,8 +246,8 @@ export default function PersonalRecord({ userId }: { userId: string }) {
                                             <Badge className={cn(
                                                 "text-[10px] font-bold border-none",
                                                 match.result === 'win' ? "bg-emerald-100 text-emerald-700" :
-                                                match.result === 'draw' ? "bg-slate-100 text-slate-500" :
-                                                "bg-red-100 text-red-700"
+                                                    match.result === 'draw' ? "bg-slate-100 text-slate-500" :
+                                                        "bg-red-100 text-red-700"
                                             )}>
                                                 {match.result === 'win' ? '승' : match.result === 'draw' ? '무' : '패'}
                                             </Badge>
@@ -278,8 +278,8 @@ export default function PersonalRecord({ userId }: { userId: string }) {
                                             <div className={cn(
                                                 "w-12 h-12 rounded-xl border flex items-center justify-center p-1",
                                                 isPlatinum ? "bg-slate-50 border-slate-200" :
-                                                isGold ? "bg-amber-50 border-amber-200" :
-                                                "bg-white border-slate-100"
+                                                    isGold ? "bg-amber-50 border-amber-200" :
+                                                        "bg-white border-slate-100"
                                             )}>
                                                 <span className="text-xl">{badge.icon}</span>
                                             </div>
@@ -312,7 +312,7 @@ export default function PersonalRecord({ userId }: { userId: string }) {
                         </DialogDescription>
                     </DialogHeader>
                     <div className="mt-4">
-                        <Button 
+                        <Button
                             className="w-full h-11 rounded-xl font-bold text-white border-none"
                             style={{ backgroundColor: selectedBadge?.color || '#3b82f6' }}
                             onClick={() => setSelectedBadge(null)}

@@ -179,9 +179,9 @@ export default function Dashboard({ userInfo, onUserUpdate, onLogout }: Dashboar
                   <button
                     key={tab.value}
                     onClick={() => setTeamSubTab(tab.value)}
-                    className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-lg text-sm font-medium transition-all duration-200 ${isActive
-                        ? "bg-white text-slate-900 shadow-sm"
-                        : "text-slate-500 hover:text-slate-700"
+                    className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 px-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${isActive
+                      ? "bg-white text-slate-900 shadow-sm"
+                      : "text-slate-500 hover:text-slate-700"
                       }`}
                   >
                     <Icon className="h-4 w-4" />
@@ -223,8 +223,8 @@ export default function Dashboard({ userInfo, onUserUpdate, onLogout }: Dashboar
                     key={tab.value}
                     onClick={() => setRankingSubTab(tab.value)}
                     className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-lg text-sm font-medium transition-all duration-200 ${isActive
-                        ? "bg-white text-slate-900 shadow-sm"
-                        : "text-slate-500 hover:text-slate-700"
+                      ? "bg-white text-slate-900 shadow-sm"
+                      : "text-slate-500 hover:text-slate-700"
                       }`}
                   >
                     <Icon className="h-4 w-4" />
@@ -265,8 +265,8 @@ export default function Dashboard({ userInfo, onUserUpdate, onLogout }: Dashboar
                     key={tab.value}
                     onClick={() => setProfileSubTab(tab.value)}
                     className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-lg text-sm font-medium transition-all duration-200 ${isActive
-                        ? "bg-white text-slate-900 shadow-sm"
-                        : "text-slate-500 hover:text-slate-700"
+                      ? "bg-white text-slate-900 shadow-sm"
+                      : "text-slate-500 hover:text-slate-700"
                       }`}
                   >
                     <Icon className="h-4 w-4" />
@@ -289,7 +289,7 @@ export default function Dashboard({ userInfo, onUserUpdate, onLogout }: Dashboar
 
       {/* Bottom Navigation */}
       <BottomNav activeTab={activeTab} onTabChange={setActiveTab} isManagerMode={isManagerMode} />
-      
+
       {/* Badge Notification Global */}
       <BadgeNotifier userId={user.id} />
     </div>

@@ -137,7 +137,7 @@ export function TotalStatistics({ currentUser }: { currentUser: any }) {
                     <Badge variant="secondary" className="text-xs bg-slate-100 text-slate-600 font-semibold">
                         {allStats.length}명
                     </Badge>
-                    <span className="text-xs text-slate-400">올해 기록이 있는 선수</span>
+                    <span className="text-xs text-slate-400">자체경기 통계</span>
                 </div>
                 <span className="text-[10px] text-slate-400 italic">* CS : 클린시트</span>
             </div>

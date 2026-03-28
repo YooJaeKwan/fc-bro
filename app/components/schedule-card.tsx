@@ -398,7 +398,7 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
                 <div className="mt-6 pt-6 border-t border-slate-100">
                   <header className="flex items-center gap-2 mb-4">
                     <div className="w-1 h-4 bg-blue-500 rounded-full" />
-                    <h4 className="text-sm font-bold text-slate-800">Match Talk</h4>
+                    <h4 className="text-sm font-bold text-slate-800">댓글</h4>
                   </header>
                   <ScheduleComments
                     scheduleId={schedule.id}
