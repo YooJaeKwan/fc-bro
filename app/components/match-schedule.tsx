@@ -63,6 +63,17 @@ const getTypeInfo = (type: string) => {
 // 승/무/패 결과 판별
 const getMatchResult = (schedule: any, currentUserId?: string): 'win' | 'draw' | 'loss' | null => {
     if (schedule.ourScore == null || schedule.opponentScore == null) return null
+
+    // 현재 사용자의 참석 여부 확인
+    if (currentUserId) {
+        const attendees = schedule.attendees || []
+        const userAttendance = attendees.find((a: any) => a.userId === currentUserId)
+        // 참석하지 않은 경우 (불참, 노쇼, 미투표 등) 승무패 표시 안함
+        if (!userAttendance || (userAttendance.status !== 'attending' && userAttendance.status !== 'attended')) {
+            return null
+        }
+    }
+
     if (schedule.ourScore === schedule.opponentScore) return 'draw'
 
     // A매치이거나 사용자 ID가 없는 경우 기존 로직 (Score 기준)
@@ -91,7 +102,7 @@ const getMatchResult = (schedule: any, currentUserId?: string): 'win' | 'draw' |
         return schedule.opponentScore > schedule.ourScore ? 'win' : 'loss'
     }
 
-    // 어느 팀에도 속하지 않은 경우 기존 로직 유지
+    // 어느 팀에도 속하지 않은 경우 (참석은 했으나 팀편성에 없는 경우)
     return schedule.ourScore > schedule.opponentScore ? 'win' : 'loss'
 }
 
@@ -228,7 +239,7 @@ export function MatchSchedule({ isManagerMode, currentUser, onEditSchedule }: Ma
     const getMonthStats = (matches: any[]) => {
         let wins = 0, draws = 0, losses = 0
         matches.forEach(m => {
-            const r = getMatchResult(m)
+            const r = getMatchResult(m, currentUser?.id)
             if (r === 'win') wins++
             else if (r === 'draw') draws++
             else if (r === 'loss') losses++

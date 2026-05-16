@@ -89,6 +89,18 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
 
   const hasResult = schedule.ourScore !== null && schedule.ourScore !== undefined && schedule.opponentScore !== null && schedule.opponentScore !== undefined
 
+  // 현재 사용자가 이 경기에 참석했는지 확인
+  const didCurrentUserAttend = (() => {
+    if (!currentUser?.id) return false
+    const attendees = schedule.attendees || []
+    const userAttendance = attendees.find((a: any) => a.userId === currentUser.id)
+    if (!userAttendance) return false
+    // API에서 status를 lowercase로 변환하므로 소문자로 체크
+    // 'attending' = 참석 투표, 'attended' = 참석 완료
+    // 'no_show' = 투표 후 불참, 'not_attending' = 불참 투표, 'pending' = 미투표
+    return userAttendance.status === 'attending' || userAttendance.status === 'attended'
+  })()
+
   const ScheduleSkeleton = () => (
     <div className="space-y-4 p-6">
       <div className="flex items-center justify-center">
@@ -155,7 +167,7 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
         <Card className={`transition-all overflow-hidden relative shadow-sm hover:shadow-md border border-slate-200`}>
           
           {/* 하이라이트 바 */}
-          {hasResult && (
+          {hasResult && didCurrentUserAttend && (
             <div className={`h-1.5 w-full ${
               schedule.ourScore > schedule.opponentScore ? 'bg-emerald-500' :
               schedule.ourScore < schedule.opponentScore ? 'bg-rose-500' : 'bg-slate-400'
@@ -195,7 +207,7 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
                       schedule.type === "match" ? `A매치${schedule.opponentTeam ? ` vs ${schedule.opponentTeam}` : ''}` :
                         schedule.type === "training" ? "연습" : schedule.type}
                   </Badge>
-                  {hasResult ? (
+                  {hasResult && didCurrentUserAttend ? (
                     <Badge className={`${
                       schedule.ourScore > schedule.opponentScore ? 'bg-emerald-100 text-emerald-800 border-emerald-200' :
                       schedule.ourScore < schedule.opponentScore ? 'bg-rose-100 text-rose-800 border-rose-200' :
