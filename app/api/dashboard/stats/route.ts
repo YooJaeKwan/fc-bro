@@ -222,21 +222,6 @@ export async function GET(request: NextRequest) {
     if (attendedCount >= 5) milestoneBadges.push('ATTENDANCE_5')
     if (attendedCount >= 10) milestoneBadges.push('ATTENDANCE_10')
     if (attendedCount >= 20) milestoneBadges.push('ATTENDANCE_20')
-    
-    // 2. 승무패 관련
-    if (wins >= 1) milestoneBadges.push('FIRST_WIN')
-    if (draws >= 1) milestoneBadges.push('FIRST_DRAW')
-    if (losses >= 1) milestoneBadges.push('FIRST_LOSS')
-    if (wins >= 10) milestoneBadges.push('WIN_10')
-    if (wins >= 20) milestoneBadges.push('WIN_20')
-    
-    // 3. 실적 관련
-    if (goals >= 5) milestoneBadges.push('GOAL_5')
-    if (goals >= 10) milestoneBadges.push('GOAL_10')
-    if (assists >= 5) milestoneBadges.push('ASSIST_5')
-    if (assists >= 10) milestoneBadges.push('ASSIST_10')
-    if (cleanSheets >= 5) milestoneBadges.push('CLEAN_SHEET_5')
-    if (cleanSheets >= 10) milestoneBadges.push('CLEAN_SHEET_10')
 
     // 뱃지 지급 처리
     const newlyAwardedBadges = []
@@ -268,11 +253,25 @@ export async function GET(request: NextRequest) {
     }
 
     // 최신 뱃지 목록 다시 가져오기
-    const updatedUserBadges = await prisma.userBadge.findMany({
+    const allUserBadges = await prisma.userBadge.findMany({
       where: { userId },
       include: { badge: true },
       orderBy: { earnedAt: 'desc' }
     })
+
+    // 출석 관련 뱃지만 필터링
+    const ATTENDANCE_BADGES = [
+      'ROOKIE_MEMBER',
+      'FIRST_MATCH',
+      'ATTENDANCE_5',
+      'ATTENDANCE_10',
+      'ATTENDANCE_20',
+      'ATTENDANCE_STAR',
+      'ATTENDANCE_KING',
+      'VETERAN_50',
+      'VETERAN_100'
+    ]
+    const updatedUserBadges = allUserBadges.filter(ub => ATTENDANCE_BADGES.includes(ub.badge.code))
 
     // 미확인(unacknowledged) 뱃지 목록 (방금 지급된 것 포함)
     const unacknowledgedBadges = updatedUserBadges

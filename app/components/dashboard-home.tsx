@@ -86,7 +86,19 @@ export function DashboardHome({ currentUser, isManagerMode }: DashboardHomeProps
                 setRecentMatches(recentMatches)
 
                 // 4. Badges
-                setUserBadges(badges)
+                const ATTENDANCE_BADGES = [
+                    'ROOKIE_MEMBER',
+                    'FIRST_MATCH',
+                    'ATTENDANCE_5',
+                    'ATTENDANCE_10',
+                    'ATTENDANCE_20',
+                    'ATTENDANCE_STAR',
+                    'ATTENDANCE_KING',
+                    'VETERAN_50',
+                    'VETERAN_100'
+                ]
+                const filtered = (badges || []).filter((ub: any) => ub.badge && ATTENDANCE_BADGES.includes(ub.badge.code))
+                setUserBadges(filtered)
 
                 // 5. Personal Stats
                 if (stats.personal) {
@@ -381,18 +393,20 @@ export function DashboardHome({ currentUser, isManagerMode }: DashboardHomeProps
                                         {user?.realName || user?.nickname || '사용자'}
                                     </h2>
                                     <div className="flex items-center gap-2 flex-wrap">
-                                        <Badge
-                                            variant="outline"
-                                            className={`text-xs ${(() => {
-                                                const level = user?.level || 1
-                                                if (level === 1) return 'bg-gray-50 text-gray-600 border-gray-200'
-                                                if (level <= 6) return 'bg-blue-50 text-blue-600 border-blue-200'
-                                                if (level <= 9) return 'bg-purple-50 text-purple-600 border-purple-200'
-                                                return 'bg-yellow-50 text-yellow-600 border-yellow-200'
-                                            })()}`}
-                                        >
-                                            {getLevelLabel(user?.level)}
-                                        </Badge>
+                                        {isManagerMode && (
+                                            <Badge
+                                                variant="outline"
+                                                className={`text-xs ${(() => {
+                                                    const level = user?.level || 1
+                                                    if (level === 1) return 'bg-gray-50 text-gray-600 border-gray-200'
+                                                    if (level <= 6) return 'bg-blue-50 text-blue-600 border-blue-200'
+                                                    if (level <= 9) return 'bg-purple-50 text-purple-600 border-purple-200'
+                                                    return 'bg-yellow-50 text-yellow-600 border-yellow-200'
+                                                })()}`}
+                                            >
+                                                {getLevelLabel(user?.level)}
+                                            </Badge>
+                                        )}
                                         {user?.preferredPosition && (
                                             <Badge variant="outline" className={`text-xs ${getPositionColor(user.preferredPosition)}`}>
                                                 {user.preferredPosition}
@@ -428,8 +442,8 @@ export function DashboardHome({ currentUser, isManagerMode }: DashboardHomeProps
                             </div>
                         </div>
 
-                        {/* Match Statistics */}
-                        {matchStats.total > 0 && (
+                        {/* Match Statistics Hidden */}
+                        {/* {matchStats.total > 0 && (
                             <div className="pb-4 border-b">
                                 <div className="flex items-center justify-between mb-2">
                                     <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
@@ -453,10 +467,10 @@ export function DashboardHome({ currentUser, isManagerMode }: DashboardHomeProps
                                     </div>
                                 </div>
                             </div>
-                        )}
+                        )} */}
 
-                        {/* Personal Records Section - Integrated into My Info - Only for Managers */}
-                        {(
+                        {/* Personal Records Section Hidden */}
+                        {/* {(
                             <div className="pb-4 border-b">
                                 <div className="flex items-center justify-between mb-3">
                                     <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
@@ -485,7 +499,7 @@ export function DashboardHome({ currentUser, isManagerMode }: DashboardHomeProps
                                     </div>
                                 </div>
                             </div>
-                        )}
+                        )} */}
 
                         {/* Recent Matches */}
                         {recentMatches.length > 0 && (
@@ -507,14 +521,7 @@ export function DashboardHome({ currentUser, isManagerMode }: DashboardHomeProps
                                                 </div>
                                                 <div className="text-[11px] text-slate-400 line-clamp-1">{match.location}</div>
                                             </div>
-                                            {match.result && (
-                                                <div className={`px-2 py-1 rounded text-[11px] font-bold uppercase transition-colors ${match.result === 'win' ? 'bg-emerald-50 text-emerald-600' :
-                                                    match.result === 'draw' ? 'bg-slate-100 text-slate-500' :
-                                                        'bg-rose-50 text-rose-600'
-                                                    }`}>
-                                                    {match.result === 'win' ? 'WIN' : match.result === 'draw' ? 'DRAW' : 'LOSS'}
-                                                </div>
-                                            )}
+                                            {/* match result hidden */}
                                         </div>
                                     ))}
                                 </div>

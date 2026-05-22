@@ -507,18 +507,20 @@ export function TeamManagement({ isManagerMode, currentUser }: TeamManagementPro
                     <CardTitle className="text-base sm:text-lg">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="font-bold text-gray-900">{member.name}</span>
-                        <Badge
-                          variant="outline"
-                          className={`text-xs ${(() => {
-                            const level = member.level || 1
-                            if (level === 1) return 'bg-gray-50 text-gray-600 border-gray-200'
-                            if (level <= 6) return 'bg-blue-50 text-blue-600 border-blue-200'
-                            if (level <= 9) return 'bg-purple-50 text-purple-600 border-purple-200'
-                            return 'bg-yellow-50 text-yellow-600 border-yellow-200'
-                          })()}`}
-                        >
-                          {getLevelLabel(member.level)}
-                        </Badge>
+                        {isManagerMode && (
+                          <Badge
+                            variant="outline"
+                            className={`text-xs ${(() => {
+                              const level = member.level || 1
+                              if (level === 1) return 'bg-gray-50 text-gray-600 border-gray-200'
+                              if (level <= 6) return 'bg-blue-50 text-blue-600 border-blue-200'
+                              if (level <= 9) return 'bg-purple-50 text-purple-600 border-purple-200'
+                              return 'bg-yellow-50 text-yellow-600 border-yellow-200'
+                            })()}`}
+                          >
+                            {getLevelLabel(member.level)}
+                          </Badge>
+                        )}
                         {member.injuryStatus && member.injuryStatus !== "HEALTHY" && (
                           <Badge variant="outline" className={`text-xs flex items-center gap-0.5 ${member.injuryStatus === "INJURED"
                             ? "bg-red-50 text-red-700 border-red-200"

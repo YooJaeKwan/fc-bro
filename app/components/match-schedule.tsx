@@ -894,7 +894,7 @@ export function MatchSchedule({ isManagerMode, currentUser, onEditSchedule }: Ma
                                     <div className="space-y-2">
                                         {matches.map((schedule: any) => {
                                             const result = getMatchResult(schedule, currentUser?.id)
-                                            const style = getResultStyle(result)
+                                            const style = getResultStyle(null)
                                             const typeInfo = getTypeInfo(schedule.type)
                                             const hasScore = schedule.ourScore != null && schedule.opponentScore != null
 
@@ -942,22 +942,16 @@ export function MatchSchedule({ isManagerMode, currentUser, onEditSchedule }: Ma
                                                                     <span className={`text-[9px] font-bold px-1 py-0.5 rounded ${schedule.type === 'internal' ? 'bg-amber-100 text-amber-700' : 'bg-sky-100 text-sky-700'}`}>
                                                                         {schedule.type === 'internal' ? 'Y' : 'H'}
                                                                     </span>
-                                                                    <span className={`text-lg font-black tabular-nums ${result === 'win' ? 'text-emerald-700' : result === 'loss' ? 'text-rose-700' : 'text-slate-600'}`}>
+                                                                    <span className="text-lg font-black tabular-nums text-slate-600">
                                                                         {schedule.ourScore}
                                                                     </span>
                                                                     <span className="text-xs text-slate-400 font-medium">:</span>
-                                                                    <span className={`text-lg font-black tabular-nums ${result === 'loss' ? 'text-emerald-700' : result === 'win' ? 'text-rose-700' : 'text-slate-600'}`}>
+                                                                    <span className="text-lg font-black tabular-nums text-slate-600">
                                                                         {schedule.opponentScore}
                                                                     </span>
                                                                     <span className={`text-[9px] font-bold px-1 py-0.5 rounded ${schedule.type === 'internal' ? 'bg-blue-100 text-blue-700' : 'bg-rose-100 text-rose-700'}`}>
                                                                         {schedule.type === 'internal' ? 'B' : 'A'}
                                                                     </span>
-                                                                    <Badge className={`text-[10px] font-bold ml-1 ${result === 'win' ? 'bg-emerald-500 hover:bg-emerald-600' :
-                                                                        result === 'draw' ? 'bg-slate-400 hover:bg-slate-500' :
-                                                                            'bg-rose-500 hover:bg-rose-600'
-                                                                        } text-white border-0`}>
-                                                                        {style.label}
-                                                                    </Badge>
                                                                     {isManagerMode && (
                                                                         <button
                                                                             className="ml-1 p-1 rounded-md text-slate-300 hover:text-slate-500 hover:bg-slate-100 transition-colors"

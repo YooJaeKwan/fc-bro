@@ -48,8 +48,19 @@ interface RecentMatch {
     result: 'win' | 'draw' | 'loss' | null
 }
 
-export default function PersonalRecord({ userId }: { userId: string }) {
+export default function PersonalRecord({ userId, isManagerMode }: { userId: string, isManagerMode?: boolean }) {
     const [user, setUser] = useState<User | null>(null)
+    const isAdmin = isManagerMode || (() => {
+        if (typeof window === 'undefined') return false
+        try {
+            const storedUser = sessionStorage.getItem('user')
+            if (!storedUser) return false
+            const parsed = JSON.parse(storedUser)
+            return parsed.role === 'ADMIN'
+        } catch (e) {
+            return false
+        }
+    })()
     const [personalStats, setPersonalStats] = useState<PersonalStats>({ goals: 0, assists: 0, cleanSheets: 0, noShowCount: 0 })
     const [attendanceStats, setAttendanceStats] = useState<AttendanceStats>({ total: 0, attended: 0, rate: 0 })
     const [matchStats, setMatchStats] = useState<MatchStats>({ total: 0, wins: 0, draws: 0, losses: 0 })
@@ -78,7 +89,19 @@ export default function PersonalRecord({ userId }: { userId: string }) {
                     setAttendanceStats(stats.attendance)
                     setMatchStats(stats.matches)
                     setRecentMatches(recent)
-                    setUserBadges(badges || [])
+                    const ATTENDANCE_BADGES = [
+                        'ROOKIE_MEMBER',
+                        'FIRST_MATCH',
+                        'ATTENDANCE_5',
+                        'ATTENDANCE_10',
+                        'ATTENDANCE_20',
+                        'ATTENDANCE_STAR',
+                        'ATTENDANCE_KING',
+                        'VETERAN_50',
+                        'VETERAN_100'
+                    ]
+                    const filtered = (badges || []).filter((ub: any) => ub.badge && ATTENDANCE_BADGES.includes(ub.badge.code))
+                    setUserBadges(filtered)
                 }
             } catch (error) {
                 console.error("데이터 로딩 오류:", error)
@@ -128,16 +151,18 @@ export default function PersonalRecord({ userId }: { userId: string }) {
                                 )}
                             </div>
                             <div className="flex items-center gap-2">
-                                <Badge variant="outline" className={cn("text-[10px] h-5 border-slate-200 font-medium", getLevelColor(user?.level))}>
-                                    {getLevelLabel(user?.level)}
-                                </Badge>
+                                {isAdmin && (
+                                    <Badge variant="outline" className={cn("text-[10px] h-5 border-slate-200 font-medium", getLevelColor(user?.level))}>
+                                        {getLevelLabel(user?.level)}
+                                    </Badge>
+                                )}
                                 <span className="text-xs text-slate-400 font-medium">{user?.preferredPosition || '포지션 미정'}</span>
                             </div>
                         </div>
                     </div>
 
-                    {/* Season Record Card */}
-                    <div className="space-y-4 pb-1">
+                    {/* Season Record Card Hidden */}
+                    {/* <div className="space-y-4 pb-1">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2 text-sm font-bold text-slate-700">
                                 <Trophy className="h-4 w-4 text-amber-500" />
@@ -173,7 +198,7 @@ export default function PersonalRecord({ userId }: { userId: string }) {
                                 />
                             </div>
                         </div>
-                    </div>
+                    </div> */}
 
                     {/* Attendance Rate */}
                     <div className="pt-4 border-t space-y-3">
@@ -194,8 +219,8 @@ export default function PersonalRecord({ userId }: { userId: string }) {
                         </div>
                     </div>
 
-                    {/* Player Stats Grid */}
-                    <div className="pt-4 border-t space-y-3">
+                    {/* Player Stats Grid Hidden */}
+                    {/* <div className="pt-4 border-t space-y-3">
                         <div className="flex items-center gap-2 text-sm font-bold text-slate-700">
                             <Target className="h-4 w-4 text-rose-500" />
                             <span>개인 상세 통계</span>
@@ -214,13 +239,13 @@ export default function PersonalRecord({ userId }: { userId: string }) {
                                 <div className="text-lg font-black text-slate-800">{personalStats.cleanSheets}<span className="text-[10px] font-medium text-slate-400 ml-0.5">회</span></div>
                             </div>
                         </div>
-                        {personalStats.noShowCount > 0 && (
-                            <div className="flex items-center gap-2 p-3 bg-red-50 rounded-xl text-red-600 border border-red-100">
-                                <AlertTriangle className="h-4 w-4" />
-                                <span className="text-xs font-bold font-black italic">노쇼 {personalStats.noShowCount}회 기록됨</span>
-                            </div>
-                        )}
-                    </div>
+                    </div> */}
+                    {personalStats.noShowCount > 0 && (
+                        <div className="mt-3 flex items-center gap-2 p-3 bg-red-50 rounded-xl text-red-600 border border-red-100">
+                            <AlertTriangle className="h-4 w-4" />
+                            <span className="text-xs font-bold font-black italic">노쇼 {personalStats.noShowCount}회 기록됨</span>
+                        </div>
+                    )}
 
                     {/* Recent Activity */}
                     {recentMatches.length > 0 && (
@@ -242,16 +267,7 @@ export default function PersonalRecord({ userId }: { userId: string }) {
                                             </div>
                                             <div className="text-[10px] text-slate-400 truncate">{match.location}</div>
                                         </div>
-                                        {match.result && (
-                                            <Badge className={cn(
-                                                "text-[10px] font-bold border-none",
-                                                match.result === 'win' ? "bg-emerald-100 text-emerald-700" :
-                                                    match.result === 'draw' ? "bg-slate-100 text-slate-500" :
-                                                        "bg-red-100 text-red-700"
-                                            )}>
-                                                {match.result === 'win' ? '승' : match.result === 'draw' ? '무' : '패'}
-                                            </Badge>
-                                        )}
+                                        {/* match result hidden */}
                                     </div>
                                 ))}
                             </div>

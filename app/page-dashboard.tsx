@@ -105,7 +105,6 @@ export default function Dashboard({ userInfo, onUserUpdate, onLogout }: Dashboar
   const teamSubTabs = [
     { value: "members" as TeamSubTab, label: "멤버", icon: Users },
     { value: "attendance" as TeamSubTab, label: "출석부", icon: ClipboardList },
-    { value: "album" as TeamSubTab, label: "앨범", icon: ImageIcon },
     { value: "rules" as TeamSubTab, label: "회칙", icon: ScrollText },
   ]
 
@@ -278,7 +277,7 @@ export default function Dashboard({ userInfo, onUserUpdate, onLogout }: Dashboar
 
             {/* My 서브탭 콘텐츠 */}
             {profileSubTab === 'record' && (
-              <PersonalRecord userId={user.id} />
+              <PersonalRecord userId={user.id} isManagerMode={isManagerMode} />
             )}
             {profileSubTab === 'info' && (
               <UserProfile userInfo={user} onUserUpdate={handleUserUpdate} onLogout={onLogout} />

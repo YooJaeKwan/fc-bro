@@ -22,6 +22,7 @@ const navItems: { value: MainTab; label: string; icon: typeof Home }[] = [
 export function BottomNav({ activeTab, onTabChange, isManagerMode }: BottomNavProps) {
     const visibleNavItems = navItems.filter(item => {
         if (item.value === 'formation' && !isManagerMode) return false;
+        if (item.value === 'ranking') return false;
         return true;
     });
 

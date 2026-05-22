@@ -106,15 +106,27 @@ export async function POST(request: Request) {
 
         // 4. 자격 요건 체크
         const newBadgeCodes = checkEligibleBadges(stats, existingBadgeCodes)
+        const ATTENDANCE_BADGES = [
+            'ROOKIE_MEMBER',
+            'FIRST_MATCH',
+            'ATTENDANCE_5',
+            'ATTENDANCE_10',
+            'ATTENDANCE_20',
+            'ATTENDANCE_STAR',
+            'ATTENDANCE_KING',
+            'VETERAN_50',
+            'VETERAN_100'
+        ]
+        const filteredNewBadgeCodes = newBadgeCodes.filter(code => ATTENDANCE_BADGES.includes(code))
 
         // 5. 새 뱃지 지급
         const allocatedBadges = []
-        if (newBadgeCodes.length > 0) {
+        if (filteredNewBadgeCodes.length > 0) {
             // 뱃지 정보를 조회해서 ID를 알아냄
             const badgeDefinitions = await prisma.badge.findMany({
                 where: {
                     code: {
-                        in: newBadgeCodes
+                        in: filteredNewBadgeCodes
                     }
                 }
             })
@@ -133,7 +145,7 @@ export async function POST(request: Request) {
                 allocatedBadges.push(created)
             }
 
-            console.log(`[Badge Check] User ${userId} earned ${newBadgeCodes.length} new badges: ${newBadgeCodes.join(', ')}`)
+            console.log(`[Badge Check] User ${userId} earned ${filteredNewBadgeCodes.length} new badges: ${filteredNewBadgeCodes.join(', ')}`)
         }
 
         return NextResponse.json({

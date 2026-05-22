@@ -4,11 +4,10 @@ import { useState, useEffect, useRef } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Minus, Plus, Upload, X, Image as ImageIcon, Goal, Trophy, Check, ChevronsUpDown, AlertTriangle, Loader2 } from "lucide-react"
+import { Minus, Plus, Check, ChevronsUpDown, AlertTriangle, Loader2 } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
 import { supabase } from "@/lib/supabase"
-import Image from "next/image"
 import { Badge } from "@/components/ui/badge"
 
 interface MatchResultDialogProps {
@@ -439,101 +438,7 @@ export function MatchResultDialog({ isOpen, onClose, schedule, onSuccess }: Matc
                                     </div>
                                 </div>
 
-                                {/* 골 기록 섹션 */}
-                                {isInternal && players.length > 0 && (
-                                    <div className="space-y-3">
-                                        <div className="flex items-center gap-2 text-sm font-medium">
-                                            <Goal className="h-4 w-4" /> 골 기록
-                                        </div>
-                                        
-                                        {/* 골 입력 가이드/폼 */}
-                                        <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-3">
-                                            <div className="flex items-center gap-2">
-                                                <Select value={pendingGoal.quarter.toString()} onValueChange={(v) => setPendingGoal(prev => ({ ...prev, quarter: Number(v) }))}>
-                                                    <SelectTrigger className="h-9 w-20 text-xs font-bold bg-white"><SelectValue /></SelectTrigger>
-                                                    <SelectContent>{quarterOptions.map(q => <SelectItem key={q} value={q.toString()}>{q}쿼터</SelectItem>)}</SelectContent>
-                                                </Select>
-                                                <Select value={pendingGoal.team} onValueChange={(v) => setPendingGoal(prev => ({ ...prev, team: v as 'yellow' | 'blue', scorerId: '', assistId: 'none' }))}>
-                                                    <SelectTrigger className={cn("h-9 flex-1 text-xs font-bold bg-white", pendingGoal.team === 'yellow' ? "text-yellow-600 border-yellow-200" : "text-blue-600 border-blue-200")}>
-                                                        <SelectValue />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="yellow">Yellow Team</SelectItem>
-                                                        <SelectItem value="blue">Blue Team</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <Select value={pendingGoal.scorerId} onValueChange={(v) => setPendingGoal(prev => ({ ...prev, scorerId: v, assistId: v === 'own_goal' ? 'none' : prev.assistId }))}>
-                                                    <SelectTrigger className="h-9 flex-[1.5] text-xs bg-white"><SelectValue placeholder="⚽ 득점자" /></SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="own_goal" className="text-red-500 font-bold">⚠️ 자책골</SelectItem>
-                                                        {getTeamPlayers(pendingGoal.team).map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-                                                    </SelectContent>
-                                                </Select>
-                                                <Select value={pendingGoal.assistId} onValueChange={(v) => setPendingGoal(prev => ({ ...prev, assistId: v }))} disabled={pendingGoal.scorerId === 'own_goal'}>
-                                                    <SelectTrigger className="h-9 flex-1 text-xs bg-white"><SelectValue placeholder="👟 도움" /></SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="none">도움 없음</SelectItem>
-                                                        {getTeamPlayers(pendingGoal.team).filter(p => p.id !== pendingGoal.scorerId).map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-                                                    </SelectContent>
-                                                </Select>
-                                                <Button type="button" size="sm" className="h-9 px-4 bg-slate-800 text-white font-bold shrink-0" onClick={addGoal}>
-                                                    추가
-                                                </Button>
-                                            </div>
-                                        </div>
 
-                                        {/* 기록된 리스트 (요약형태) */}
-                                        {goals.length > 0 && (
-                                            <div className="space-y-1.5 max-h-[200px] overflow-y-auto pr-1 pt-1">
-                                                {goals.map((goal) => (
-                                                    <div key={goal.id} className={cn(
-                                                        "flex items-center gap-2 px-3 py-2 rounded-lg border text-[11px] font-medium transition-all",
-                                                        goal.team === 'yellow' ? "bg-yellow-50/50 border-yellow-100" : "bg-blue-50/50 border-blue-100"
-                                                    )}>
-                                                        <span className="shrink-0 font-bold text-slate-400 w-5">{goal.quarter}Q</span>
-                                                        <Badge variant="outline" className={cn(
-                                                            "px-1.5 h-4.5 text-[9px] border-none",
-                                                            goal.team === 'yellow' ? "bg-yellow-400 text-yellow-900" : "bg-blue-500 text-white"
-                                                        )}>
-                                                            {goal.team === 'yellow' ? 'Y' : 'B'}
-                                                        </Badge>
-                                                        <div className="flex-1 truncate flex items-center gap-1.5">
-                                                            <span className="font-bold text-slate-700">{goal.scorerName}</span>
-                                                            {goal.assistName && (
-                                                                <>
-                                                                    <span className="text-slate-300">|</span>
-                                                                    <span className="text-slate-500">도움: {goal.assistName}</span>
-                                                                </>
-                                                            )}
-                                                        </div>
-                                                        <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-slate-400 hover:text-red-500" onClick={() => removeGoal(goal.id)}>
-                                                            <X className="h-3.5 w-3.5" />
-                                                        </Button>
-                                                    </div>
-                                                ))}
-                                                <div ref={goalsEndRef} />
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-
-                                {/* MOM 선택 */}
-                                {players.length > 0 && (
-                                    <div className="space-y-2">
-                                        <div className="flex items-center gap-2 text-sm font-medium">
-                                            <Trophy className="h-4 w-4 text-yellow-500" /> MOM 선택
-                                        </div>
-                                        <Select value={mvpId || 'none'} onValueChange={setMvpId}>
-                                            <SelectTrigger><SelectValue placeholder="MOM 선택" /></SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="none">선택 안함</SelectItem>
-                                                {activePlayers.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                )}
                             </>
                         )}
 
@@ -578,26 +483,6 @@ export function MatchResultDialog({ isOpen, onClose, schedule, onSuccess }: Matc
                             </div>
                         )}
 
-                        {/* 사진 업로드 */}
-                        <div className="space-y-2">
-                            <div className="text-sm font-medium flex items-center gap-2">
-                                <ImageIcon className="h-4 w-4" /> 경기 사진
-                            </div>
-                            <div className="bg-gray-50 border-2 border-dashed rounded-lg p-3 flex flex-col items-center gap-2">
-                                {imagePreview ? (
-                                    <div className="relative w-full aspect-video rounded-md overflow-hidden">
-                                        <Image src={imagePreview} alt="Preview" fill className="object-cover" />
-                                        <Button variant="destructive" size="icon" className="absolute top-2 right-2 h-6 w-6" onClick={() => { setSelectedImage(null); setImagePreview(null); setIsImageDeleted(true); if (fileInputRef.current) fileInputRef.current.value = '' }}>
-                                            <X className="h-4 w-4" />
-                                        </Button>
-                                    </div>
-                                ) : (
-                                    <div className="text-xs text-gray-500">사진 업로드</div>
-                                )}
-                                <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageSelect} />
-                                <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}><Upload className="h-3 w-3 mr-1" /> {imagePreview ? '변경' : '파일 선택'}</Button>
-                            </div>
-                        </div>
 
                         <DialogFooter className="flex gap-2 pt-2">
                             <Button variant="outline" className="flex-1 rounded-xl h-11" onClick={handleClose}>취소</Button>

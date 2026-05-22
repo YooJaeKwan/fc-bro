@@ -276,7 +276,7 @@ export function TeamFormation({
             {teamName[teamColor]}
             {statsData && (
               <span className="text-sm font-normal text-gray-600">
-                ({statsData.count}명, 평균 레벨: {statsData.averageScore})
+                ({statsData.count}명{isManagerMode ? `, 평균 레벨: ${statsData.averageScore}` : ''})
               </span>
             )}
           </CardTitle>

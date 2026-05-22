@@ -21,20 +21,6 @@ export function checkEligibleBadges(stats: UserStats, existingBadgeCodes: string
         newBadges.push('FIRST_MATCH')
     }
 
-    // 첫 승리
-    if (stats.hasWin && !existingBadgeCodes.includes('FIRST_WIN')) {
-        newBadges.push('FIRST_WIN')
-    }
-
-    // 첫 패배
-    if (stats.hasLoss && !existingBadgeCodes.includes('FIRST_LOSS')) {
-        newBadges.push('FIRST_LOSS')
-    }
-
-    // 첫 무승부
-    if (stats.hasDraw && !existingBadgeCodes.includes('FIRST_DRAW')) {
-        newBadges.push('FIRST_DRAW')
-    }
 
     // 출석률 뱃지 (성실왕 우선)
     if (stats.totalMatches >= 5) { // 최소 5경기 이상 참여 시

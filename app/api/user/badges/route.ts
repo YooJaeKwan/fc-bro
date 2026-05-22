@@ -2,6 +2,18 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { checkEligibleBadges } from '@/lib/badges'
 
+const ATTENDANCE_BADGES = [
+    'ROOKIE_MEMBER',
+    'FIRST_MATCH',
+    'ATTENDANCE_5',
+    'ATTENDANCE_10',
+    'ATTENDANCE_20',
+    'ATTENDANCE_STAR',
+    'ATTENDANCE_KING',
+    'VETERAN_50',
+    'VETERAN_100'
+]
+
 // GET /api/user/badges - 사용자 뱃지 목록 조회
 export async function GET(request: NextRequest) {
     try {
@@ -26,10 +38,12 @@ export async function GET(request: NextRequest) {
             orderBy: { earnedAt: 'desc' }
         })
 
+        const filteredUserBadges = userBadges.filter(ub => ATTENDANCE_BADGES.includes(ub.badge.code))
+
         return NextResponse.json({
             success: true,
-            badges: userBadges,
-            count: userBadges.length
+            badges: filteredUserBadges,
+            count: filteredUserBadges.length
         })
     } catch (error) {
         console.error('뱃지 조회 오류:', error)
@@ -132,10 +146,11 @@ export async function POST(request: NextRequest) {
 
         // 획득 가능한 새 뱃지 확인
         const newBadgeCodes = checkEligibleBadges(stats, existingBadgeCodes)
+        const filteredNewBadgeCodes = newBadgeCodes.filter(code => ATTENDANCE_BADGES.includes(code))
 
         // 새 뱃지 저장
         const newBadges = []
-        for (const badgeCode of newBadgeCodes) {
+        for (const badgeCode of filteredNewBadgeCodes) {
             // 뱃지 정보 조회
             const badge = await prisma.badge.findUnique({
                 where: { code: badgeCode }
