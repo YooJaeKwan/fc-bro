@@ -263,7 +263,7 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
                 </div>
 
                 {/* 골 기록 */}
-                {schedule.goalRecords && schedule.goalRecords.length > 0 && (
+                {false && schedule.goalRecords && schedule.goalRecords.length > 0 && (
                   <div className="space-y-1.5 max-w-xs mx-auto mb-6">
                     {schedule.goalRecords.map((goal: any, idx: number) => (
                       <div key={idx} className="flex items-center text-[13px] text-slate-600">

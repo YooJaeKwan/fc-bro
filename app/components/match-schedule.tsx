@@ -989,7 +989,7 @@ export function MatchSchedule({ isManagerMode, currentUser, onEditSchedule }: Ma
                                                     </div>
 
                                                     {/* 골 기록 — 쿼터별 그룹 */}
-                                                    {schedule.goalRecords && Array.isArray(schedule.goalRecords) && schedule.goalRecords.length > 0 && (() => {
+                                                    {false && schedule.goalRecords && Array.isArray(schedule.goalRecords) && schedule.goalRecords.length > 0 && (() => {
                                                         // 쿼터별 그룹핑
                                                         const byQuarter: Record<number, any[]> = {}
                                                             ;[...schedule.goalRecords]
