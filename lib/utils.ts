@@ -21,11 +21,11 @@ export function getKSTTodayAtMidnight(): Date {
  * 임의의 Date 객체를 한국 시간(KST) 기준의 'YYYY-MM-DD' 문자열로 변환합니다.
  */
 export function formatToKSTDate(date: Date): string {
-  return new Intl.DateTimeFormat('en-CA', { 
-    timeZone: 'Asia/Seoul', 
-    year: 'numeric', 
-    month: '2-digit', 
-    day: '2-digit' 
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
   }).format(date);
 }
 
@@ -46,19 +46,19 @@ export function calculateDaysLeft(dateString: string): number {
 // 포지션 카테고리 순서 (공격수 -> 미드필더 -> 수비수 -> 골키퍼 -> 그외)
 export const getPositionOrder = (position: string) => {
   const pos = position ? position.toUpperCase() : ''
-  
+
   // Goalkeeper
   if (pos === 'GK') return 4
-  
+
   // Defenders (수비수)
   if (['CB', 'LB', 'RB', 'LWB', 'RWB', 'SW', 'DF', 'LRB', 'LRCB'].includes(pos) || pos.includes('B')) return 3
-  
+
   // Midfielders (미드필더)
   if (['CAM', 'CM', 'CDM', 'LM', 'RM', 'AM', 'DM', 'MF'].includes(pos) || pos.includes('M')) return 2
-  
+
   // Attackers (공격수)
   if (['ST', 'CF', 'SS', 'LWF', 'RWF', 'LW', 'RW', 'FW'].includes(pos) || pos.includes('W') || pos.includes('F')) return 1
-  
+
   return 5 // Unknown
 }
 
@@ -98,7 +98,7 @@ export const generateKakaoShareText = (schedule: any, isManagerMode: boolean = f
   text += `🏟️ ${schedule.location || '미정'}\n`
 
   if (schedule.gatherTime) {
-    text += `⏰ 집합: ${schedule.gatherTime} (경기 20분 전)\n`
+    text += `⏰ 집합: ${schedule.gatherTime}\n`
   }
 
   text += `⚽ ${typeLabel}\n`

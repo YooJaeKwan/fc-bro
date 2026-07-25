@@ -1080,7 +1080,7 @@ export function ScheduleManagement({
                   <div className="flex items-center justify-center">
                     <div className="flex items-center gap-2">
                       <Badge className={getTypeColor(nextUpcomingSchedule.type)} variant="secondary">
-                        {nextUpcomingSchedule.type === "internal" ? "자체경기" : nextUpcomingSchedule.type === "match" ? `A매치${nextUpcomingSchedule.opponentTeam ? ` vs ${nextUpcomingSchedule.opponentTeam}` : ''}` : nextUpcomingSchedule.type === "futsal" ? "풋살" : "연습"}
+                        {nextUpcomingSchedule.type === "internal" ? "자체경기" : nextUpcomingSchedule.type === "match" ? `매치${nextUpcomingSchedule.opponentTeam ? ` vs ${nextUpcomingSchedule.opponentTeam}` : ''}` : nextUpcomingSchedule.type === "futsal" ? "풋살" : "연습"}
                       </Badge>
                       {nextUpcomingSchedule.allowGuests && nextUpcomingSchedule.type === "internal" && (
                         <Badge className="bg-yellow-100 text-yellow-800" variant="secondary">

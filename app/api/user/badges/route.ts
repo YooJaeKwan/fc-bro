@@ -3,15 +3,16 @@ import { prisma } from '@/lib/prisma'
 import { checkEligibleBadges } from '@/lib/badges'
 
 const ATTENDANCE_BADGES = [
-    'ROOKIE_MEMBER',
-    'FIRST_MATCH',
     'ATTENDANCE_5',
     'ATTENDANCE_10',
+    'ATTENDANCE_15',
     'ATTENDANCE_20',
-    'ATTENDANCE_STAR',
-    'ATTENDANCE_KING',
-    'VETERAN_50',
-    'VETERAN_100'
+    'ATTENDANCE_25',
+    'ATTENDANCE_30',
+    'ATTENDANCE_35',
+    'ATTENDANCE_40',
+    'ATTENDANCE_45',
+    'ATTENDANCE_50'
 ]
 
 // GET /api/user/badges - 사용자 뱃지 목록 조회
@@ -72,11 +73,14 @@ export async function POST(request: NextRequest) {
         const yearStart = new Date(currentYear, 0, 1)
         yearStart.setHours(0, 0, 0, 0)
 
+        const now = new Date()
         const allSchedules = await prisma.schedule.findMany({
             where: {
                 matchDate: {
-                    gte: yearStart
-                }
+                    gte: yearStart,
+                    lte: now
+                },
+                status: { not: 'CANCELLED' }
             },
             select: {
                 id: true,

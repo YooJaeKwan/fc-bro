@@ -39,7 +39,7 @@ import {
 } from "lucide-react"
 import { AttendanceVoting } from "./attendance-voting"
 import { ScheduleComments } from "./schedule-comments"
-import { generateKakaoShareText } from "@/lib/utils"
+import { generateKakaoShareText, cn } from "@/lib/utils"
 import { MatchResultDialog } from "./match-result-dialog"
 import { TeamFormation } from "./team-formation"
 
@@ -53,7 +53,7 @@ interface MatchScheduleProps {
 const getTypeInfo = (type: string) => {
     switch (type) {
         case "internal": return { label: "자체경기", color: "bg-emerald-500/10 text-emerald-700 border-emerald-200" }
-        case "match": return { label: "A매치", color: "bg-rose-500/10 text-rose-700 border-rose-200" }
+        case "match": return { label: "매치", color: "bg-rose-500/10 text-rose-700 border-rose-200" }
         case "training": return { label: "연습", color: "bg-sky-500/10 text-sky-700 border-sky-200" }
         case "futsal": return { label: "풋살", color: "bg-amber-500/10 text-amber-700 border-amber-200" }
         default: return { label: type, color: "bg-slate-500/10 text-slate-700 border-slate-200" }
@@ -690,18 +690,18 @@ export function MatchSchedule({ isManagerMode, currentUser, onEditSchedule }: Ma
                                                 onClick={() => setExpandedUpcoming(isExpanded ? null : schedule.id)}
                                             >
                                                 {/* 날짜+시간 블록 */}
-                                                <div className="flex flex-col items-center justify-center w-12 flex-shrink-0">
-                                                    <span className="text-xs text-slate-400 font-medium">
+                                                <div className="flex flex-col items-center justify-center min-w-[56px] flex-shrink-0 text-center">
+                                                    <span className="text-[11px] font-bold text-blue-600 leading-tight">
                                                         {(() => {
-                                                            const d = parseScheduleDate(schedule.date)
-                                                            return d.toLocaleDateString('ko-KR', { weekday: 'short' })
+                                                            const [, m] = schedule.date.split('-')
+                                                            return `${parseInt(m, 10)}월`
                                                         })()}
                                                     </span>
-                                                    <span className="text-lg font-bold text-slate-700 leading-tight">
-                                                        {schedule.date.split('-')[2]}
+                                                    <span className="text-lg font-extrabold text-slate-800 leading-tight">
+                                                        {parseInt(schedule.date.split('-')[2], 10)}일
                                                     </span>
-                                                    <span className="text-[10px] font-semibold text-blue-600 mt-0.5">
-                                                        {schedule.time}
+                                                    <span className="text-[10px] text-slate-400 font-medium leading-tight">
+                                                        ({parseScheduleDate(schedule.date).toLocaleDateString('ko-KR', { weekday: 'short' })}) {schedule.time}
                                                     </span>
                                                 </div>
 

@@ -89,27 +89,48 @@ export function MatchResultDialog({ isOpen, onClose, schedule, onSuccess }: Matc
                                 playerList.push({ id: p.userId, name: p.name, team: 'blue' })
                             })
                         } else {
-                            // 팀편성이 없는 경우 참석/노쇼 인원만 MOM 후보군
+                            // 팀편성이 없는 경우 (A매치 등) 참석/노쇼 인원만 MOM 후보군
                             source
-                                .filter((a: any) => a.status === 'ATTENDING' || a.status === 'NO_SHOW')
+                                .filter((a: any) => {
+                                    const s = (a.status || '').toUpperCase()
+                                    return s === 'ATTENDING' || s === 'NO_SHOW'
+                                })
                                 .forEach((a: any) => {
                                     playerList.push({
                                         id: a.userId || a.guestId,
-                                        name: a.user?.realName || a.user?.nickname || a.guestName || '게스트'
+                                        name: a.user?.realName || a.user?.nickname || a.guestName || a.name || '게스트'
                                     })
                                 })
                         }
                         setPlayers(playerList)
 
-                        // 2. 모든 투표자 저장 (노쇼 선택용)
-                        const attendeesForNoShow = source.filter((a: any) => 
-                            ['ATTENDING', 'NO_SHOW', 'PENDING', 'pending'].includes(a.status)
-                        )
+                        // 2. 참석 확정 인원만 노쇼 선택 대상에 포함 (ATTENDING 및 기존 NO_SHOW)
+                        let attendeesForNoShow = source.filter((a: any) => {
+                            const s = (a.status || '').toUpperCase()
+                            return s === 'ATTENDING' || s === 'NO_SHOW'
+                        })
+
+                        // 팀편성이 있는 경우 팀원 목록의 인원도 안전하게 포함
+                        if (fullSchedule.teamFormation) {
+                            const yellow = fullSchedule.teamFormation.yellowTeam || []
+                            const blue = fullSchedule.teamFormation.blueTeam || []
+                            const teamUserIds = new Set([...yellow, ...blue].map((p: any) => p.userId).filter(Boolean))
+
+                            source.forEach((a: any) => {
+                                const id = a.userId || a.guestId
+                                if (id && teamUserIds.has(id)) {
+                                    if (!attendeesForNoShow.some((existing: any) => (existing.userId || existing.guestId) === id)) {
+                                        attendeesForNoShow.push(a)
+                                    }
+                                }
+                            })
+                        }
+
                         setAllAttendees(attendeesForNoShow)
                         
                         // 기존 노쇼 인원 체크
                         const existingNoShows = source
-                            .filter((a: any) => a.status === 'NO_SHOW' || a.status === 'no_show')
+                            .filter((a: any) => (a.status || '').toUpperCase() === 'NO_SHOW')
                             .map((a: any) => a.userId || a.guestId)
                         setNoShowUserIds(existingNoShows)
 
@@ -386,8 +407,8 @@ export function MatchResultDialog({ isOpen, onClose, schedule, onSuccess }: Matc
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-            <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
+            <DialogContent className="max-w-lg max-h-[90vh] flex flex-col p-6 overflow-hidden">
+                <DialogHeader className="shrink-0 pb-2">
                     <DialogTitle>경기 결과 입력</DialogTitle>
                     <DialogDescription>
                         {schedule.title} ({schedule.date} {schedule.time})
@@ -400,7 +421,7 @@ export function MatchResultDialog({ isOpen, onClose, schedule, onSuccess }: Matc
                         <p className="text-sm text-slate-500 font-medium tracking-tight">경기 정보를 불러오는 중...</p>
                     </div>
                 ) : (
-                    <div className="py-4 space-y-6">
+                    <div className="flex-1 overflow-y-auto pr-1 py-2 space-y-6 overscroll-contain">
                         {schedule.type === 'training' || schedule.type === 'futsal' ? (
                             <div className="text-center py-4 text-muted-foreground">
                                 {schedule.type === 'training' ? '연습' : '풋살'} 경기는 별도의 점수를 기록하지 않습니다.
@@ -443,43 +464,57 @@ export function MatchResultDialog({ isOpen, onClose, schedule, onSuccess }: Matc
                         )}
 
                         {/* 노쇼 관리 */}
-                        {allAttendees.length > 0 && (
+                        {allAttendees.length > 0 ? (
                             <div className="space-y-2 p-4 bg-red-50/50 rounded-xl border border-red-100">
-                                <div className="flex items-center gap-2 text-sm font-bold text-red-600">
-                                    <AlertTriangle className="h-4 w-4" /> 노쇼(No-show) 관리
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2 text-sm font-bold text-red-600">
+                                        <AlertTriangle className="h-4 w-4" /> 노쇼(No-show) 관리
+                                    </div>
+                                    <span className="text-[11px] text-red-400 font-medium">참석 인원 ({allAttendees.length}명) 중 선택</span>
                                 </div>
                                 <Popover>
                                     <PopoverTrigger asChild>
-                                        <Button variant="outline" className="w-full justify-between h-10 border-red-200">
+                                        <Button variant="outline" className="w-full justify-between h-10 border-red-200 bg-white">
                                             <div className="flex items-center gap-2 overflow-hidden">
                                                 {noShowUserIds.length > 0 ? (
                                                     <Badge variant="destructive" className="h-5 px-1.5">{noShowUserIds.length}명 노쇼</Badge>
-                                                ) : <span className="text-xs text-muted-foreground">노쇼 인원 선택</span>}
+                                                ) : <span className="text-xs text-muted-foreground">노쇼 인원 선택 ({allAttendees.length}명 중)</span>}
                                             </div>
                                             <ChevronsUpDown className="h-4 w-4 opacity-50" />
                                         </Button>
                                     </PopoverTrigger>
-                                    <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-1">
-                                        <div className="max-h-[200px] overflow-y-auto">
+                                    <PopoverContent 
+                                        className="w-[var(--radix-popover-trigger-width)] p-1 z-[100]"
+                                        onOpenAutoFocus={(e) => e.preventDefault()}
+                                    >
+                                        <div 
+                                            className="max-h-[220px] overflow-y-auto overscroll-contain space-y-0.5"
+                                            onWheel={(e) => e.stopPropagation()}
+                                            onTouchMove={(e) => e.stopPropagation()}
+                                        >
                                             {allAttendees.map(a => {
                                                 const id = a.userId || a.guestId
-                                                const name = a.user?.realName || a.user?.nickname || a.guestName || a.name
+                                                const name = a.user?.realName || a.user?.nickname || a.guestName || a.name || '게스트'
                                                 const isNoShow = noShowUserIds.includes(id)
                                                 return (
-                                                    <div key={id} onClick={() => toggleNoShow(id)} className={cn("flex items-center justify-between px-3 py-2 rounded text-sm cursor-pointer", isNoShow ? "bg-red-50 text-red-700" : "hover:bg-slate-50")}>
+                                                    <div key={id} onClick={() => toggleNoShow(id)} className={cn("flex items-center justify-between px-3 py-2 rounded text-sm cursor-pointer transition-colors", isNoShow ? "bg-red-50 text-red-700 font-semibold" : "hover:bg-slate-50 text-slate-700")}>
                                                         <div className="flex items-center gap-2">
                                                             <div className={cn("w-4 h-4 rounded border flex items-center justify-center", isNoShow ? "bg-red-500 border-red-500" : "border-slate-300")}>
                                                                 {isNoShow && <Check className="h-2.5 w-2.5 text-white" />}
                                                             </div>
                                                             <span>{name}</span>
                                                         </div>
-                                                        {isNoShow && <span className="text-[10px] font-bold">NO-SHOW</span>}
+                                                        {isNoShow && <span className="text-[10px] font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded">NO-SHOW</span>}
                                                     </div>
                                                 )
                                             })}
                                         </div>
                                     </PopoverContent>
                                 </Popover>
+                            </div>
+                        ) : (
+                            <div className="p-4 bg-slate-50 rounded-xl border text-center text-xs text-slate-400">
+                                참석 확정 인원이 없어 노쇼를 지정할 수 없습니다.
                             </div>
                         )}
 

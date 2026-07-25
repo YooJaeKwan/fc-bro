@@ -39,10 +39,16 @@ export async function GET(request: NextRequest) {
         // (gte: yearStart는 KST 기준 1월 1일 00:00를 UTC로 변환한 값임)
         const schedules = await prisma.schedule.findMany({
             where: {
-                status: 'COMPLETED',
                 matchDate: {
                     gte: yearStart
-                }
+                },
+                OR: [
+                    { status: 'COMPLETED' },
+                    {
+                        status: { not: 'CANCELLED' },
+                        matchDate: { lte: nowKst }
+                    }
+                ]
             },
             select: {
                 id: true,

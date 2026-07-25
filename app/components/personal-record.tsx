@@ -90,15 +90,16 @@ export default function PersonalRecord({ userId, isManagerMode }: { userId: stri
                     setMatchStats(stats.matches)
                     setRecentMatches(recent)
                     const ATTENDANCE_BADGES = [
-                        'ROOKIE_MEMBER',
-                        'FIRST_MATCH',
                         'ATTENDANCE_5',
                         'ATTENDANCE_10',
+                        'ATTENDANCE_15',
                         'ATTENDANCE_20',
-                        'ATTENDANCE_STAR',
-                        'ATTENDANCE_KING',
-                        'VETERAN_50',
-                        'VETERAN_100'
+                        'ATTENDANCE_25',
+                        'ATTENDANCE_30',
+                        'ATTENDANCE_35',
+                        'ATTENDANCE_40',
+                        'ATTENDANCE_45',
+                        'ATTENDANCE_50'
                     ]
                     const filtered = (badges || []).filter((ub: any) => ub.badge && ATTENDANCE_BADGES.includes(ub.badge.code))
                     setUserBadges(filtered)

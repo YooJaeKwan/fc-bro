@@ -72,21 +72,45 @@ export async function POST(request: Request) {
       })
 
       // 2. 노쇼 처리 (ScheduleAttendance 업데이트 - 팀원 및 게스트 모두 대응)
-      if (noShowUserIds && Array.isArray(noShowUserIds) && noShowUserIds.length > 0) {
-        // 팀원(userId) 노쇼 처리
+      const noShowUserList = (noShowUserIds && Array.isArray(noShowUserIds)) ? noShowUserIds : []
+      const noShowMemberIds = noShowUserList.filter((id: string) => id && !id.startsWith('guest_'))
+      const noShowGuestIds = noShowUserList.filter((id: string) => id && id.startsWith('guest_'))
+
+      // 기존 NO_SHOW 상태였다가 해제된 인원은 ATTENDING으로 복구
+      await tx.scheduleAttendance.updateMany({
+        where: {
+          scheduleId,
+          status: { in: ['NO_SHOW', 'no_show'] },
+          userId: { notIn: noShowMemberIds }
+        },
+        data: { status: 'ATTENDING' }
+      })
+
+      await tx.scheduleAttendance.updateMany({
+        where: {
+          scheduleId,
+          status: { in: ['NO_SHOW', 'no_show'] },
+          guestId: { notIn: noShowGuestIds }
+        },
+        data: { status: 'ATTENDING' }
+      })
+
+      // 지정된 인원 NO_SHOW 처리
+      if (noShowMemberIds.length > 0) {
         await tx.scheduleAttendance.updateMany({
           where: {
             scheduleId,
-            userId: { in: noShowUserIds.filter(id => id && !id.startsWith('guest_')) }
+            userId: { in: noShowMemberIds }
           },
           data: { status: 'NO_SHOW' }
         })
+      }
 
-        // 게스트(guestId) 노쇼 처리
+      if (noShowGuestIds.length > 0) {
         await tx.scheduleAttendance.updateMany({
           where: {
             scheduleId,
-            guestId: { in: noShowUserIds.filter(id => id && id.startsWith('guest_')) }
+            guestId: { in: noShowGuestIds }
           },
           data: { status: 'NO_SHOW' }
         })
@@ -186,9 +210,6 @@ export async function GET(request: Request) {
           }
         },
         attendances: {
-          where: {
-            status: { in: ['ATTENDING', 'NO_SHOW', 'PENDING'] }
-          },
           select: {
             userId: true,
             guestId: true,

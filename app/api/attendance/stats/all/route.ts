@@ -24,10 +24,16 @@ export async function GET(request: NextRequest) {
 
         const schedules = await prisma.schedule.findMany({
             where: {
-                status: 'COMPLETED',
                 matchDate: {
                     gte: yearStart  // 올해 1월 1일 이후
-                }
+                },
+                OR: [
+                    { status: 'COMPLETED' },
+                    {
+                        status: { not: 'CANCELLED' },
+                        matchDate: { lte: now }
+                    }
+                ]
             },
             select: {
                 id: true,

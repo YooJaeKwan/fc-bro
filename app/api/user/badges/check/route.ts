@@ -22,7 +22,8 @@ export async function POST(request: Request) {
                 matchDate: {
                     gte: yearStart,
                     lte: now
-                }
+                },
+                status: { not: 'CANCELLED' }
             },
             include: {
                 attendances: true
@@ -107,15 +108,16 @@ export async function POST(request: Request) {
         // 4. 자격 요건 체크
         const newBadgeCodes = checkEligibleBadges(stats, existingBadgeCodes)
         const ATTENDANCE_BADGES = [
-            'ROOKIE_MEMBER',
-            'FIRST_MATCH',
             'ATTENDANCE_5',
             'ATTENDANCE_10',
+            'ATTENDANCE_15',
             'ATTENDANCE_20',
-            'ATTENDANCE_STAR',
-            'ATTENDANCE_KING',
-            'VETERAN_50',
-            'VETERAN_100'
+            'ATTENDANCE_25',
+            'ATTENDANCE_30',
+            'ATTENDANCE_35',
+            'ATTENDANCE_40',
+            'ATTENDANCE_45',
+            'ATTENDANCE_50'
         ]
         const filteredNewBadgeCodes = newBadgeCodes.filter(code => ATTENDANCE_BADGES.includes(code))
 

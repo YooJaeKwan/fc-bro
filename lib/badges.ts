@@ -15,30 +15,14 @@ export interface UserStats {
  */
 export function checkEligibleBadges(stats: UserStats, existingBadgeCodes: string[]): string[] {
     const newBadges: string[] = []
+    const attended = stats.attendedMatches
 
-    // 첫 출전 (첫 참석)
-    if (stats.attendedMatches >= 1 && !existingBadgeCodes.includes('FIRST_MATCH')) {
-        newBadges.push('FIRST_MATCH')
-    }
-
-
-    // 출석률 뱃지 (성실왕 우선)
-    if (stats.totalMatches >= 5) { // 최소 5경기 이상 참여 시
-        if (stats.attendanceRate >= 90 && !existingBadgeCodes.includes('ATTENDANCE_KING')) {
-            newBadges.push('ATTENDANCE_KING')
-        } else if (stats.attendanceRate >= 80 && stats.attendanceRate < 90 && !existingBadgeCodes.includes('ATTENDANCE_STAR')) {
-            newBadges.push('ATTENDANCE_STAR')
+    const thresholds = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50]
+    for (const count of thresholds) {
+        const code = `ATTENDANCE_${count}`
+        if (attended >= count && !existingBadgeCodes.includes(code)) {
+            newBadges.push(code)
         }
-    }
-
-    // 백전노장 (50경기)
-    if (stats.attendedMatches >= 50 && !existingBadgeCodes.includes('VETERAN_50')) {
-        newBadges.push('VETERAN_50')
-    }
-
-    // 베테랑 (100경기)
-    if (stats.attendedMatches >= 100 && !existingBadgeCodes.includes('VETERAN_100')) {
-        newBadges.push('VETERAN_100')
     }
 
     return newBadges

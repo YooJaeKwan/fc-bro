@@ -124,9 +124,11 @@ export async function GET(request: NextRequest) {
 
     const userJoinDate = userInfo?.createdAt ? new Date(userInfo.createdAt) : yearStart
 
-    // 가입일 이후의 완료된 경기만 필터링
+    // 가입일 이후의 지나간 경기(완료되었거나 경기일시가 지난 경기)만 필터링 (취소된 경기 제외)
     const yearSchedules = allYearSchedules.filter((s: any) => {
-      if (s.status !== 'COMPLETED') return false
+      if (s.status === 'CANCELLED') return false
+      const isPastMatch = s.status === 'COMPLETED' || new Date(s.matchDate) <= now
+      if (!isPastMatch) return false
       return new Date(s.matchDate) >= userJoinDate
     })
 
@@ -213,15 +215,14 @@ export async function GET(request: NextRequest) {
     const totalYearSchedules = yearSchedules.length
     const attendanceRate = totalYearSchedules > 0 ? (attendedCount / totalYearSchedules) * 100 : 0
 
-    // --- 뱃지 자동 부여 로직 ---
+    // --- 뱃지 자동 부여 로직 (5경기~50경기, 5경기 단위 출석 뱃지) ---
     const milestoneBadges = []
-    
-    // 1. 기본/출석 관련
-    if (userId) milestoneBadges.push('ROOKIE_MEMBER')
-    if (attendedCount >= 1) milestoneBadges.push('FIRST_MATCH')
-    if (attendedCount >= 5) milestoneBadges.push('ATTENDANCE_5')
-    if (attendedCount >= 10) milestoneBadges.push('ATTENDANCE_10')
-    if (attendedCount >= 20) milestoneBadges.push('ATTENDANCE_20')
+    const attendanceThresholds = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50]
+    for (const count of attendanceThresholds) {
+      if (attendedCount >= count) {
+        milestoneBadges.push(`ATTENDANCE_${count}`)
+      }
+    }
 
     // 뱃지 지급 처리
     const newlyAwardedBadges = []
@@ -259,17 +260,18 @@ export async function GET(request: NextRequest) {
       orderBy: { earnedAt: 'desc' }
     })
 
-    // 출석 관련 뱃지만 필터링
+    // 출석 관련 뱃지만 필터링 (5~50경기)
     const ATTENDANCE_BADGES = [
-      'ROOKIE_MEMBER',
-      'FIRST_MATCH',
       'ATTENDANCE_5',
       'ATTENDANCE_10',
+      'ATTENDANCE_15',
       'ATTENDANCE_20',
-      'ATTENDANCE_STAR',
-      'ATTENDANCE_KING',
-      'VETERAN_50',
-      'VETERAN_100'
+      'ATTENDANCE_25',
+      'ATTENDANCE_30',
+      'ATTENDANCE_35',
+      'ATTENDANCE_40',
+      'ATTENDANCE_45',
+      'ATTENDANCE_50'
     ]
     const updatedUserBadges = allUserBadges.filter(ub => ATTENDANCE_BADGES.includes(ub.badge.code))
 

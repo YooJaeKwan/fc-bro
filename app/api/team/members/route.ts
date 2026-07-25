@@ -127,7 +127,8 @@ export async function GET(request: NextRequest) {
           matchDate: {
             gte: yearStart,
             lte: now // 미래 경기는 제외
-          }
+          },
+          status: { not: 'CANCELLED' }
         }
       })
       console.log(`올해 전체 일정 수: ${totalSchedulesThisYear}`)
@@ -170,7 +171,8 @@ export async function GET(request: NextRequest) {
               matchDate: {
                 gte: yearStart,
                 lte: now // 미래 경기는 제외
-              }
+              },
+              status: { not: 'CANCELLED' }
             }
           },
           select: {

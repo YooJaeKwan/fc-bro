@@ -241,7 +241,7 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
                       {schedule.ourScore}
                     </div>
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-100 px-2 py-0.5 rounded">
-                      YELLOW
+                      {schedule.type === 'internal' ? 'YELLOW' : 'HOME'}
                     </span>
                   </div>
 
@@ -257,7 +257,7 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
                       {schedule.opponentScore}
                     </div>
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-100 px-2 py-0.5 rounded">
-                      BLUE
+                      {schedule.type === 'internal' ? 'BLUE' : (schedule.opponentTeam || 'AWAY')}
                     </span>
                   </div>
                 </div>
