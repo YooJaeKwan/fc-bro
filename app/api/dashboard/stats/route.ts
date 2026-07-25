@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
         attendances: {
           some: {
             userId: userId,
-            status: 'ATTENDING'
+            status: { in: ['ATTENDING', 'attending', 'ATTENDED', 'attended'] }
           }
         }
       },
@@ -149,8 +149,9 @@ export async function GET(request: NextRequest) {
 
     yearSchedules.forEach((schedule: any) => {
       const myAttendance = schedule.attendances.find((a: any) => a.userId === userId)
-      const isAttended = myAttendance?.status === 'ATTENDING'
-      const isNoShow = myAttendance?.status === 'NO_SHOW'
+      const statusUpper = (myAttendance?.status || '').toUpperCase()
+      const isAttended = statusUpper === 'ATTENDING' || statusUpper === 'ATTENDED'
+      const isNoShow = statusUpper === 'NO_SHOW'
       
       if (isAttended) attendedCount++
       if (isNoShow) noShowCount++

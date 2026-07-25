@@ -62,9 +62,10 @@ export async function GET(request: NextRequest) {
                 }
 
                 const att = schedule.attendances.find(a => a.userId === user.id)
-                if (att?.status === 'ATTENDING') {
+                const attStatus = (att?.status || '').toUpperCase()
+                if (attStatus === 'ATTENDING' || attStatus === 'ATTENDED') {
                     attendanceMatrix[user.id][schedule.id] = 'O'
-                } else if (att?.status === 'NO_SHOW') {
+                } else if (attStatus === 'NO_SHOW') {
                     attendanceMatrix[user.id][schedule.id] = 'N'
                 } else {
                     attendanceMatrix[user.id][schedule.id] = 'X'
@@ -72,25 +73,30 @@ export async function GET(request: NextRequest) {
             })
         })
 
-        // 4. 유저별 출석률 계산
-        const userStats = users.map(user => {
-            // 유저별로 가입일 이후의 경기들만 모수(total)로 계산
-            const validSchedules = schedules.filter(s => new Date(s.matchDate) >= new Date(user.createdAt))
-            const totalSchedules = validSchedules.length
-
-            const attendedCount = validSchedules.filter(s =>
-                s.attendances.some(a => a.userId === user.id && a.status === 'ATTENDING')
-            ).length
-
-            const rate = totalSchedules > 0 ? (attendedCount / totalSchedules) * 100 : 0
+        // 4. 월별 및 개별 통계 계산
+        const memberStats = users.map(user => {
+            const userMatrix = attendanceMatrix[user.id] || {}
+            
+            // 참석(O) 수 계산
+            const attendedCount = Object.values(userMatrix).filter(val => val === 'O').length
+            
+            // 전체 대상 경기 수 (가입전 '-' 제외)
+            const eligibleSchedules = schedules.filter(s => {
+                const isAfterJoin = new Date(s.matchDate) >= new Date(user.createdAt)
+                return isAfterJoin
+            })
+            
+            const totalEligible = eligibleSchedules.length
+            const attendanceRate = totalEligible > 0 ? Math.round((attendedCount / totalEligible) * 100) : 0
 
             return {
-                id: user.id,
-                name: user.realName || user.nickname || '이름없음',
-                position: user.preferredPosition || '-',
+                userId: user.id,
+                name: user.realName || user.nickname || '이름 없음',
+                position: user.preferredPosition || 'MC',
                 attendedCount,
-                totalSchedules,
-                rate: Math.round(rate * 10) / 10
+                totalEligible,
+                attendanceRate,
+                matrix: userMatrix
             }
         })
 
@@ -105,7 +111,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({
             success: true,
             data: {
-                users: userStats,
+                users: memberStats,
                 schedules: scheduleList,
                 matrix: attendanceMatrix
             }

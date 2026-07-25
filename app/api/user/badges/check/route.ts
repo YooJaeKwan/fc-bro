@@ -41,7 +41,10 @@ export async function POST(request: Request) {
             totalMatches++
 
             // 내 참석 정보 확인
-            const myAttendance = schedule.attendances.find(a => a.userId === userId && a.status === 'ATTENDING')
+            const myAttendance = schedule.attendances.find(a => {
+                const s = (a.status || '').toUpperCase()
+                return a.userId === userId && (s === 'ATTENDING' || s === 'ATTENDED')
+            })
 
             if (myAttendance) {
                 attendedMatches++

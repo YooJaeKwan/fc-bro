@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
                 attendances: {
                     where: {
                         userId,
-                        status: 'ATTENDING'
+                        status: { in: ['ATTENDING', 'attending', 'ATTENDED', 'attended'] }
                     }
                 }
             }

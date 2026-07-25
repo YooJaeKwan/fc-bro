@@ -137,9 +137,10 @@ export async function GET(request: NextRequest) {
             if (schedule.attendances && Array.isArray(schedule.attendances)) {
                 for (const attendance of schedule.attendances) {
                     if (attendance.userId && validUserIds.has(attendance.userId)) {
-                        if (attendance.status === 'ATTENDING') {
+                        const statusUpper = (attendance.status || '').toUpperCase()
+                        if (statusUpper === 'ATTENDING' || statusUpper === 'ATTENDED') {
                             playerStats[attendance.userId].attendanceCount += 1
-                        } else if (attendance.status === 'NO_SHOW') {
+                        } else if (statusUpper === 'NO_SHOW') {
                             playerStats[attendance.userId].noShowCount += 1
                         }
                     }
@@ -240,7 +241,10 @@ export async function GET(request: NextRequest) {
                 // A매치/교류전 등 외부 경기 전적 계산
                 // 최다 승률과 최다 승점은 명백하게 '자체경기' 한정 지표로 
                 // 외부경기에서는 승,무,패 전적을 가산하지 않음 (출근 및 수비 클린시트만 적용)
-                const attendingUsers = schedule.attendances?.filter(a => a.status === 'ATTENDING').map(a => ({ userId: a.userId })) || []
+                const attendingUsers = schedule.attendances?.filter(a => {
+                    const s = (a.status || '').toUpperCase()
+                    return s === 'ATTENDING' || s === 'ATTENDED'
+                }).map(a => ({ userId: a.userId })) || []
 
                 // 외부 경기 클린시트: 우리 팀이 실점하지 않았을 경우 전체 참석 수비수에게 1회 부여
                 if (schedule.opponentScore === 0) {

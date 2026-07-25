@@ -166,7 +166,7 @@ export async function GET(request: NextRequest) {
         const allAttendances = await prisma.scheduleAttendance.findMany({
           where: {
             userId: { in: memberIds },
-            status: 'ATTENDING',
+            status: { in: ['ATTENDING', 'attending', 'ATTENDED', 'attended'] },
             schedule: {
               matchDate: {
                 gte: yearStart,
