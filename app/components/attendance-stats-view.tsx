@@ -46,7 +46,16 @@ export function AttendanceStatsView() {
             const result = await response.json()
 
             if (result.success) {
-                setData(result.data)
+                const normalizedUsers = (result.data.users || []).map((u: any) => ({
+                    ...u,
+                    id: u.id || u.userId || '',
+                    rate: typeof u.rate === 'number' ? u.rate : (typeof u.attendanceRate === 'number' ? u.attendanceRate : 0),
+                    totalSchedules: typeof u.totalSchedules === 'number' ? u.totalSchedules : (typeof u.totalEligible === 'number' ? u.totalEligible : 0)
+                }))
+                setData({
+                    ...result.data,
+                    users: normalizedUsers
+                })
             } else {
                 setError(result.error || '데이터를 불러오는데 실패했습니다.')
             }
@@ -67,8 +76,8 @@ export function AttendanceStatsView() {
     }
 
     // 전체 평균 출석률 계산
-    const averageRate = data ?
-        Math.round((data.users.reduce((sum, u) => sum + u.rate, 0) / data.users.length) * 10) / 10
+    const averageRate = data && data.users.length > 0 ?
+        Math.round((data.users.reduce((sum, u) => sum + (u.rate || 0), 0) / data.users.length) * 10) / 10
         : 0
 
     // 정렬 함수

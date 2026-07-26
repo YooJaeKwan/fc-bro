@@ -90,11 +90,14 @@ export async function GET(request: NextRequest) {
             const attendanceRate = totalEligible > 0 ? Math.round((attendedCount / totalEligible) * 100) : 0
 
             return {
+                id: user.id,
                 userId: user.id,
                 name: user.realName || user.nickname || '이름 없음',
                 position: user.preferredPosition || 'MC',
                 attendedCount,
                 totalEligible,
+                totalSchedules: totalEligible,
+                rate: attendanceRate,
                 attendanceRate,
                 matrix: userMatrix
             }
